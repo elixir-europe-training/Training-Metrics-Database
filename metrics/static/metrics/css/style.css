@@ -5,6 +5,11 @@ body {
   color: #353535; 
   font-family: arial, sans-serif;
   font-size: 14px;
+  --bs-link-color-rgb: 229, 131, 58;
+  --bs-link-hover-color-rgb: 160, 79, 18;
+  --bs-link-active-color-rgb: 160, 79, 18;
+  --bs-link-visited-color-rgb: 229, 131, 58;
+  --bs-link-opacity: 1;
 }
 
 h1 {
@@ -14,35 +19,6 @@ h1 {
   margin-top: 5px;
 }
 
-txt-orange {
-  color: #e5833a;
-}
-
-txt-orange-dark {
-  color: #a04f12;
-}
-
-txt-orange-light {
-  color: #dfa072;
-}
-
-/* unvisited link */
-a:link {
-   color: #e5833a;
-}
-
-/* visited link */
-a:visited {
-    color: #e5833a;
-}
-
-/* mouse over link */
-a:hover {
-  color: #a04f12;
-  text-decoration: underline;
-}
-
-/* selected link */
-a:active {
-  color: #a04f12;
+.divider {
+  border-bottom: solid 1px var(--bs-navbar-color);
 }
