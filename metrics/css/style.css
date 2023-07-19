@@ -25,3 +25,24 @@ txt-orange-dark {
 txt-orange-light {
   color: #dfa072;
 }
+
+/* unvisited link */
+a:link {
+   color: #e5833a;
+}
+
+/* visited link */
+a:visited {
+    color: #e5833a;
+}
+
+/* mouse over link */
+a:hover {
+  color: #a04f12;
+  text-decoration: underline;
+}
+
+/* selected link */
+a:active {
+  color: #a04f12;
+}
