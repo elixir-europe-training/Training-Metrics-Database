@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.urls import reverse
 
 # Create your views here.
 
@@ -44,8 +45,19 @@ def get_navgation():
         ]
     }
 
+
+def get_title(view):
+    return {
+        "title": f"Elixir Tango - {view}",
+    }
+
+
 def test(request):
     return render(request, 'metrics/index.html', context={
-        "title": "Elixir Tango",
+        **get_title("Test"),
         **get_navgation()
     })
+
+
+def manage_event():
+    pass
