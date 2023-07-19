@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django_countries.fields import CountryField
 
 
 class Event(models.Model):
@@ -31,9 +32,7 @@ class Event(models.Model):
     )
     organising_institution = models.TextField()
     location_city = models.TextField()
-    location_country = models.PositiveIntegerField(choices=[
-        (1, "TODO: List of countries")
-    ])
+    location_country = CountryField()
     target_audience = models.PositiveIntegerField(
         choices=[
             (1, "Academia / Research Institution"),
@@ -100,10 +99,8 @@ class Demographic(models.Model):
         ],
     )
 
-    country_employment = models.PositiveIntegerField(
-        verbose_name="Country of employment", choices=[
-            (1, "TODO: List of countries"),
-        ]
+    country_employment = CountryField(
+        verbose_name="Country of employment"
     )
     gender = models.PositiveIntegerField(
         choices=[
@@ -310,7 +307,8 @@ class Impact(models.Model):
 
 
 class ElixirNode(models.Model):
-    pass
+    node_name = models.TextField()
+    country = CountryField()
 
 
 class User(AbstractUser):

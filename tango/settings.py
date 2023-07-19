@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "metrics",
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "dpd_static_support",
-
+    "django_countries",
 ]
 
 MIDDLEWARE = [
