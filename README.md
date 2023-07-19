@@ -1,6 +1,6 @@
 # ELIXIR-TrP-Tango
 
-For the Training Metrics Database (TMD) of the [ELIXIR Training Platform](https://elixir-europe.org/platforms/training).
+For the Tango, new Training Metrics Database of the [ELIXIR Training Platform](https://elixir-europe.org/platforms/training).
 
 ## Getting started
 
