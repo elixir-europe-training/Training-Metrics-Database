@@ -1,4 +1,4 @@
-# ELIXIR-TrP-Training-Metrics-Database
+# ELIXIR-TrP-Tango
 
 For the Training Metrics Database (TMD) of the [ELIXIR Training Platform](https://elixir-europe.org/platforms/training).
 
