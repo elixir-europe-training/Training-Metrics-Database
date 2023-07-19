@@ -4,6 +4,12 @@ For the Tango, new Training Metrics Database of the [ELIXIR Training Platform](h
 
 ## Getting started
 
+### Running with Docker
+
+```shell
+docker compose up
+```
+
 ### Installation
 
 ```shell
