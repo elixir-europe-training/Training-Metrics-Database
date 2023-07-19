@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = True
 
 if os.environ.get("DJANGO_PRODUCTION", None) is not None:
-    DEBUG = bool(int(os.environ.get("DJANGO_PRODUCTION", 0)))
+    DEBUG = not bool(int(os.environ.get("DJANGO_PRODUCTION", 1)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
