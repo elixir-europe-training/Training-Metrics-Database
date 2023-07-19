@@ -4,7 +4,7 @@ from django.db import models
 
 class Event(models.Model):
     title = models.TextField()
-    elixir_node = models.ForeignKey("ElixirNode")
+    elixir_node = models.ForeignKey("ElixirNode", on_delete=models.CASCADE)
     date = models.DateField()
     duration = models.DecimalField()
     event_type = models.ChoiceField(
@@ -87,14 +87,14 @@ class Event(models.Model):
     long_term_feedback_completed = models.PositiveIntegerField()
     demographic_entries_completed = models.PositiveIntegerField()
     notes = models.TextField()
-    user_id = models.ForeignKey("User")
+    user_id = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now=True)
     modified = models.DateTimeField(auto_now=True)
 
 
 class Demographic(models.Model):
     event_code = models.TextField()
-    event = models.ForeignKey("Event")
+    event = models.ForeignKey("Event", on_delete=models.CASCADE)
     heard_from = models.ChoiceField(
         verbose_name="Where did you hear about this course?",
         choices=[
@@ -141,7 +141,7 @@ class Demographic(models.Model):
             "Other",
         ],
     )
-    created_by = models.ForeignKey("User")
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE)
 
 
 class Feedback(models.Model):
