@@ -1,0 +1,48 @@
+/* css file for TMD Tango */
+
+body {
+  margin: 25px;
+  color: #353535; 
+  font-family: arial, sans-serif;
+  font-size: 14px;
+}
+
+h1 {
+  font-size: 35px;
+  font-weight: normal;
+  color: #e5833a;
+  margin-top: 5px;
+}
+
+txt-orange {
+  color: #e5833a;
+}
+
+txt-orange-dark {
+  color: #a04f12;
+}
+
+txt-orange-light {
+  color: #dfa072;
+}
+
+/* unvisited link */
+a:link {
+   color: #e5833a;
+}
+
+/* visited link */
+a:visited {
+    color: #e5833a;
+}
+
+/* mouse over link */
+a:hover {
+  color: #a04f12;
+  text-decoration: underline;
+}
+
+/* selected link */
+a:active {
+  color: #a04f12;
+}
