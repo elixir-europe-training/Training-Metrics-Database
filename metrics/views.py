@@ -11,7 +11,14 @@ def test(request):
                     ("About", "info-circle", ""),
                     ("All events", "calendar3", ""),
                     ("Reports", "graph-up", ""),
-                    ("Help", "question-circle", "")
+                    ("Help", "question-circle", ""),
+                    ("Sign out", "box-arrow-right", ""),
+                ]
+            ],
+            *[
+                {"title": title, "icon": icon, "url": url, "type": "user"}
+                for title, icon, url in [
+                    ("Anonymous user", "person-circle", ""),
                 ]
             ],
         ]

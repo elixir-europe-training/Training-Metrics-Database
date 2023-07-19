@@ -12,6 +12,13 @@
             </li>
             {% endif %}{% endfor %}
         </ul>
+        <ul class="navbar-nav ms-auto">
+            {% for item in nav_items %}{% if item.type == "user" %}
+            <li class="nav-item">
+                <a class="nav-link" href="#"><i class="bi bi-{{ item.icon }} me-2"></i>{{ item.title }}</a>
+            </li>
+            {% endif %}{% endfor %}
+        </ul>
         <button class="navbar-toggler d-block" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDarkNavbar"
                 aria-controls="offcanvasDarkNavbar" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
