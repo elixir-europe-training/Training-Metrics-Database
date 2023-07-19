@@ -1,4 +1,4 @@
-"""ASGI config for metrain project.
+"""ASGI config for tango project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -10,6 +10,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "metrain.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tango.settings")
 
 application = get_asgi_application()
