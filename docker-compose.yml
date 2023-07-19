@@ -3,7 +3,7 @@ services:
   tango:
     build:
       context: .
-      dockerfile: .//Dockerfile
+      dockerfile: ./Dockerfile
     entrypoint: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./:/code/
