@@ -1,18 +1,32 @@
 from django.shortcuts import render
 
 # Create your views here.
-def test(request):
-    return render(request, 'metrics/index.html', context={
+
+def get_navgation():
+    return {
         "nav_items": [
             {"title": "Dashboard", "icon": "speedometer2", "url": "", "type": "main"},
             *[
                 {"title": title, "icon": icon, "url": url, "type": "side"}
                 for title, icon, url in [
-                    ("About", "info-circle", ""),
                     ("All events", "calendar3", ""),
-                    ("Reports", "graph-up", ""),
-                    ("Help", "question-circle", ""),
-                    ("Sign out", "box-arrow-right", ""),
+                ]
+            ],
+            *[
+                {"title": title, "icon": "clipboard-data", "url": url, "type": "reports"}
+                for title, url in [
+                    ("Events report", ""),
+                    ("Quality metrics report", ""),
+                    ("Demographics metrics report", ""),
+                    ("Impact metrics report", "")
+                ]
+            ],
+            *[
+                {"title": title, "icon": icon, "url": url, "type": "about"}
+                for title, icon, url in [
+                    ("Help", "question-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
+                    ("About", "info-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
+                    ("Contribute", "github", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
                 ]
             ],
             *[
@@ -21,5 +35,17 @@ def test(request):
                     ("Anonymous user", "person-circle", ""),
                 ]
             ],
+            *[
+                {"title": title, "icon": icon, "url": url, "type": "auth"}
+                for title, icon, url in [
+                    ("Sign out", "box-arrow-right", ""),
+                ]
+            ]
         ]
+    }
+
+def test(request):
+    return render(request, 'metrics/index.html', context={
+        "title": "Elixir Tango",
+        **get_navgation()
     })
