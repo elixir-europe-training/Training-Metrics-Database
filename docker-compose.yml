@@ -11,3 +11,14 @@ services:
     env_file: .env
     ports:
       - 127.0.0.1:8000:8000
+
+  postgres:
+    image: postgres:15.3-alpine
+    env_file: ./postgres/postgres.env
+    volumes:
+      - pg:/var/lib/postgresql/data
+      - ./postgres/init-scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+volumes:
+  pg:
