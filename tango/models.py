@@ -30,7 +30,6 @@ class Event(models.Model):
         ]
     )
     organising_institution = models.TextField()
-    organising_institution = models.TextField()
     location_city = models.TextField()
     location_country = models.ChoiceField(choices=["TODO: List of countries"])
     excellerate_wp = models.ChoiceField(
