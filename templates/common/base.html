@@ -8,12 +8,11 @@
 </head>
 <body>
 {% include 'common/nav.html' %}
-<div class="content">
-    {% block content %}
+<article class="container main-content">
+{% block content %}
 
-    {% endblock %}
-</div>
-
-</body>
+{% endblock %}
+</article>
 {% include 'common/footer.html' %}
+</body>
 </html>
