@@ -50,8 +50,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_plotly_dash.middleware.BaseMiddleware"
-    "django_plotly_dash.middleware.ExternalRedirectionMiddleware"
+    "django_plotly_dash.middleware.BaseMiddleware",
+    "django_plotly_dash.middleware.ExternalRedirectionMiddleware",
 ]
 
 ROOT_URLCONF = "tango.urls"
@@ -131,4 +131,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Dash specific options
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+X_FRAME_OPTIONS = "SAMEORIGIN"
