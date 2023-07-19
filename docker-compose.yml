@@ -17,7 +17,6 @@ services:
     env_file: ./postgres/postgres.env
     volumes:
       - pg:/var/lib/postgresql/data
-    #  - ./postgres/init-scripts:/docker-entrypoint-initdb.d
     restart: unless-stopped
 
 volumes:
