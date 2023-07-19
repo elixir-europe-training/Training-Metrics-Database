@@ -1,1 +1,3 @@
 django
+django-plotly-dash==2.2
+whitenoise==6.5
