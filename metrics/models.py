@@ -6,7 +6,7 @@ class Event(models.Model):
     title = models.TextField()
     elixir_node = models.ForeignKey("ElixirNode", on_delete=models.CASCADE)
     date = models.DateField()
-    duration = models.DecimalField()
+    duration = models.DecimalField(max_digits=6, decimal_places=2)
     event_type = models.PositiveIntegerField(
         choices=[
             (1, "Training - face to face"),
