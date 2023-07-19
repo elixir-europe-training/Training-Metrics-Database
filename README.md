@@ -24,5 +24,5 @@ python manage.py runserver
 ### Running local validation checks
 
 ```shell
-pre-commit run-all
+pre-commit run -a
 ```
