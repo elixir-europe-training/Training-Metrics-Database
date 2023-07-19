@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <title>Title</title>
     {% include 'common/bootstrap5.html' %}
+    {% include 'common/custom-css.html' %}
 </head>
 <body>
 {% include 'common/nav.html' %}
-{% block content %}
+<div class="content">
+    {% block content %}
 
-{% endblock %}
+    {% endblock %}
+</div>
 
 </body>
 {% include 'common/footer.html' %}
