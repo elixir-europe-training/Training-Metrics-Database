@@ -1,1 +1,8 @@
-django
+django==4.2.*
+
+# Creates up-to-date list of countries
+django-countries[pyuca]
+
+# Charting
+django-plotly-dash==2.2.*
+dpd-static-support==0.0.*
