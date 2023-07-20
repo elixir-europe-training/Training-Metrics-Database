@@ -4,7 +4,8 @@
     {% plotly_header %}
 {% endblock %}
 {% block content %}
-    <h1>Dashboard</h1>
+    <h1>Reports</h1>
+    {% include 'common/tabs.html' %}
     {% plotly_direct name="SimpleExample" %}
     {% plotly_footer %}
 {% endblock %}
