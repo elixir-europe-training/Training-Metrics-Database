@@ -18,9 +18,10 @@ data = pd.read_csv('https://raw.githubusercontent.com/elixir-europe-training/ELI
 data['Start date'] = pd.to_datetime(data['Start date'], format='%d.%m.%Y')
 data['End date'] = pd.to_datetime(data['End date'], format='%d.%m.%Y')
 
-# extract values from all columns for filtering
+# extract values from all columns for filtering. CHANGE TO CATEGORIES IN DATABASE
 event_type = sorted([str(x) for x in set(data['Event type']) if str(x) != 'nan'])
 funding = sorted([str(x) for x in set(data['Funding']) if str(x) != 'nan'])
+elixir_node = sorted([str(x) for x in set(data['ELIXIR Node']) if str(x) != 'nan'])
 
 app.layout = html.Div([
     dbc.Row([
@@ -59,6 +60,15 @@ app.layout = html.Div([
             )
         ]),
         dbc.Col([
+            dcc.Dropdown(
+                id='elixir-node',
+                options=[{'label': i, 'value': i} for i in elixir_node],
+                value=None,
+                multi=False,
+                placeholder="Select a Node",
+            )
+        ]),
+        dbc.Col([
             dcc.DatePickerRange(
                 id='date-picker-range',
                 initial_visible_month=datetime.now(),
@@ -77,16 +87,29 @@ app.layout = html.Div([
     dbc.Row([
         dash_table.DataTable(
             id='event-table',
-            columns=[{"name": i, "id": i} for i in ['Event code', 'Title', 'Start date', 'End date', 
-                                                    'ELIXIR Node', 'Event details upload status', 
-                                                    'Edit event details', 'Feedback', 'Demographics']],
+            columns=[{"name": i, "id": i} for i in ['Event code', 'Title', 'ELIXIR Node', 'Start date', 'End date', 
+                        'Event type', 'Main organiser']],
             page_size=50,
             style_table={'overflowX': 'auto'},
             style_cell={
                 'minWidth': '50px', 'maxWidth': '180px',
                 'whiteSpace': 'normal',
-                'textAlign': 'left'
+                'textAlign': 'left',
+                'padding': '5px',
+                'fontFamily': 'Arial, sans-serif'
             },
+            style_header={
+                'backgroundColor': 'rgb(230, 230, 230)',
+                'fontWeight': 'bold',
+                'color': 'black',
+                'fontFamily': 'Arial, sans-serif'
+            },
+            style_data_conditional=[
+                {
+                    'if': {'row_index': 'odd'},
+                    'backgroundColor': 'rgb(248, 248, 248)'
+                }
+            ],
         )
     ])
 ])
@@ -97,16 +120,17 @@ app.layout = html.Div([
      Input('event-title', 'value'),
      Input('event-type', 'value'),
      Input('funding-type', 'value'),
+     Input('elixir-node', 'value'),
      Input('date-picker-range', 'start_date'),
      Input('date-picker-range', 'end_date'),
      Input('node-only-toggle', 'value')]
 )
-def update_table(event_code, event_title, event_type, funding, date_from, date_to, node_only):
+def update_table(event_code, event_title, event_type, funding, elixir_node, date_from, date_to, node_only):
     data2 = data.copy()
 
     # Define the required columns
-    required_columns = ['Event code', 'Title', 'Start date', 'End date', 'ELIXIR Node', 
-                        'Event details upload status', 'Edit event details', 'Feedback', 'Demographics']
+    required_columns = ['Event code', 'Title', 'ELIXIR Node', 'Start date', 'End date', 
+                        'Event type', 'Main organiser']
 
     # Check if required columns are in the data, if not, add them with default or empty values
     for col in required_columns:
@@ -121,12 +145,18 @@ def update_table(event_code, event_title, event_type, funding, date_from, date_t
         data2 = data2[data2['Event type'] == event_type]
     if funding is not None:
         data2 = data2[data2['Funding'] == funding]
+    if elixir_node is not None:
+        data2 = data2[data2['ELIXIR Node'] == elixir_node]
     if date_from is not None and date_to is not None:
         date_from = datetime.strptime(date_from.split(' ')[0], '%Y-%m-%d')
         date_to = datetime.strptime(date_to.split(' ')[0], '%Y-%m-%d')
         data2 = data2[(data2['Start date'] >= date_from) & (data2['End date'] <= date_to)]
     if node_only:
         data2 = data2[data2['ELIXIR Node'] == 'ELIXIR-SE'] # Modify this to fit your use case
+
+    # Convert the 'Start date' and 'End date' to date format (without time)
+    data2['Start date'] = data2['Start date'].dt.date
+    data2['End date'] = data2['End date'].dt.date
 
     table_data = data2[required_columns].to_dict('records')
 
