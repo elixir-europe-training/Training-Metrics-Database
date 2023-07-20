@@ -24,7 +24,7 @@ def calculate_metrics(data, column):
     return count
 
 
-def generate_figure(metrics, title, xaxis, yaxis):
+def generate_bar(metrics, title, xaxis, yaxis):
     return {
         'data': [
             go.Bar(
@@ -40,15 +40,40 @@ def generate_figure(metrics, title, xaxis, yaxis):
     }
 
 
+def generate_pie(metrics, title, xaxis, yaxis):
+    return {
+        'data': [
+            go.Pie(
+                values=[value for value in metrics.values()],
+                labels=[key for key in metrics.keys()],
+            )
+        ],
+        'layout': go.Layout(
+            title=title,
+            xaxis={'title': xaxis, 'tickfont': {'size': 10}},
+            yaxis={'title': yaxis},
+        )
+    }
+    
+
+
 def generate_tables_and_figures(group, values):
     for field_id in group.get_fields():
         metrics = calculate_metrics(values, field_id)
-        yield generate_figure(
-            metrics,
-            group.get_field_title(field_id),
-            f'No. of {group.get_name()}',
-            group.get_field_title(field_id)
-        )
+        if group.get_graph_type() == "bar":
+            yield generate_bar(
+                metrics,
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}',
+                group.get_field_title(field_id)
+            )
+        else:
+            yield generate_pie(
+                metrics,
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}',
+                group.get_field_title(field_id)
+            )
         yield [
             {"name": name, "value": value}
             for name, value in metrics.items()

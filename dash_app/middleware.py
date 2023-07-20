@@ -38,6 +38,9 @@ class Group():
             'Url to event page/ agenda': "D",
             'Main organiser': "E",
         }
+    
+    def get_graph_type(self):
+        return "pie"
 
     def get_fields(self):
         return list(self.fields.keys())
