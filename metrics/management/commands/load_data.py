@@ -7,12 +7,12 @@ from metrics.models import Event, Demographic, Quality, Impact, Node, Organising
 from django.core.management.base import BaseCommand
 from datetime import datetime
 
-
 # Define the paths to your CSV files
 events_csv_path = 'tango_events.csv'
 demographics_csv_path = 'demographics.csv'
 qualities_csv_path = 'qualities.csv'
 impacts_csv_path = 'impacts.csv'
+users_csv_path = 'users.csv'
 
 
 def get_country_code(country_name):
@@ -143,6 +143,13 @@ def load_user():
         username='tangouser',
         password='tangouser',
     )
+    with open(users_csv_path) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            User.objects.create_user(
+                username=row['NodeAccount'],
+                password=row['Password']
+            )
 
 
 class Command(BaseCommand):
