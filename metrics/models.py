@@ -5,7 +5,7 @@ from django_countries.fields import CountryField
 
 class Event(models.Model):
     title = models.TextField()
-    elixir_node = models.ForeignKey("ElixirNode", on_delete=models.CASCADE)
+    elixir_node = models.ManyToManyField("ElixirNode")
     date = models.DateField()
     duration = models.DecimalField(max_digits=6, decimal_places=2)
     event_type = models.PositiveIntegerField(
@@ -143,7 +143,8 @@ class Impact(models.Model):
 
 
 class ElixirNode(models.Model):
-    pass
+    name = models.TextField()
+    country = CountryField()
 
 
 class User(AbstractUser):
