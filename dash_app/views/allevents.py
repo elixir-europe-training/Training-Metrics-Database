@@ -4,7 +4,8 @@ import dash_bootstrap_components as dbc
 from django.shortcuts import render
 from django_plotly_dash import DjangoDash
 from dash import dcc, html, dash_table
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
+import urllib
 
 from datetime import datetime
 
@@ -69,6 +70,11 @@ app.layout = html.Div([
         ]),
     ]),
     dbc.Row([
+        dbc.Button("Export", id="download-button", n_clicks=0, style={'width': '200px', 'margin-bottom': '20px'}),
+        dcc.Download(id="download"),
+    ]),
+    dcc.Store(id='store-data'),
+    dbc.Row([
         dash_table.DataTable(
             id='event-table',
             columns=[{"name": i, "id": i} for i in ['Event code', 'Title', 'Start date', 'End date', 
@@ -86,7 +92,7 @@ app.layout = html.Div([
 ])
 
 @app.callback(
-    Output('event-table', 'data'),
+    [Output('event-table', 'data'), Output('store-data', 'data')],
     [Input('event-code', 'value'),
      Input('event-title', 'value'),
      Input('event-type', 'value'),
@@ -124,7 +130,18 @@ def update_table(event_code, event_title, event_type, funding, date_from, date_t
 
     table_data = data2[required_columns].to_dict('records')
 
-    return table_data
+    return table_data, data2.to_dict('records')
+
+
+@app.callback(
+    Output('download', 'data'),
+    Input('download-button', 'n_clicks'),
+    State('store-data', 'data'),
+)
+def generate_csv(n_clicks, stored_data):
+    if n_clicks > 0:
+        data2 = pd.DataFrame(stored_data)
+        return dcc.send_data_frame(data2.to_csv, "filtered_data.csv")
 
 
 def all_events(request):
