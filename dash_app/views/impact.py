@@ -54,7 +54,6 @@ def generate_pie(metrics, title, xaxis, yaxis):
             yaxis={'title': yaxis},
         )
     }
-    
 
 
 def generate_tables_and_figures(group, values):

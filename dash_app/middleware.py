@@ -13,54 +13,52 @@ def get_data(file_name):
 
 
 class Group():
-    def __init__(self, name, fields, data):
+    def __init__(
+        self,
+        name,
+        field_mapping,
+        data,
+        use_fields=None,
+        filter_fields=[
+            "event_type",
+            "funding",
+            "target_audience",
+        ],
+        graph_type="bar"
+    ):
         self.data = data
         self.name = name
-        self.fields = fields
-        self.field_mapping = {
-            '#': "id",
-            'Event code': "event_code",
-            'Title': "title",
-            'ELIXIR Node': "elixir_node",
-            'Start date': "start_date",
-            'End date': "end_date",
-            'Duration': "duration",
-            'Event type': "event_type",
-            'Funding': "funding",
-            'Organising Institution/s': "organizing_inititutions",
-            'Location (city, country)': "location",
-            'EXCELERATE subtask': "excelerate_subtask",
-            'Target audience': "target_audience",
-            'Additional ELIXIR Platforms involved': "additional_platforms",
-            'ELIXIR Communities involved': "A",
-            'Number of participants': "B",
-            'Number of trainers/ facilitators': "C",
-            'Url to event page/ agenda': "D",
-            'Main organiser': "E",
+        self.fields = {
+            field_mapping[name]: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
+            for name in use_fields
+        } if use_fields else {
+            field_id: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
+            for name, field_id in field_mapping.items()
         }
+        self.field_mapping = field_mapping
+        self.filter_fields = filter_fields
+        self.graph_type = graph_type
     
     def get_graph_type(self):
-        return "pie"
+        return self.graph_type
 
     def get_fields(self):
         return list(self.fields.keys())
     
     def get_filter_fields(self):
-        return [
-            "event_type",
-            "funding",
-            "target_audience",
-
-        ]
+        return self.filter_fields
     
     def get_field_placeholder(self, field_id):
-        return field_id
+        return f"Select {self.get_field_title(field_id)}"
     
-    def get_field_options(self,field_id):
+    def get_field_options(self, field_id):
         return self.fields[field_id]
     
-    def get_field_title(self,field_id):
-        return field_id
+    def get_field_title(self, lookup_id):
+        for name, field_id in self.field_mapping.items():
+            if lookup_id == field_id:
+                return name
+        return lookup_id
     
     def get_values(self, event_type=None, funding=None, target_audience=None, date_from=None, date_to=None, node_only=False):
         data2 = self.data.copy()
@@ -103,12 +101,33 @@ def get_metrics():
             "events": Group(
                 "Events",
                 {
-                    "event_type": sorted(list(set(data['Event type']))), 
-                    "funding": sorted([str(x) for x in set(data['Funding']) if str(x) != 'nan']), 
-                    "target_audience": sorted([str(x) for x in set(data['Target audience']) if str(x) != 'nan']),
-                    "location": sorted(list(set(data['Location (city, country)'])))
+                    '#': "id",
+                    'Event code': "event_code",
+                    'Title': "title",
+                    'ELIXIR Node': "elixir_node",
+                    'Start date': "start_date",
+                    'End date': "end_date",
+                    'Duration': "duration",
+                    'Event type': "event_type",
+                    'Funding': "funding",
+                    'Organising Institution/s': "organizing_inititutions",
+                    'Location (city, country)': "location",
+                    'EXCELERATE subtask': "excelerate_subtask",
+                    'Target audience': "target_audience",
+                    'Additional ELIXIR Platforms involved': "additional_platforms",
+                    'ELIXIR Communities involved': "communities_involved",
+                    'Number of participants': "number_of_participants",
+                    'Number of trainers/ facilitators': "number_of_trainers",
+                    'Url to event page/ agenda': "url",
+                    'Main organiser': "main_organizer",
                 },
-                data
+                data,
+                use_fields=[
+                    "Event type",
+                    "Funding",
+                    "Target audience",
+                    "Location (city, country)"
+                ]
             )
         }
     )
