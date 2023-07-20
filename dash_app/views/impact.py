@@ -126,7 +126,7 @@ def get_layout(app, group):
                         id=f'{field_id}-table',
                         columns=[
                             {"name": group.get_field_title(field_id), "id": "name"},
-                            {"name": 'Events', "id": "value"}
+                            {"name": group.get_name(), "id": "value"}
                         ],
                         page_size=10,
                         style_cell={'textAlign': 'left'},
