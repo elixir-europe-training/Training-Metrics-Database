@@ -23,12 +23,9 @@ def get_navigation(request):
             *[
                 {"title": title, "icon": icon, "url": url, "type": "about"}
                 for title, icon, url in [
-                    ("Help", "question-circle",
-                     "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
-                    ("About", "info-circle",
-                     "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
-                    ("Contribute", "github",
-                     "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
+                    ("Help", "question-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
+                    ("About", "info-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
+                    ("Contribute", "github", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
                 ]
             ],
             *[
@@ -46,8 +43,8 @@ def get_navigation(request):
                 [
                     {"title": title, "icon": icon, "url": url, "type": "auth"}
                     for title, icon, url in [
-                    ("Sign out", "box-arrow-right", f"{reverse('admin:logout')}?next={request.path}"),
-                ]
+                        ("Sign out", "box-arrow-right", f"{reverse('admin:logout')}?next={request.path}"),
+                    ]
                 ] if request.user.is_authenticated
                 else []
             )

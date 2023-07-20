@@ -6,6 +6,6 @@
 {% block content %}
     <h1>Reports</h1>
     {% include 'common/tabs.html' %}
-    {% plotly_direct name="SimpleExample" %}
+    {% if dash_name %}{% plotly_direct name=dash_name %}{% endif %}
     {% plotly_footer %}
 {% endblock %}
