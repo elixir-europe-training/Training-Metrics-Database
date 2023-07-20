@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.urls import reverse
 
+
 # Create your views here.
 
 def get_navgation(request):
@@ -10,7 +11,7 @@ def get_navgation(request):
             *[
                 {"title": title, "icon": icon, "url": url, "type": "side"}
                 for title, icon, url in [
-                    ("All events", "calendar3", ""),
+                    ("All events", "calendar3", reverse('events')),
                 ]
             ],
             *[
