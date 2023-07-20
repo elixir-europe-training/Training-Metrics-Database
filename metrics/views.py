@@ -1,8 +1,13 @@
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from django.urls import reverse
+from .forms import EventForm
+from django.views.generic.edit import FormView
 
-from metrics.forms import UserLoginForm
+
+class EventFormView(FormView):
+    template_name = "metrics/manage-events.html"
+    form_class = EventForm
 
 
 # Create your views here.
@@ -31,4 +36,3 @@ def manage_event():
 
 def events(request):
     return render(request, 'metrics/events.html')
-
