@@ -12,12 +12,12 @@ def get_navigation(request):
                 ]
             ],
             *[
-                {"title": title, "icon": "clipboard-data", "url": url, "type": "reports"}
-                for title, url in [
-                    ("Events report", ""),
-                    ("Quality metrics report", ""),
-                    ("Demographics metrics report", ""),
-                    ("Impact metrics report", "")
+                {"title": title, "icon": "clipboard-data", "url": reverse(name), "type": "reports"}
+                for title, name in [
+                    ("Events report", "event-report"),
+                    ("Quality metrics report", "quality-report"),
+                    ("Demographics metrics report", "demographic-report"),
+                    ("Impact metrics report", "impact-report")
                 ]
             ],
             *[
