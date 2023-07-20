@@ -2,7 +2,6 @@ import dash
 import plotly.graph_objs as go
 import pandas as pd
 import dash_bootstrap_components as dbc
-from django.urls import reverse
 
 from django.shortcuts import render
 from django_plotly_dash import DjangoDash
@@ -10,6 +9,7 @@ from dash import dcc, html, dash_table
 from dash.dependencies import Output, Input
 
 from datetime import datetime
+from .common import get_tabs
 
 app = DjangoDash("SimpleExample")
 
@@ -139,21 +139,6 @@ def update_graph_and_table(event_type_value, funding_value, target_audience_valu
     return event_table_data, event_figure, funding_table_data, funding_figure, audience_table_data, audience_figure
 
 
-def get_tabs(request):
-    view_name = request.resolver_match.view_name
-    return {
-        "tabs": [
-            {"title": title, "url": reverse(name), "active": view_name == name}
-            for title, name in [
-                ("Events", "event-report"),
-                ("Quality metrics", "quality-report"),
-                ("Demographics metrics", "demographic-report"),
-                ("Impact metrics", "impact-report")
-            ]
-        ]
-    }
-
-
 def event_report(request):
     return render(
         request,
@@ -164,32 +149,3 @@ def event_report(request):
         }
     )
 
-
-def quality_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
-        }
-    )
-
-
-def demographic_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
-        }
-    )
-
-
-def impact_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
-        }
-    )

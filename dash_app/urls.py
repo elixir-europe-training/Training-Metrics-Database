@@ -1,11 +1,10 @@
 from django.urls import path
 
-from .views import (
-    event_report,
-    quality_report,
-    demographic_report,
-    impact_report
-)
+from .views.event import event_report
+from .views.demographic import demographic_report
+from .views.impact import impact_report
+from .views.quality import quality_report
+
 
 urlpatterns = [
     path('event', event_report, name='event-report'),
