@@ -12,7 +12,7 @@ def get_title(view):
     }
 
 
-def test(request):
+def dashboard(request):
     return render(request, 'metrics/index.html', context={
         "breadcrumbs": [
             {"title": title, "url": url, "state": state}
