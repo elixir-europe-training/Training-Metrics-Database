@@ -1,6 +1,7 @@
 version: "3"
 services:
   tango:
+    container_name: tango-django
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -13,6 +14,7 @@ services:
       - 127.0.0.1:8000:8000
 
   postgres:
+    container_name: tango-pg
     image: postgres:15.3-alpine
     env_file: ./postgres/postgres.env
     volumes:
