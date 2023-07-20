@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    {% include 'common/bootstrap5.html' %}
+    {% include 'common/custom-css.html' %}
+</head>
+<body>
+{% include 'common/nav.html' %}
+<article class="container main-content p-3">
+{% include 'common/breadcrumbs.html' %}
+{% block content %}
+
+{% endblock %}
+</article>
+{% include 'common/footer.html' %}
+</body>
+</html>
