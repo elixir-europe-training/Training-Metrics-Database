@@ -76,3 +76,7 @@ def test(request):
 
 def manage_event():
     pass
+
+
+def events(request):
+    return render(request, 'metrics/events.html')
