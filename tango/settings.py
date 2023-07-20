@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "metrics",
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
+    "dash_app",
     "dpd_static_support",
     "django_countries",
 ]

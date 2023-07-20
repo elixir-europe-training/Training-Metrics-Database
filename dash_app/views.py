@@ -3,15 +3,19 @@ import plotly.graph_objs as go
 import pandas as pd
 import dash_bootstrap_components as dbc
 
+
+from django.shortcuts import render
+from django_plotly_dash import DjangoDash
 from dash import dcc
 from dash import html
 
 from datetime import date, datetime
 
-app = dash.Dash(__name__)
+app = DjangoDash("SimpleExample")
+
 
 # read data from csv for now. To be replaced with db queries
-data = pd.read_csv('../raw-tmd-data/all_events_expanded.csv')
+data = pd.read_csv('/Users/mariadoyle/github/ELIXIR-TrP-Training-Metrics-Database-Tango/raw-tmd-data/all_events_expanded.csv')
 data['Year'] = pd.to_numeric(data['Start date'].str.split('.').str[-1])
 
 # extract values from all columns for plotting
@@ -104,5 +108,5 @@ def update_graph(location, funding):
 
 
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+def event_report(request):
+    return render(request, 'dash_app/template.html')

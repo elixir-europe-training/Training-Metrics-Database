@@ -6,3 +6,4 @@ django-countries[pyuca]
 # Charting
 django-plotly-dash==2.2.*
 dpd-static-support==0.0.*
+pandas

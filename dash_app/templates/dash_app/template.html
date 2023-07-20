@@ -1,0 +1,15 @@
+{% load plotly_dash %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    {% plotly_header %}
+</head>
+<body>
+    <h1 style="text-align:center;">Dashboard</h1>
+    {% plotly_direct name="SimpleExample" %}
+    {% plotly_footer %}
+</body>
+</html>
