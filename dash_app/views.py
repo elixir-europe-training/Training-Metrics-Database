@@ -171,25 +171,6 @@ def event_report(request):
         request,
         'dash_app/template.html',
         context={
-            **request.navigation,
-            "tabs": [
-                {"title": title, "url": url, "active": active}
-                for title, url, active in [
-                    ("Events", "", False),
-                    ("Quality metrics", "", False),
-                    ("Demographics metrics", "", False),
-                    ("Impact metrics", "", True)
-                ]
-            ]
-        }
-    )
-
-
-def event_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
             **get_tabs(request),
             "dash_name": "SimpleExample"
         }
