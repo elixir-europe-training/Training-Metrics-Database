@@ -59,18 +59,20 @@ class Group():
             if lookup_id == field_id:
                 return name
         return lookup_id
+        
     
-    def get_values(self, event_type=None, funding=None, target_audience=None, date_from=None, date_to=None, node_only=False):
+    def get_values(self, **params):
         data2 = self.data.copy()
-        if event_type is not None:
-            data2 = data2[data2['Event type'] == event_type]
-        if funding is not None:
-            data2 = data2[data2['Funding'] == funding]
-        if target_audience is not None:
-            data2 = data2[data2['Target audience'] == target_audience]
+        for field_id in self.filter_fields:
+            value = params.get(field_id)
+            if value is not None:
+                data2 = data2[data2[self.get_field_title(field_id)] == value]
+
+        date_from = params.get("date_from")
+        date_to = params.get("date_to")
         if date_from is not None and date_to is not None:
             data2 = data2[(data2['Year'] >= date_from) & (data2['Year'] <= date_to)]
-        if node_only:
+        if params.get("node_only"):
             data2 = data2[data2['Main organiser'] == 'ELIXIR-SE'] # CHANGE THIS to USER's node
         records = [
             {
