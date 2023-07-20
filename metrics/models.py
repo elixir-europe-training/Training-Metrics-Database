@@ -82,6 +82,9 @@ class Event(models.Model):
 
 
 class Demographic(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     heard_from = models.PositiveIntegerField(
         verbose_name="Where did you hear about this course?",
@@ -106,16 +109,12 @@ class Demographic(models.Model):
         ],
     )
 
-    country_employment = models.PositiveIntegerField(
-        verbose_name="Country of employment", choices=[
-            (1, "TODO: List of countries"),
-        ]
-    )
+    employment_country = CountryField()
     gender = models.PositiveIntegerField(
         choices=[
             (1, "Male"),
             (2, "Female"),
-            (3, "Non-binary"),
+            (3, "Other"),
             (4, "Prefer not to say"),
         ]
     )
@@ -131,19 +130,139 @@ class Demographic(models.Model):
             (7, "Other"),
         ],
     )
-    created_by = models.ForeignKey("User", on_delete=models.CASCADE)
 
+class Quality(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    used_resource_before =  models.PositiveIntegerField(
+        choices=[
+            (1, "Frequently (weekly to daily)"),
+            (2, "Occasionally (once in a while to monthly)"),
+            (3, "Never - used other service"),
+            (4, "Never - aware of them, but not used them"),
+            (5, "Never - unaware of them"),
+        ]
+    )
+    used_resources_future = models.PositiveIntegerField(
+        choices=[
+            (1, "Yes"),
+            (2, "No"),
+            (3, "Maybe"),
+        ]
+    )
+    reccommend_course =  models.PositiveIntegerField(
+        choices=[
+            (1, "Yes"),
+            (2, "No"),
+            (3, "Maybe"),
+        ]
+    )
+    course_rating =  models.PositiveIntegerField(
+        choices=[
+            (1, "Poor (1)"),
+            (2, "Satisfactory (2)"),
+            (3, "Good (3)"),
+            (4, "Very Good (4)"),
+            (5, "Excellent (5)"),
+        ]
+    )
+    balance_choices = [
+        (1, "About right"),
+        (2, "Too theoretical"),
+        (3, "Too practical"),
+    ]
+    balance = models.PositiveIntegerField(choices=balance_choices)
 
-class Feedback(models.Model):
-    pass
+    email_contact_choices = [
+        (1, "Yes"),
+        (2, "No"),
+    ]
+    email_contact = models.PositiveIntegerField(choices=email_contact_choices)
 
-
-class DemographicCumFeedback(models.Model):
-    pass
 
 
 class Impact(models.Model):
-    pass
+    HOW_LONG_CHOICES = [
+        (1, "Less than 6 months"),
+        (2, "6 months to a year"),
+        (3, "Over a year"),
+    ]
+
+    REASON_CHOICES = [
+        (1, "To learn something new to aid me in my current research/work"),
+        (2, "To learn something new for my own interests"),
+        (3, "To build on existing knowledge to aid me in my current research/work"),
+        (4, "To build on existing knowledge for my own interests"),
+        (5, "Other"),
+    ]
+
+    HOW_OFTEN_CHOICES = [
+        (1, "Never - unaware of them"),
+        (2, "Never - aware of them, but had not used them"),
+        (3, "Never - used other service"),
+        (4, "Occasionally (once in a while to monthly)"),
+        (5, "Frequently (weekly to daily)"),
+    ]
+
+    EXPLAIN_CHOICES = [
+        (1, "Yes"),
+        (2, "No"),
+        (3, "Maybe"),
+        (4, "Other"),
+    ]
+
+    ABLE_USE_NOW_CHOICES = [
+        (1, "Independently"),
+        (2, "By using training materials/notes from the training event"),
+        (3, "With the help of an expert"),
+        (4, "Other"),
+    ]
+
+    ATTENDING_LED_TO_CHOICES = [
+        (1, "Authoring of software"),
+        (2, "Change in career"),
+        (3, "Not applicable"),
+        (4, "Other"),
+        (5, "Publication of my work"),
+        (6, "Submission of a grant application"),
+        (7, "Submission of my dissertation/thesis for degree purposes"),
+        (8, "Useful collaboration(s) with other participants/trainers from the training event"),
+    ]
+
+    PEOPLE_SHARE_KNOWLEDGE_CHOICES = [
+        (1, "None"),
+        (2, "None yet, but intend to do so in the future"),
+        (3, "1-5"),
+        (4, "6-15"),
+        (5, "16-24"),
+        (6, "25+"),
+    ]
+
+    RECOMMEND_OTHERS_CHOICES = [
+        (1, "Yes, I already have"),
+        (2, "Yes, I would"),
+        (3, "Maybe"),
+        (4, "No"),
+    ]
+
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    how_long_ago = models.PositiveIntegerField(choices=HOW_LONG_CHOICES)
+    main_attend_reason = models.PositiveIntegerField(choices=REASON_CHOICES)
+    how_often_use_after = models.PositiveIntegerField(choices=HOW_OFTEN_CHOICES)
+    able_to_explain = models.PositiveIntegerField(choices=EXPLAIN_CHOICES)
+    able_use_now = models.PositiveIntegerField(choices=ABLE_USE_NOW_CHOICES)
+    attending_led_to = models.PositiveIntegerField(choices=ATTENDING_LED_TO_CHOICES)
+    people_share_knowledge = models.PositiveIntegerField(choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
+    recommend_others = models.PositiveIntegerField(choices=RECOMMEND_OTHERS_CHOICES)
+
+    def __str__(self):
+        return f"Attendance: {self.get_how_long_ago_display()}, Reason: {self.get_main_attend_reason_display()}, Use Before: {self.how_often_use_before}, Use After: {self.how_often_use_after}, Able to Explain: {self.able_to_explain}"
+
 
 
 class Node(models.Model):
