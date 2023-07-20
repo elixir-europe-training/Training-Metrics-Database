@@ -4,7 +4,6 @@ import pandas as pd
 import dash_bootstrap_components as dbc
 
 from django.shortcuts import render
-from django.urls import reverse
 from django_plotly_dash import DjangoDash
 from dash import dcc, html, dash_table
 from dash.dependencies import Output, Input
@@ -67,6 +66,19 @@ app.layout = html.Div([
         style_cell={'textAlign': 'left'},
     ),
     dbc.Row([
+        dbc.Col([
+            dcc.RadioItems(
+                id='graph-type',
+                options=[
+                    {'label': 'Bar Plot', 'value': 'bar'},
+                    {'label': 'Pie Chart', 'value': 'pie'}
+                ],
+                value='bar',  # Definir o gráfico de barras como padrão
+                labelStyle={'display': 'block'}
+            )
+        ], width={'size': 3, 'offset': 0, 'order': '3'}),
+    ]),
+    dbc.Row([
         dcc.Graph(
             id='event-type-graph',
             figure={
@@ -91,9 +103,10 @@ app.layout = html.Div([
     [Output('event-table', 'data'),
      Output('event-type-graph', 'figure')],
     [Input('location-picker', 'value'),
-     Input('funding-type', 'value')]
+     Input('funding-type', 'value')],
+     Input('graph-type', 'value')
 )
-def update_graph_and_table(location, funding):
+def update_graph_and_table(location, funding, graph_type):
     data2 = data.copy()  # copy the original data
     if location != 'location':
         data2 = data2[data2['Location (city, country)'] == location]
@@ -101,19 +114,34 @@ def update_graph_and_table(location, funding):
     if funding != 'funding':
         data2 = data2[data2['Funding'] == funding]
 
-    figure = {
-        'data': [
-            go.Histogram(
-                x=data2['Event type'],
-                name='Events'
+    
+    if graph_type == 'bar':
+        figure = {
+            'data': [
+                go.Histogram(
+                    x=data2,
+                    name='Events'
+                )
+            ],
+            'layout': go.Layout(
+                title='Event Type Bar Plot',
+                xaxis={'title': 'Event Types'},
+                yaxis={'title': 'Number of Events'},
             )
-        ],
-        'layout': go.Layout(
-            title='Event type',
-            xaxis={'title': 'Event type'},
-            yaxis={'title': 'No. of events'},
-        )
-    }
+        }
+    elif graph_type == 'pie':
+        figure = {
+            'data': [
+                go.Pie(
+                    labels=data2.value_counts().index.tolist(),
+                    values=data2.value_counts().values.tolist()
+                )
+            ],
+            'layout': go.Layout(
+                title='Event Type Pie Chart',
+            )
+        }
+    
 
     # Group by 'Event type' and count the occurrences
     table_data = data2.groupby('Event type').size().reset_index(name='Events')
@@ -121,57 +149,20 @@ def update_graph_and_table(location, funding):
 
     return table_data, figure
 
-
-def get_tabs(request):
-    view_name = request.resolver_match.view_name
-    return {
-        "tabs": [
-            {"title": title, "url": reverse(name), "active": view_name == name}
-            for title, name in [
-                ("Events", "event-report"),
-                ("Quality metrics", "quality-report"),
-                ("Demographics metrics", "demographic-report"),
-                ("Impact metrics", "impact-report")
-            ]
-        ]
-    }
-
 def event_report(request):
     return render(
         request,
         'dash_app/template.html',
         context={
-            **get_tabs(request),
-            "dash_name": "SimpleExample"
-        }
-    )
-
-
-def quality_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
-        }
-    )
-
-
-def demographic_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
-        }
-    )
-
-
-def impact_report(request):
-    return render(
-        request,
-        'dash_app/template.html',
-        context={
-            **get_tabs(request)
+            **request.navigation,
+            "tabs": [
+                {"title": title, "url": url, "active": active}
+                for title, url, active in [
+                    ("Events", "", False),
+                    ("Quality metrics", "", False),
+                    ("Demographics metrics", "", False),
+                    ("Impact metrics", "", True)
+                ]
+            ]
         }
     )
