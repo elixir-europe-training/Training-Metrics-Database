@@ -1,6 +1,8 @@
 from django.shortcuts import render
+from django.urls import reverse
 
 
+# Create your views here.
 def get_title(view):
     return {
         "title": f"Elixir Tango - {view}",
@@ -12,12 +14,11 @@ def test(request):
         "breadcrumbs": [
             {"title": title, "url": url, "state": state}
             for title, url, state in [
-                ("Events", "#", ""),
+                ("Events", reverse('events'), ""),
                 ("A specific event", "", "active")
             ]
         ],
-        **get_title("Test"),
-        **request.navigation
+        **get_title("Test")
     })
 
 
