@@ -16,66 +16,70 @@ class Event(models.Model):
     date_start = models.DateField()
     date_end = models.DateField()
     duration = models.DecimalField(max_digits=6, decimal_places=2)
-    type = models.PositiveIntegerField(
+    type = models.TextField(
         choices=[
-            (1, "Training - face to face"),
-            (2, "Training - e-learning"),
-            (3, "Training - blended"),
-            (4, "Knowledge Exchange Workshop"),
-            (5, "Hackathon"),
+            ("Training - face to face", "Training - face to face"),
+            ("Training - e-learning", "Training - e-learning"),
+            ("Training - blended", "Training - blended"),
+            ("Knowledge Exchange Workshop", "Knowledge Exchange Workshop"),
+            ("Hackathon", "Hackathon"),
         ]
     )
     funding = ArrayField(base_field=models.TextField(),
                          choices=[
-                             (1, "Converge" "ELIXIR Converge"),
-                             (2, "EOSC Life"),
-                             (3, "EXCELLERATE"),
-                             (4, "ELIXIR Implementation Study"),
-                             (5, "ELIXIR Community / Use case"),
-                             (6, "ELIXIR Node"),
-                             (7, "ELIXIR Hub"),
-                             (8, "ELIXIR Platform"),
-                             (9, "Non-ELIXIR / Non-EXCELLERATE Funds"),
-    ]
-    )
-    organising_institution = models.ManyToManyField("OrganisingInstitution")
-    location_city = models.TextField()
-    location_country = models.PositiveIntegerField(choices=[
-        (1, "TODO: List of countries")
-    ])
+                         ("ELIXIR Converge", "ELIXIR Converge"),
+                         ("EOSC Life", "EOSC Life"),
+                         ("EXCELLERATE", "EXCELLERATE"),
+                         ("ELIXIR Implementation Study",
+                          "ELIXIR Implementation Study"),
+                         ("ELIXIR Community / Use case",
+                          "ELIXIR Community / Use case"),
+                         ("ELIXIR Node", "ELIXIR Node"),
+                         ("ELIXIR Hub", "ELIXIR Hub"),
+                         ("ELIXIR Platform", "ELIXIR Platform"),
+                         ("Non-ELIXIR / Non-EXCELLERATE Funds",
+                          "Non-ELIXIR / Non-EXCELLERATE Funds"),
+                         ]
+                         )
+
     target_audience = ArrayField(base_field=models.TextField(),
                                  choices=[
-                                     (1, "Academia / Research Institution"),
-                                     (2, "Industry"),
-                                     (3, "Non-profit Organisation"),
-                                     (4, "Healthcare"),
-    ]
-    )
+                                 ("Academia / Research Institution",
+                                  "Academia / Research Institution"),
+                                 ("Industry", "Industry"),
+                                 ("Non-profit Organisation",
+                                  "Non-profit Organisation"),
+                                 ("Healthcare", "Healthcare"),
+                                 ]
+                                 )
+
     additional_platforms = ArrayField(base_field=models.TextField(),
                                       choices=[
-                                          (1, "Compute"),
-                                          (2, "Data"),
-                                          (3, "Interoperability"),
-                                          (4, "Tools"),
-                                          (5, "NA"),
-    ]
-    )
+                                      ("Compute", "Compute"),
+                                      ("Data", "Data"),
+                                      ("Interoperability", "Interoperability"),
+                                      ("Tools", "Tools"),
+                                      ("NA", "NA"),
+                                      ]
+                                      )
+
     communities = ArrayField(base_field=models.TextField(),
                              choices=[
-                                 (1, "Human Data"),
-                                 (2, "Marine Metagenomics"),
-                                 (3, "Rare Diseases"),
-                                 (4, "Plant Sciences"),
-                                 (5, "Proteomics"),
-                                 (6, "Matabolomics"),
-                                 (7, "Galaxy"),
-                                 (8, "NA"),
-    ]
-    )
-    number_participants = models.PositiveIntegerField()
-    number_trainers = models.PositiveIntegerField()
+                             ("Human Data", "Human Data"),
+                             ("Marine Metagenomics", "Marine Metagenomics"),
+                             ("Rare Diseases", "Rare Diseases"),
+                             ("Plant Sciences", "Plant Sciences"),
+                             ("Proteomics", "Proteomics"),
+                             ("Metabolomics", "Metabolomics"),
+                             ("Galaxy", "Galaxy"),
+                             ("NA", "NA"),
+                             ]
+                             )
+
+    number_participants = models.TextField()
+    number_trainers = models.TextField()
     url = models.URLField()
-    status = models.PositiveIntegerField(
+    status = models.TextField(
         choices=[
             (1, "Complete"),
             (2, "Incomplete"),
@@ -88,48 +92,51 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
+
     heard_from = ArrayField(base_field=models.TextField(),
                             verbose_name="Where did you hear about this course?",
                             choices=[
-                                (1, "TeSS"),
-                                (2, "Host Institute Website"),
-                                (3, "Email"),
-                                (4, "Newsletter"),
-                                (5, "Colleague"),
-                                (6, "Internet search"),
-                                (7, "Other"),
-    ],
-    )
-    employment_sector = models.PositiveIntegerField(
+                            ("TeSS", "TeSS"),
+                            ("Host Institute Website", "Host Institute Website"),
+                            ("Email", "Email"),
+                            ("Newsletter", "Newsletter"),
+                            ("Colleague", "Colleague"),
+                            ("Internet search", "Internet search"),
+                            ("Other", "Other"),
+                            ],
+                            )
+
+    employment_sector = models.TextField(
         verbose_name="Employment sector",
         choices=[
-            (1, "Academia/ Research Institution"),
-            (2, "Industry"),
-            (3, "Non-Profit Organisation"),
-            (4, "Healthcare"),
-            (5, "Other"),
+            ("Academia/ Research Institution", "Academia/ Research Institution"),
+            ("Industry", "Industry"),
+            ("Non-Profit Organisation", "Non-Profit Organisation"),
+            ("Healthcare", "Healthcare"),
+            ("Other", "Other"),
         ],
     )
 
-    employment_country = CountryField()
-    gender = models.PositiveIntegerField(
+    gender = models.TextField(
         choices=[
-            (1, "Male"),
-            (2, "Female"),
-            (3, "Other"),
-            (4, "Prefer not to say"),
+            ("Male", "Male"),
+            ("Female", "Female"),
+            ("Other", "Other"),
+            ("Prefer not to say", "Prefer not to say"),
         ]
     )
-    career_stage = models.PositiveIntegerField(
+
+    career_stage = models.TextField(
         verbose_name="Career stage",
         choices=[
-            (1, "Undergraduate student"),
-            (2, "Masters student"),
-            (3, "PhD candidate"),
-            (4, "Postdoctoral researcher"),
-            (5, "Senior scientist/ Principal investigator"),
-            (6, "Research assistant/ Technician"),
-            (7, "Other"),
+            ("Undergraduate student", "Undergraduate student"),
+            ("Masters student", "Masters student"),
+            ("PhD candidate", "PhD candidate"),
+            ("Postdoctoral researcher", "Postdoctoral researcher"),
+            ("Senior scientist/ Principal investigator",
+             "Senior scientist/ Principal investigator"),
+            ("Research assistant/ Technician", "Research assistant/ Technician"),
+            ("Other", "Other"),
         ],
     )
 
@@ -139,151 +146,181 @@ class Quality(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    used_resource_before = models.PositiveIntegerField(
+    used_resource_before = models.TextField(
         choices=[
-            (1, "Frequently (weekly to daily)"),
-            (2, "Occasionally (once in a while to monthly)"),
-            (3, "Never - used other service"),
-            (4, "Never - aware of them, but not used them"),
-            (5, "Never - unaware of them"),
+            ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
+            ("Occasionally (once in a while to monthly)",
+             "Occasionally (once in a while to monthly)"),
+            ("Never - used other service", "Never - used other service"),
+            ("Never - aware of them, but not used them",
+             "Never - aware of them, but not used them"),
+            ("Never - unaware of them", "Never - unaware of them"),
         ]
     )
-    used_resources_future = models.PositiveIntegerField(
-        choices=[
-            (1, "Yes"),
-            (2, "No"),
-            (3, "Maybe"),
-        ]
-    )
-    recommend_course = models.PositiveIntegerField(
-        choices=[
-            (1, "Yes"),
-            (2, "No"),
-            (3, "Maybe"),
-        ]
-    )
-    course_rating = models.PositiveIntegerField(
-        choices=[
-            (1, "Poor (1)"),
-            (2, "Satisfactory (2)"),
-            (3, "Good (3)"),
-            (4, "Very Good (4)"),
-            (5, "Excellent (5)"),
-        ]
-    )
-    balance_choices = [
-        (1, "About right"),
-        (2, "Too theoretical"),
-        (3, "Too practical"),
-    ]
-    balance = models.PositiveIntegerField(choices=balance_choices)
 
-    email_contact_choices = [
-        (1, "Yes"),
-        (2, "No"),
+    used_resources_future = models.TextField(
+        choices=[
+            ("Yes", "Yes"),
+            ("No", "No"),
+            ("Maybe", "Maybe"),
+        ]
+    )
+
+    recommend_course = models.TextField(
+        choices=[
+            ("Yes", "Yes"),
+            ("No", "No"),
+            ("Maybe", "Maybe"),
+        ]
+    )
+
+    course_rating = models.TextField(
+        choices=[
+            ("Poor (1)", "Poor (1)"),
+            ("Satisfactory (2)", "Satisfactory (2)"),
+            ("Good (3)", "Good (3)"),
+            ("Very Good (4)", "Very Good (4)"),
+            ("Excellent (5)", "Excellent (5)"),
+        ]
+    )
+
+    balance_choices = [
+        ("About right", "About right"),
+        ("Too theoretical", "Too theoretical"),
+        ("Too practical", "Too practical"),
     ]
-    email_contact = models.PositiveIntegerField(choices=email_contact_choices)
+
+    balance = models.TextField(
+        choices=[
+            ("About right", "About right"),
+            ("Too theoretical", "Too theoretical"),
+            ("Too practical", "Too practical"),
+        ]
+    )
+
+    email_contact = models.TextField(
+        choices=[
+            ("Yes", "Yes"),
+            ("No", "No"),
+        ]
+    )
 
 
 class Impact(models.Model):
     HOW_LONG_CHOICES = [
-        (1, "Less than 6 months"),
-        (2, "6 months to a year"),
-        (3, "Over a year"),
+        ("Less than 6 months", "Less than 6 months"),
+        ("6 months to a year", "6 months to a year"),
+        ("Over a year", "Over a year"),
     ]
 
     REASON_CHOICES = [
-        (1, "To learn something new to aid me in my current research/work"),
-        (2, "To learn something new for my own interests"),
-        (3, "To build on existing knowledge to aid me in my current research/work"),
-        (4, "To build on existing knowledge for my own interests"),
-        (5, "Other"),
+        ("To learn something new to aid me in my current research/work",
+         "To learn something new to aid me in my current research/work"),
+        ("To learn something new for my own interests",
+         "To learn something new for my own interests"),
+        ("To build on existing knowledge to aid me in my current research/work",
+         "To build on existing knowledge to aid me in my current research/work"),
+        ("To build on existing knowledge for my own interests",
+         "To build on existing knowledge for my own interests"),
+        ("Other", "Other"),
     ]
 
     HOW_OFTEN_BEFORE_CHOICES = [
-        (1, "Never - unaware of them"),
-        (2, "Never - aware of them, but had not used them"),
-        (3, "Never - used other service"),
-        (4, "Occasionally (once in a while to monthly)"),
-        (5, "Frequently (weekly to daily)"),
+        ("Never - unaware of them", "Never - unaware of them"),
+        ("Never - aware of them, but had not used them",
+         "Never - aware of them, but had not used them"),
+        ("Never - used other service", "Never - used other service"),
+        ("Occasionally (once in a while to monthly)",
+         "Occasionally (once in a while to monthly)"),
+        ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
     ]
+
     HOW_OFTEN_AFTER_CHOICES = [
-        (1, "Never - use other service"),
-        (2, "Occasionally (once in a while to monthly)"),
-        (3, "Frequently (weekly to daily)"),
+        ("Never - use other service", "Never - use other service"),
+        ("Occasionally (once in a while to monthly)",
+         "Occasionally (once in a while to monthly)"),
+        ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
     ]
 
     EXPLAIN_CHOICES = [
-        (1, "Yes"),
-        (2, "No"),
-        (3, "Maybe"),
-        (4, "Other"),
+        ("Yes", "Yes"),
+        ("No", "No"),
+        ("Maybe", "Maybe"),
+        ("Other", "Other"),
     ]
 
     ABLE_USE_NOW_CHOICES = [
-        (1, "Independently"),
-        (2, "By using training materials/notes from the training event"),
-        (3, "With the help of an expert"),
-        (4, "Other"),
+        ("Independently", "Independently"),
+        ("By using training materials/notes from the training event",
+         "By using training materials/notes from the training event"),
+        ("With the help of an expert", "With the help of an expert"),
+        ("Other", "Other"),
     ]
 
     ATTENDING_LED_TO_CHOICES = [
-        (1, "Authoring of software"),
-        (2, "Change in career"),
-        (3, "Not applicable"),
-        (4, "Other"),
-        (5, "Publication of my work"),
-        (6, "Submission of a grant application"),
-        (7, "Submission of my dissertation/thesis for degree purposes"),
-        (8, "Useful collaboration(s) with other participants/trainers from the training event"),
+        ("Authoring of software", "Authoring of software"),
+        ("Change in career", "Change in career"),
+        ("Not applicable", "Not applicable"),
+        ("Other", "Other"),
+        ("Publication of my work", "Publication of my work"),
+        ("Submission of a grant application", "Submission of a grant application"),
+        ("Submission of my dissertation/thesis for degree purposes",
+         "Submission of my dissertation/thesis for degree purposes"),
+        ("Useful collaboration(s) with other participants/trainers from the training event",
+         "Useful collaboration(s) with other participants/trainers from the training event"),
     ]
 
     PEOPLE_SHARE_KNOWLEDGE_CHOICES = [
-        (1, "None"),
-        (2, "None yet, but intend to do so in the future"),
-        (3, "1-5"),
-        (4, "6-15"),
-        (5, "16-24"),
-        (6, "25+"),
+        ("None", "None"),
+        ("None yet, but intend to do so in the future",
+         "None yet, but intend to do so in the future"),
+        ("1-5", "1-5"),
+        ("6-15", "6-15"),
+        ("16-24", "16-24"),
+        ("25+", "25+"),
     ]
 
     RECOMMEND_OTHERS_CHOICES = [
-        (1, "Yes, I already have"),
-        (2, "Yes, I would"),
-        (3, "Maybe"),
-        (4, "No"),
+        ("Yes, I already have", "Yes, I already have"),
+        ("Yes, I would", "Yes, I would"),
+        ("Maybe", "Maybe"),
+        ("No", "No"),
     ]
 
     HELP_WORK_CHOICES = [
-        {1,
-            "It did not help as I do not use the tool(s)/resource(s) covered in the training event"},
-        {2, "It enabled me to complete certain tasks more quickly"},
-        {3, "It has not helped yet but I anticipate a future impact"},
-        {4, "It improved communication with the bioinformatician/statistician analyzing my data"},
-        {5, "It improved my ability to handle data"},
-        {6, "Other"}
+        ("It did not help as I do not use the tool(s)/resource(s) covered in the training event",
+         "It did not help as I do not use the tool(s)/resource(s) covered in the training event"),
+        ("It enabled me to complete certain tasks more quickly",
+         "It enabled me to complete certain tasks more quickly"),
+        ("It has not helped yet but I anticipate a future impact",
+         "It has not helped yet but I anticipate a future impact"),
+        ("It improved communication with the bioinformatician/statistician analyzing my data",
+         "It improved communication with the bioinformatician/statistician analyzing my data"),
+        ("It improved my ability to handle data",
+         "It improved my ability to handle data"),
+        ("Other", "Other"),
     ]
 
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    when_attend_training = models.PositiveIntegerField(
+    when_attend_training = models.TextField(
         choices=HOW_LONG_CHOICES)
-    main_attend_reason = models.PositiveIntegerField(choices=REASON_CHOICES)
-    how_often_use_before = models.PositiveIntegerField(
+    main_attend_reason = models.TextField(choices=REASON_CHOICES)
+    how_often_use_before = models.TextField(
         choices=HOW_OFTEN_BEFORE_CHOICES)
-    how_often_use_after = models.PositiveIntegerField(
+    how_often_use_after = models.TextField(
         choices=HOW_OFTEN_AFTER_CHOICES)
-    able_to_explain = models.PositiveIntegerField(choices=EXPLAIN_CHOICES)
-    able_use_now = models.PositiveIntegerField(choices=ABLE_USE_NOW_CHOICES)
+    able_to_explain = models.TextField(choices=EXPLAIN_CHOICES)
+    able_use_now = models.TextField(choices=ABLE_USE_NOW_CHOICES)
     help_work = ArrayField(base_field=models.TextField(),
                            choices=HELP_WORK_CHOICES)
     attending_led_to = ArrayField(base_field=models.TextField(),
                                   choices=ATTENDING_LED_TO_CHOICES)
-    people_share_knowledge = models.PositiveIntegerField(
+    people_share_knowledge = models.TextField(
         choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
-    recommend_others = models.PositiveIntegerField(
+    recommend_others = models.TextField(
         choices=RECOMMEND_OTHERS_CHOICES)
 
     def __str__(self):

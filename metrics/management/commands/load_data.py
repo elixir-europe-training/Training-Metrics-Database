@@ -1,6 +1,5 @@
 import csv
 from datetime import datetime
-from django.core.exceptions import ObjectDoesNotExist
 from django_countries import countries
 from django.utils.text import slugify
 from metrics.models import Event, Demographic, Quality, Impact, Node, OrganisingInstitution, User
@@ -43,7 +42,7 @@ def load_events():
             # Convert date strings to datetime objects
             date_start = datetime.strptime(
                 row['date_start'], '%Y-%d-%m').date()
-            date_end = datetime.strptime(row['date_end'], '%Y-%d-%m').date()
+            date_end = datetime.strptime(row['date_end'], '%Y-%m-%d').date()
 
             # Convert the funding and other fields from CSV to Python lists
             funding = [int(x) for x in row['funding'].split(",")]
