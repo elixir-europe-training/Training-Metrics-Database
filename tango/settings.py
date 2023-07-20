@@ -31,9 +31,7 @@ SECRET_KEY = os.environ.get(
     "django-insecure-^cw%un^vw710_dtxsw9gmk6_0-gax^-&$=acb(0aeprmy_3kkr",
 )
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-]
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 # Application definition
 
