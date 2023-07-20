@@ -3,7 +3,7 @@ from django.urls import reverse
 
 # Create your views here.
 
-def get_navgation():
+def get_navgation(request):
     return {
         "nav_items": [
             {"title": "Dashboard", "icon": "speedometer2", "url": "", "type": "main"},
@@ -32,16 +32,24 @@ def get_navgation():
             ],
             *[
                 {"title": title, "icon": icon, "url": url, "type": "user"}
-                for title, icon, url in [
-                    ("Anonymous user", "person-circle", ""),
-                ]
+                for title, icon, url in (
+                    [
+                        (request.user.username, "person-circle", ""),
+                    ] if request.user.is_authenticated
+                    else [
+                        ("Sign in", "box-arrow-in-right", ""),
+                    ]
+                )
             ],
-            *[
-                {"title": title, "icon": icon, "url": url, "type": "auth"}
-                for title, icon, url in [
-                    ("Sign out", "box-arrow-right", ""),
-                ]
-            ]
+            *(
+                [
+                    {"title": title, "icon": icon, "url": url, "type": "auth"}
+                    for title, icon, url in [
+                        ("Sign out", "box-arrow-right", ""),
+                    ]
+                ] if request.user.is_authenticated
+                else []
+            )
         ]
     }
 
@@ -54,8 +62,15 @@ def get_title(view):
 
 def test(request):
     return render(request, 'metrics/index.html', context={
+        "breadcrumbs": [
+            {"title": title, "url": url, "state": state}
+            for title, url, state in [
+                ("Events", "#", ""),
+                ("A specific event", "", "active")
+            ]
+        ],
         **get_title("Test"),
-        **get_navgation()
+        **get_navgation(request)
     })
 
 
