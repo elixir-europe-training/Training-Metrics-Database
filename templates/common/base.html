@@ -5,6 +5,8 @@
     <title>{{ title }}</title>
     {% include 'common/bootstrap5.html' %}
     {% include 'common/custom-css.html' %}
+    {% block header %}
+    {% endblock %}
 </head>
 <body>
 {% include 'common/nav.html' %}

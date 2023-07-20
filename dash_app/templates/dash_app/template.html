@@ -1,15 +1,10 @@
+{% extends "common/base.html" %}
 {% load plotly_dash %}
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
+{% block header %}
     {% plotly_header %}
-</head>
-<body>
-    <h1 style="text-align:center;">Dashboard</h1>
+{% endblock %}
+{% block content %}
+    <h1>Dashboard</h1>
     {% plotly_direct name="SimpleExample" %}
     {% plotly_footer %}
-</body>
-</html>
+{% endblock %}
