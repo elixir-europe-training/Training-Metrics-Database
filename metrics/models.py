@@ -4,11 +4,17 @@ from django_countries.fields import CountryField
 
 
 class Event(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    code = models.TextField(unique=True)
     title = models.TextField()
-    elixir_node = models.ManyToManyField("ElixirNode")
-    date = models.DateField()
+    node = models.ManyToManyField("Node")
+    node_main = models.ForeignKey("Node", on_delete=models.CASCADE, related_name='node_main')
+    date_start = models.DateField()
+    date_end = models.DateField()
     duration = models.DecimalField(max_digits=6, decimal_places=2)
-    event_type = models.PositiveIntegerField(
+    type = models.PositiveIntegerField(
         choices=[
             (1, "Training - face to face"),
             (2, "Training - e-learning"),
@@ -30,7 +36,7 @@ class Event(models.Model):
             (9, "Non-ELIXIR / Non-EXCELLERATE Funds"),
         ]
     )
-    organising_institution = models.TextField()
+    organising_institution = models.ManyToManyField("OrganisingInstitution")
     location_city = models.TextField()
     location_country = models.PositiveIntegerField(choices=[
         (1, "TODO: List of countries")
@@ -43,7 +49,7 @@ class Event(models.Model):
             (4, "Healthcare"),
         ]
     )
-    additional_platforms_involved = models.PositiveIntegerField(
+    additional_platforms = models.PositiveIntegerField(
         choices=[
             (1, "Compute"),
             (2, "Data"),
@@ -52,7 +58,7 @@ class Event(models.Model):
             (5, "NA"),
         ]
     )
-    communities_involved = models.PositiveIntegerField(
+    communities = models.PositiveIntegerField(
         choices=[
             (1, "Human Data"),
             (2, "Marine Metagenomics"),
@@ -65,19 +71,17 @@ class Event(models.Model):
         ]
     )
     number_participants = models.PositiveIntegerField()
-    number_trainer_facilitators = models.PositiveIntegerField()
-    event_url = models.URLField()
-    short_term_feedback_completed = models.PositiveIntegerField()
-    long_term_feedback_completed = models.PositiveIntegerField()
-    demographic_entries_completed = models.PositiveIntegerField()
-    notes = models.TextField()
-    user_id = models.ForeignKey("User", on_delete=models.CASCADE)
-    created = models.DateTimeField(auto_now=True)
-    modified = models.DateTimeField(auto_now=True)
+    number_trainers = models.PositiveIntegerField()
+    url = models.URLField()
+    status = models.PositiveIntegerField(
+        choices=[
+            (1, "Complete"),
+            (2, "Incomplete"),
+        ]
+    )
 
 
 class Demographic(models.Model):
-    event_code = models.TextField()
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     heard_from = models.PositiveIntegerField(
         verbose_name="Where did you hear about this course?",
@@ -142,7 +146,11 @@ class Impact(models.Model):
     pass
 
 
-class ElixirNode(models.Model):
+class Node(models.Model):
+    name = models.TextField()
+    country = CountryField()
+
+class OrganisingInstitution(models.Model):
     name = models.TextField()
     country = CountryField()
 
