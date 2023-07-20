@@ -18,6 +18,8 @@ services:
     volumes:
       - pg:/var/lib/postgresql/data
     restart: unless-stopped
+    ports:
+      - 5432:5432
 
 volumes:
   pg:
