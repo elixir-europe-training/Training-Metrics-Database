@@ -66,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_plotly_dash.middleware.BaseMiddleware",
     "django_plotly_dash.middleware.ExternalRedirectionMiddleware",
+    "dash_app.middleware.metrics_middleware"
 ]
 
 ROOT_URLCONF = "tango.urls"
@@ -94,24 +95,17 @@ WSGI_APPLICATION = "tango.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-if DEBUG:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ["DJANGO_POSTGRESQL_DBNAME"],
+        "USER": os.environ["DJANGO_POSTGRESQL_USER"],
+        "PASSWORD": os.environ["DJANGO_POSTGRESQL_PASSWORD"],
+        "HOST": os.environ["DJANGO_POSTGRESQL_HOST"],
+        "PORT": os.environ["DJANGO_POSTGRESQL_PORT"],
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ["DJANGO_POSTGRESQL_DBNAME"],
-            "USER": os.environ["DJANGO_POSTGRESQL_USER"],
-            "PASSWORD": os.environ["DJANGO_POSTGRESQL_PASSWORD"],
-            "HOST": os.environ["DJANGO_POSTGRESQL_HOST"],
-            "PORT": os.environ["DJANGO_POSTGRESQL_PORT"],
-        }
-    }
+}
 
 
 # User Model
