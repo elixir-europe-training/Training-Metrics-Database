@@ -38,6 +38,7 @@ def convert_date_format(date_string):
 def load_events():
     with open(events_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
+        next(reader)
         for row in reader:
             # Convert date strings to datetime objects
             date_start = datetime.strptime(
@@ -52,10 +53,10 @@ def load_events():
                 x for x in row['additional_platforms'].split(",")]
             communities = [x for x in row['communities'].split(",")]
 
-            # Create the event object and save it to the database
-            event = Event.objects.create(
+            Event.objects.create(
                 user=User.objects.get(username=row['user']),
-                # Using slugify to generate unique code from the title
+                created=None,
+                modified=None,
                 code=slugify(row['code']),
                 title=row['title'],
                 node_main=Node.objects.get(name=row['node_main']),
@@ -64,6 +65,7 @@ def load_events():
                 duration=float(row['duration']),
                 type=row['type'],
                 funding=funding,
+                organising_institution=row['organising_institution'],
                 location_city=row['location_city'],
                 location_country=get_country_code(row['location_country']),
                 target_audience=target_audience,
@@ -88,9 +90,12 @@ def load_events():
 def load_demographics():
     with open(demographics_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
+        next(reader)
         for row in reader:
             demographic = Demographic.objects.create(
                 user=User.objects.get(username=row['user']),
+                created=None,
+                modified=None,
                 event=Event.objects.get(code=row['event']),
                 heard_from=[x for x in row['heard_from'].split(",")],
                 employment_sector=row['employment_sector'],
@@ -106,6 +111,8 @@ def load_qualities():
         for row in reader:
             quality = Quality.objects.create(
                 user=User.objects.get(username=row['user']),
+                created=None,
+                modified=None,
                 event=Event.objects.get(code=row['event']),
                 used_resource_before=row['used_resource_before'],
                 used_resources_future=row['used_resources_future'],
@@ -122,6 +129,8 @@ def load_impacts():
         for row in reader:
             impact = Impact.objects.create(
                 user=User.objects.get(username=row['user']),
+                created=None,
+                modified=None,
                 event=Event.objects.get(code=row['event']),
                 when_attend_training=row['when_attend_training'],
                 main_attend_reason=row['main_attend_reason'],
@@ -151,16 +160,29 @@ def load_user():
             )
 
 
+def load_nodes():
+    Node.objects.create(
+        name="ELIXIR-BE",
+    )
+    Node.objects.create(
+        name="ELIXIR-CH",
+    )
+
+
 class Command(BaseCommand):
     help = 'Load data from CSV files into the database.'
 
     def handle(self, *args, **options):
+        Node.objects.all().delete()
         User.objects.all().delete()
         Event.objects.all().delete()
         Demographic.objects.all().delete()
         Quality.objects.all().delete()
         Impact.objects.all().delete()
 
+        print("LOADING NODES")
+        print("------------------------")
+        load_nodes()
         print("LOADING USERS")
         print("------------------------")
         load_user()

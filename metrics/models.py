@@ -25,6 +25,9 @@ class Event(models.Model):
             ("Hackathon", "Hackathon"),
         ]
     )
+    organising_institution = models.ManyToManyField("OrganisingInstitution")
+    location_city = models.TextField()
+    location_country = CountryField()
     funding = ArrayField(base_field=models.TextField(),
                          choices=[
                          ("ELIXIR Converge", "ELIXIR Converge"),
