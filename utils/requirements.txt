@@ -3,5 +3,8 @@ django-countries[pyuca]==7.5.1
 django-plotly-dash==2.2.*
 dpd-static-support==0.0.*
 pandas==2.0.3
+psycopg2==2.9.6
+psycopg2-binary==2.9.6
+
 crispy-bootstrap5==0.7
 django-crispy-forms==2.0
