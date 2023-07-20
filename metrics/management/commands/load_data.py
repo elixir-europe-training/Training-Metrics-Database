@@ -45,12 +45,12 @@ def load_events():
             date_end = datetime.strptime(row['date_end'], '%Y-%m-%d').date()
 
             # Convert the funding and other fields from CSV to Python lists
-            funding = [int(x) for x in row['funding'].split(",")]
-            target_audience = [int(x)
+            funding = [x for x in row['funding'].split(",")]
+            target_audience = [x
                                for x in row['target_audience'].split(",")]
             additional_platforms = [
-                int(x) for x in row['additional_platforms'].split(",")]
-            communities = [int(x) for x in row['communities'].split(",")]
+                x for x in row['additional_platforms'].split(",")]
+            communities = [x for x in row['communities'].split(",")]
 
             # Create the event object and save it to the database
             event = Event.objects.create(
@@ -62,17 +62,17 @@ def load_events():
                 date_start=date_start,
                 date_end=date_end,
                 duration=float(row['duration']),
-                type=int(row['type']),
+                type=row['type'],
                 funding=funding,
                 location_city=row['location_city'],
                 location_country=get_country_code(row['location_country']),
                 target_audience=target_audience,
                 additional_platforms=additional_platforms,
                 communities=communities,
-                number_participants=int(row['number_participants']),
-                number_trainers=int(row['number_trainers']),
+                number_participants=row['number_participants'],
+                number_trainers=row['number_trainers'],
                 url=row['url'],
-                status=int(row['status']),
+                status=row['status'],
             )
             # Adding ManyToMany relationship with Node
             nodes = [Node.objects.get(name=node)
@@ -92,11 +92,11 @@ def load_demographics():
             demographic = Demographic.objects.create(
                 user=User.objects.get(username=row['user']),
                 event=Event.objects.get(code=row['event']),
-                heard_from=[int(x) for x in row['heard_from'].split(",")],
-                employment_sector=int(row['employment_sector']),
+                heard_from=[x for x in row['heard_from'].split(",")],
+                employment_sector=row['employment_sector'],
                 employment_country=get_country_code(row['employment_country']),
-                gender=int(row['gender']),
-                career_stage=int(row['career_stage']),
+                gender=row['gender'],
+                career_stage=row['career_stage'],
             )
 
 
@@ -107,12 +107,12 @@ def load_qualities():
             quality = Quality.objects.create(
                 user=User.objects.get(username=row['user']),
                 event=Event.objects.get(code=row['event']),
-                used_resource_before=int(row['used_resource_before']),
-                used_resources_future=int(row['used_resources_future']),
-                recommend_course=int(row['recommend_course']),
-                course_rating=int(row['course_rating']),
-                balance=int(row['balance']),
-                email_contact=int(row['email_contact']),
+                used_resource_before=row['used_resource_before'],
+                used_resources_future=row['used_resources_future'],
+                recommend_course=row['recommend_course'],
+                course_rating=row['course_rating'],
+                balance=row['balance'],
+                email_contact=row['email_contact'],
             )
 
 
@@ -123,17 +123,17 @@ def load_impacts():
             impact = Impact.objects.create(
                 user=User.objects.get(username=row['user']),
                 event=Event.objects.get(code=row['event']),
-                when_attend_training=int(row['when_attend_training']),
-                main_attend_reason=int(row['main_attend_reason']),
-                how_often_use_before=int(row['how_often_use_before']),
-                how_often_use_after=int(row['how_often_use_after']),
-                able_to_explain=int(row['able_to_explain']),
-                able_use_now=int(row['able_use_now']),
-                help_work=[int(x) for x in row['help_work'].split(",")],
+                when_attend_training=row['when_attend_training'],
+                main_attend_reason=row['main_attend_reason'],
+                how_often_use_before=row['how_often_use_before'],
+                how_often_use_after=row['how_often_use_after'],
+                able_to_explain=row['able_to_explain'],
+                able_use_now=row['able_use_now'],
+                help_work=[x for x in row['help_work'].split(",")],
                 attending_led_to=[int(x)
                                   for x in row['attending_led_to'].split(",")],
-                people_share_knowledge=int(row['people_share_knowledge']),
-                recommend_others=int(row['recommend_others']),
+                people_share_knowledge=row['people_share_knowledge'],
+                recommend_others=row['recommend_others'],
             )
 
 
