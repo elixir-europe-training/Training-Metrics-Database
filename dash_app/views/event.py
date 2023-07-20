@@ -59,7 +59,11 @@ app.layout = html.Div([
                 id='date-picker-range',
                 initial_visible_month=datetime.now(),
             )
-        ])
+        ]),
+        dbc.Col([
+            html.Label("Node Only: "),
+            dbc.Switch(id='node-only-toggle', value=False)
+        ]),
     ]),
     dbc.Row([
         dash_table.DataTable(
@@ -102,9 +106,10 @@ app.layout = html.Div([
      Input('funding-type', 'value'),
      Input('target-audience', 'value'),
      Input('date-picker-range', 'start_date'),
-     Input('date-picker-range', 'end_date')]
+     Input('date-picker-range', 'end_date'),
+     Input('node-only-toggle', 'value')]
 )
-def update_graph_and_table(event_type_value, funding_value, target_audience_value, date_from, date_to):
+def update_graph_and_table(event_type_value, funding_value, target_audience_value, date_from, date_to, node_only):
     data2 = data.copy()
     if event_type_value is not None:
         data2 = data2[data2['Event type'] == event_type_value]
@@ -114,6 +119,8 @@ def update_graph_and_table(event_type_value, funding_value, target_audience_valu
         data2 = data2[data2['Target audience'] == target_audience_value]
     if date_from is not None and date_to is not None:
         data2 = data2[(data2['Year'] >= date_from) & (data2['Year'] <= date_to)]
+    if node_only:
+        data2 = data2[data2['Main organiser'] == 'ELIXIR-SE'] # CHANGE THIS to USER's node
     
     def generate_table_and_figure(data, column, title):
         table_data = data.groupby(column).size().reset_index(name='Events').to_dict('records')
