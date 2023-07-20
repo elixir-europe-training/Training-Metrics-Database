@@ -1,4 +1,8 @@
 .venv
-.env
+__pycache__
 db.sqlite3
 postgres.env
+
+
+*/migrations/**
+!*/migrations/__init__.py
