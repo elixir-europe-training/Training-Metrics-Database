@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_countries.fields import CountryField
+from django.contrib.postgres.fields import ArrayField
 
 
 class Event(models.Model):
@@ -10,7 +11,8 @@ class Event(models.Model):
     code = models.TextField(unique=True)
     title = models.TextField()
     node = models.ManyToManyField("Node")
-    node_main = models.ForeignKey("Node", on_delete=models.CASCADE, related_name='node_main')
+    node_main = models.ForeignKey(
+        "Node", on_delete=models.CASCADE, related_name='node_main')
     date_start = models.DateField()
     date_end = models.DateField()
     duration = models.DecimalField(max_digits=6, decimal_places=2)
@@ -23,53 +25,53 @@ class Event(models.Model):
             (5, "Hackathon"),
         ]
     )
-    funding = models.PositiveIntegerField(
-        choices=[
-            (1, "Converge" "ELIXIR Converge"),
-            (2, "EOSC Life"),
-            (3, "EXCELLERATE"),
-            (4, "ELIXIR Implementation Study"),
-            (5, "ELIXIR Community / Use case"),
-            (6, "ELIXIR Node"),
-            (7, "ELIXIR Hub"),
-            (8, "ELIXIR Platform"),
-            (9, "Non-ELIXIR / Non-EXCELLERATE Funds"),
-        ]
-    )
+    funding = ArrayField(base_field=models.TextField(),
+                         choices=[
+                             (1, "Converge" "ELIXIR Converge"),
+                             (2, "EOSC Life"),
+                             (3, "EXCELLERATE"),
+                             (4, "ELIXIR Implementation Study"),
+                             (5, "ELIXIR Community / Use case"),
+                             (6, "ELIXIR Node"),
+                             (7, "ELIXIR Hub"),
+                             (8, "ELIXIR Platform"),
+                             (9, "Non-ELIXIR / Non-EXCELLERATE Funds"),
+                         ]
+                         )
     organising_institution = models.ManyToManyField("OrganisingInstitution")
     location_city = models.TextField()
     location_country = models.PositiveIntegerField(choices=[
         (1, "TODO: List of countries")
     ])
-    target_audience = models.PositiveIntegerField(
-        choices=[
-            (1, "Academia / Research Institution"),
-            (2, "Industry"),
-            (3, "Non-profit Organisation"),
-            (4, "Healthcare"),
-        ]
-    )
-    additional_platforms = models.PositiveIntegerField(
-        choices=[
-            (1, "Compute"),
-            (2, "Data"),
-            (3, "Interoperability"),
-            (4, "Tools"),
-            (5, "NA"),
-        ]
-    )
-    communities = models.PositiveIntegerField(
-        choices=[
-            (1, "Human Data"),
-            (2, "Marine Metagenomics"),
-            (3, "Rare Diseases"),
-            (4, "Plant Sciences"),
-            (5, "Proteomics"),
-            (6, "Matabolomics"),
-            (7, "Galaxy"),
-            (8, "NA"),
-        ]
-    )
+    target_audience = ArrayField(base_field=models.TextField(),
+                                 choices=[
+                                     (1, "Academia / Research Institution"),
+                                     (2, "Industry"),
+                                     (3, "Non-profit Organisation"),
+                                     (4, "Healthcare"),
+                                 ]
+                                 )
+    additional_platforms = ArrayField(base_field=models.TextField(),
+                                      choices=[
+                                          (1, "Compute"),
+                                          (2, "Data"),
+                                          (3, "Interoperability"),
+                                          (4, "Tools"),
+                                          (5, "NA"),
+                                      ]
+                                      )
+    communities = ArrayField(base_field=models.TextField(),
+                             choices=[
+                                 (1, "Human Data"),
+                                 (2, "Marine Metagenomics"),
+                                 (3, "Rare Diseases"),
+                                 (4, "Plant Sciences"),
+                                 (5, "Proteomics"),
+                                 (6, "Matabolomics"),
+                                 (7, "Galaxy"),
+                                 (8, "NA"),
+                             ]
+                             )
     number_participants = models.PositiveIntegerField()
     number_trainers = models.PositiveIntegerField()
     url = models.URLField()
@@ -86,18 +88,18 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    heard_from = models.PositiveIntegerField(
-        verbose_name="Where did you hear about this course?",
-        choices=[
-            (1, "TeSS"),
-            (2, "Host Institute Website"),
-            (3, "Email"),
-            (4, "Newsletter"),
-            (5, "Colleague"),
-            (6, "Internet search"),
-            (7, "Other"),
-        ],
-    )
+    heard_from = ArrayField(base_field=models.TextField(),
+                            verbose_name="Where did you hear about this course?",
+                            choices=[
+                                (1, "TeSS"),
+                                (2, "Host Institute Website"),
+                                (3, "Email"),
+                                (4, "Newsletter"),
+                                (5, "Colleague"),
+                                (6, "Internet search"),
+                                (7, "Other"),
+                            ],
+                            )
     employment_sector = models.PositiveIntegerField(
         verbose_name="Employment sector",
         choices=[
@@ -131,12 +133,13 @@ class Demographic(models.Model):
         ],
     )
 
+
 class Quality(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    used_resource_before =  models.PositiveIntegerField(
+    used_resource_before = models.PositiveIntegerField(
         choices=[
             (1, "Frequently (weekly to daily)"),
             (2, "Occasionally (once in a while to monthly)"),
@@ -152,14 +155,14 @@ class Quality(models.Model):
             (3, "Maybe"),
         ]
     )
-    reccommend_course =  models.PositiveIntegerField(
+    recommend_course = models.PositiveIntegerField(
         choices=[
             (1, "Yes"),
             (2, "No"),
             (3, "Maybe"),
         ]
     )
-    course_rating =  models.PositiveIntegerField(
+    course_rating = models.PositiveIntegerField(
         choices=[
             (1, "Poor (1)"),
             (2, "Satisfactory (2)"),
@@ -182,7 +185,6 @@ class Quality(models.Model):
     email_contact = models.PositiveIntegerField(choices=email_contact_choices)
 
 
-
 class Impact(models.Model):
     HOW_LONG_CHOICES = [
         (1, "Less than 6 months"),
@@ -198,12 +200,17 @@ class Impact(models.Model):
         (5, "Other"),
     ]
 
-    HOW_OFTEN_CHOICES = [
+    HOW_OFTEN_BEFORE_CHOICES = [
         (1, "Never - unaware of them"),
         (2, "Never - aware of them, but had not used them"),
         (3, "Never - used other service"),
         (4, "Occasionally (once in a while to monthly)"),
         (5, "Frequently (weekly to daily)"),
+    ]
+    HOW_OFTEN_AFTER_CHOICES = [
+        (1, "Never - use other service"),
+        (2, "Occasionally (once in a while to monthly)"),
+        (3, "Frequently (weekly to daily)"),
     ]
 
     EXPLAIN_CHOICES = [
@@ -247,27 +254,45 @@ class Impact(models.Model):
         (4, "No"),
     ]
 
+    HELP_WORK_CHOICES = [
+        {1,
+            "It did not help as I do not use the tool(s)/resource(s) covered in the training event"},
+        {2, "It enabled me to complete certain tasks more quickly"},
+        {3, "It has not helped yet but I anticipate a future impact"},
+        {4, "It improved communication with the bioinformatician/statistician analyzing my data"},
+        {5, "It improved my ability to handle data"},
+        {6, "Other"}
+    ]
+
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    how_long_ago = models.PositiveIntegerField(choices=HOW_LONG_CHOICES)
+    when_attend_training = models.PositiveIntegerField(
+        choices=HOW_LONG_CHOICES)
     main_attend_reason = models.PositiveIntegerField(choices=REASON_CHOICES)
-    how_often_use_after = models.PositiveIntegerField(choices=HOW_OFTEN_CHOICES)
+    how_often_use_before = models.PositiveIntegerField(
+        choices=HOW_OFTEN_BEFORE_CHOICES)
+    how_often_use_after = models.PositiveIntegerField(
+        choices=HOW_OFTEN_AFTER_CHOICES)
     able_to_explain = models.PositiveIntegerField(choices=EXPLAIN_CHOICES)
     able_use_now = models.PositiveIntegerField(choices=ABLE_USE_NOW_CHOICES)
-    attending_led_to = models.PositiveIntegerField(choices=ATTENDING_LED_TO_CHOICES)
-    people_share_knowledge = models.PositiveIntegerField(choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
-    recommend_others = models.PositiveIntegerField(choices=RECOMMEND_OTHERS_CHOICES)
+    help_work = ArrayField(base_field=models.TextField(), choices=HELP_WORK_CHOICES)
+    attending_led_to = ArrayField(base_field=models.TextField(),
+                                  choices=ATTENDING_LED_TO_CHOICES)
+    people_share_knowledge = models.PositiveIntegerField(
+        choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
+    recommend_others = models.PositiveIntegerField(
+        choices=RECOMMEND_OTHERS_CHOICES)
 
     def __str__(self):
         return f"Attendance: {self.get_how_long_ago_display()}, Reason: {self.get_main_attend_reason_display()}, Use Before: {self.how_often_use_before}, Use After: {self.how_often_use_after}, Able to Explain: {self.able_to_explain}"
 
 
-
 class Node(models.Model):
     name = models.TextField()
     country = CountryField()
+
 
 class OrganisingInstitution(models.Model):
     name = models.TextField()
