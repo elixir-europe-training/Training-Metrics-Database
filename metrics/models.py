@@ -95,6 +95,7 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    employment_country = CountryField()
 
     heard_from = ArrayField(base_field=models.TextField(),
                             verbose_name="Where did you hear about this course?",
@@ -149,7 +150,7 @@ class Quality(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    used_resource_before = models.TextField(
+    used_resources_before = models.TextField(
         choices=[
             ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
             ("Occasionally (once in a while to monthly)",

@@ -6,12 +6,13 @@ from metrics.models import Event, Demographic, Quality, Impact, Node, Organising
 from django.core.management.base import BaseCommand
 from datetime import datetime
 
-# Define the paths to your CSV files
-events_csv_path = 'tango_events.csv'
-demographics_csv_path = 'demographics.csv'
-qualities_csv_path = 'qualities.csv'
-impacts_csv_path = 'impacts.csv'
-users_csv_path = 'users.csv'
+events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
+demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
+qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
+impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
+users_csv_path = 'raw-tmd-data/example-data/users.csv'
+inst_csv_path = 'raw-tmd-data/example-data/institutions.csv'
+nodes_csv_path = 'raw-tmd-data/example-data/nodes.csv'
 
 
 def get_country_code(country_name):
@@ -22,27 +23,13 @@ def get_country_code(country_name):
     return None
 
 
-def convert_date_format(date_string):
-    try:
-        # Parse the input date string using the specified format
-        date_object = datetime.strptime(date_string, '%d.%m.%Y')
-
-        # Convert the date object to the desired format
-        converted_date = date_object.strftime('%Y-%m-%d')
-        return converted_date
-    except ValueError:
-        raise ValueError(
-            "Invalid date format. The input date should be in 'dd.mm.yyyy' format.")
-
-
 def load_events():
     with open(events_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        next(reader)
         for row in reader:
             # Convert date strings to datetime objects
             date_start = datetime.strptime(
-                row['date_start'], '%Y-%d-%m').date()
+                row['date_start'], '%Y-%m-%d').date()
             date_end = datetime.strptime(row['date_end'], '%Y-%m-%d').date()
 
             # Convert the funding and other fields from CSV to Python lists
@@ -53,7 +40,7 @@ def load_events():
                 x for x in row['additional_platforms'].split(",")]
             communities = [x for x in row['communities'].split(",")]
 
-            Event.objects.create(
+            event = Event.objects.create(
                 user=User.objects.get(username=row['user']),
                 created=None,
                 modified=None,
@@ -65,7 +52,6 @@ def load_events():
                 duration=float(row['duration']),
                 type=row['type'],
                 funding=funding,
-                organising_institution=row['organising_institution'],
                 location_city=row['location_city'],
                 location_country=get_country_code(row['location_country']),
                 target_audience=target_audience,
@@ -76,27 +62,26 @@ def load_events():
                 url=row['url'],
                 status=row['status'],
             )
-            # Adding ManyToMany relationship with Node
+            # event.organising_institution.set([row['organising_institution']])
             nodes = [Node.objects.get(name=node)
                      for node in row['node'].split(",")]
             event.node.add(*nodes)
 
             # Adding ManyToMany relationship with OrganisingInstitution
-            institutions = [OrganisingInstitution.objects.get(
-                name=inst) for inst in row['organising_institution'].split(",")]
-            event.organising_institution.add(*institutions)
+            # institutions = [OrganisingInstitution.objects.get(
+            #    name=inst) for inst in row['organising_institution'].split(",")]
+            # event.organising_institution.add(*institutions)
 
 
 def load_demographics():
     with open(demographics_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        next(reader)
         for row in reader:
             demographic = Demographic.objects.create(
                 user=User.objects.get(username=row['user']),
                 created=None,
                 modified=None,
-                event=Event.objects.get(code=row['event']),
+                event=Event.objects.get(code=int(row['event'])),
                 heard_from=[x for x in row['heard_from'].split(",")],
                 employment_sector=row['employment_sector'],
                 employment_country=get_country_code(row['employment_country']),
@@ -114,7 +99,7 @@ def load_qualities():
                 created=None,
                 modified=None,
                 event=Event.objects.get(code=row['event']),
-                used_resource_before=row['used_resource_before'],
+                used_resources_before=row['used_resources_before'],
                 used_resources_future=row['used_resources_future'],
                 recommend_course=row['recommend_course'],
                 course_rating=row['course_rating'],
@@ -161,12 +146,21 @@ def load_user():
 
 
 def load_nodes():
-    Node.objects.create(
-        name="ELIXIR-BE",
-    )
-    Node.objects.create(
-        name="ELIXIR-CH",
-    )
+    with open(nodes_csv_path) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            Node.objects.create(
+                name=row['name'],
+            )
+
+
+def load_institutions():
+    with open(inst_csv_path) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            OrganisingInstitution.objects.create(
+                name=row['name'],
+            )
 
 
 class Command(BaseCommand):
@@ -179,10 +173,15 @@ class Command(BaseCommand):
         Demographic.objects.all().delete()
         Quality.objects.all().delete()
         Impact.objects.all().delete()
+        OrganisingInstitution.objects.all().delete()
+        Node.objects.all().delete()
 
         print("LOADING NODES")
         print("------------------------")
         load_nodes()
+        print("LOADING INSTIUTIONS")
+        print("------------------------")
+        load_institutions()
         print("LOADING USERS")
         print("------------------------")
         load_user()
