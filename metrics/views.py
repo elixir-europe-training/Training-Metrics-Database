@@ -37,7 +37,7 @@ def get_navgation(request):
                         (request.user.username, "person-circle", ""),
                     ] if request.user.is_authenticated
                     else [
-                        ("Sign in", "box-arrow-in-right", reverse("admin:login")),
+                        ("Sign in", "box-arrow-in-right", f"{reverse('admin:login')}?next={request.path}"),
                     ]
                 )
             ],
@@ -45,7 +45,7 @@ def get_navgation(request):
                 [
                     {"title": title, "icon": icon, "url": url, "type": "auth"}
                     for title, icon, url in [
-                        ("Sign out", "box-arrow-right", reverse("admin:logout")),
+                        ("Sign out", "box-arrow-right", f"{reverse('admin:logout')}?next={request.path}"),
                     ]
                 ] if request.user.is_authenticated
                 else []
