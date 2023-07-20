@@ -8,7 +8,7 @@ def get_navigation(request):
             *[
                 {"title": title, "icon": icon, "url": url, "type": "side"}
                 for title, icon, url in [
-                    ("All events", "calendar3", reverse('events')),
+                    ("All events", "calendar3", reverse('all-events')),
                 ]
             ],
             *[
