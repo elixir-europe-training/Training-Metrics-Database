@@ -109,4 +109,10 @@ def update_graph(location, funding):
 
 
 def event_report(request):
-    return render(request, 'dash_app/template.html')
+    return render(
+        request,
+        'dash_app/template.html',
+        context={
+            **request.navigation
+        }
+    )
