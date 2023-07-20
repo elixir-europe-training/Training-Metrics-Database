@@ -13,17 +13,15 @@ from datetime import datetime
 
 app = DjangoDash("SimpleExample")
 
-# read data from csv for now. To be replaced with db queries
+# read data from csv
 data = pd.read_csv('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
-data['Year'] = pd.to_numeric(data['Start date'].str.split('.').str[-1])
-
-# Initialize the table with all event types and zero count
-data['Number of events'] = 0
-table_data_initial = data[['Event type', 'Number of events']].drop_duplicates().to_dict('records')
+data['Start date'] = pd.to_datetime(data['Start date'], format='%d.%m.%Y')
+data['End date'] = pd.to_datetime(data['End date'], format='%d.%m.%Y')
 
 # extract values from all columns for plotting
 event_type = sorted(list(set(data['Event type'])))
-funding = [x for x in list(set(data['Funding'])) if str(x) != 'nan']
+funding = sorted([str(x) for x in set(data['Funding']) if str(x) != 'nan'])
+target_audience = sorted([str(x) for x in set(data['Target audience']) if str(x) != 'nan'])
 location = sorted(list(set(data['Location (city, country)'])))
 
 # layout for the input parameters for filtering
@@ -33,122 +31,112 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='event-type',
                 options=[{'label': i, 'value': i} for i in event_type],
-                value='Event_type'
+                value=None,
+                multi=False,
+                placeholder="Select an Event Type",
             )
         ]),
         dbc.Col([
             dcc.Dropdown(
                 id='funding-type',
                 options=[{'label': i, 'value': i} for i in funding],
-                value='funding'
+                value=None,
+                multi=False,
+                placeholder="Select a Funding Type",
             )
-        ])
-    ]),
-    dbc.Row([
+        ]),
+        dbc.Col([
+            dcc.Dropdown(
+                id='target-audience',
+                options=[{'label': i, 'value': i} for i in target_audience],
+                value=None,
+                multi=False,
+                placeholder="Select a Target Audience",
+            )
+        ]),
         dbc.Col([
             dcc.DatePickerRange(
                 id='date-picker-range',
                 initial_visible_month=datetime.now(),
-            ),
-        ], width={'size': 2, 'offset': 0, 'order': '1'}),
-        dbc.Col([
-            dcc.Dropdown(
-                id='location-picker',
-                options=[{'label': i, 'value': i} for i in location],
-                value='location'
-            ),
-        ], width={'size': 2, 'offset': 0, 'order': '2'})
-    ]),
-    dash_table.DataTable(
-        id='event-table',
-        columns=[{"name": 'Event type', "id": 'Event type'}, {"name": 'Events', "id": 'Events'}],
-        data=table_data_initial,
-        page_size=10,
-        style_cell={'textAlign': 'left'},
-    ),
-    dbc.Row([
-        dbc.Col([
-            dcc.RadioItems(
-                id='graph-type',
-                options=[
-                    {'label': 'Bar Plot', 'value': 'bar'},
-                    {'label': 'Pie Chart', 'value': 'pie'}
-                ],
-                value='bar',  # Definir o gráfico de barras como padrão
-                labelStyle={'display': 'block'}
             )
-        ], width={'size': 3, 'offset': 0, 'order': '3'}),
+        ])
     ]),
     dbc.Row([
-        dcc.Graph(
-            id='event-type-graph',
-            figure={
-                'data': [
-                    go.Histogram(
-                        x=data['Event type'],
-                        name='Events'
-                    )
-                ],
-                'layout': go.Layout(
-                    title='Event type',
-                    xaxis={'title': 'Event type'},
-                    yaxis={'title': 'No. of events'},
-                )
-            }
-        )
-    ])
+        dash_table.DataTable(
+            id='event-table',
+            columns=[{"name": i, "id": i} for i in ['Event type', 'Events']],
+            page_size=10,
+            style_cell={'textAlign': 'left'},
+        ),
+        dcc.Graph(id='event-type-graph')
+    ]),
+    dbc.Row([
+        dash_table.DataTable(
+            id='funding-table',
+            columns=[{"name": i, "id": i} for i in ['Funding', 'Events']],
+            page_size=10,
+            style_cell={'textAlign': 'left'},
+        ),
+        dcc.Graph(id='funding-graph')
+    ]),
+    dbc.Row([
+        dash_table.DataTable(
+            id='audience-table',
+            columns=[{"name": i, "id": i} for i in ['Target audience', 'Events']],
+            page_size=10,
+            style_cell={'textAlign': 'left'},
+        ),
+        dcc.Graph(id='audience-graph')
+    ]),
 ])
 
 # updating the plot and table
 @app.callback(
     [Output('event-table', 'data'),
-     Output('event-type-graph', 'figure')],
-    [Input('location-picker', 'value'),
-     Input('funding-type', 'value')],
-     Input('graph-type', 'value')
+     Output('event-type-graph', 'figure'),
+     Output('funding-table', 'data'),
+     Output('funding-graph', 'figure'),
+     Output('audience-table', 'data'),
+     Output('audience-graph', 'figure')],
+    [Input('event-type', 'value'),
+     Input('funding-type', 'value'),
+     Input('target-audience', 'value'),
+     Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
 )
-def update_graph_and_table(location, funding, graph_type):
-    data2 = data.copy()  # copy the original data
-    if location != 'location':
-        data2 = data2[data2['Location (city, country)'] == location]
-
-    if funding != 'funding':
-        data2 = data2[data2['Funding'] == funding]
-
+def update_graph_and_table(event_type_value, funding_value, target_audience_value, date_from, date_to):
+    data2 = data.copy()
+    if event_type_value is not None:
+        data2 = data2[data2['Event type'] == event_type_value]
+    if funding_value is not None:
+        data2 = data2[data2['Funding'] == funding_value]
+    if target_audience_value is not None:
+        data2 = data2[data2['Target audience'] == target_audience_value]
+    if date_from is not None and date_to is not None:
+        data2 = data2[(data2['Year'] >= date_from) & (data2['Year'] <= date_to)]
     
-    if graph_type == 'bar':
+    def generate_table_and_figure(data, column, title):
+        table_data = data.groupby(column).size().reset_index(name='Events').to_dict('records')
         figure = {
             'data': [
-                go.Histogram(
-                    x=data2,
-                    name='Events'
+                go.Bar(
+                    x=[item[column] for item in table_data],
+                    y=[item['Events'] for item in table_data],
                 )
             ],
             'layout': go.Layout(
-                title='Event Type Bar Plot',
-                xaxis={'title': 'Event Types'},
-                yaxis={'title': 'Number of Events'},
+                title=title,
+                xaxis={'title': 'No. of Events', 'tickfont': {'size': 10}},
+                yaxis={'title': column},
             )
         }
-    elif graph_type == 'pie':
-        figure = {
-            'data': [
-                go.Pie(
-                    labels=data2.value_counts().index.tolist(),
-                    values=data2.value_counts().values.tolist()
-                )
-            ],
-            'layout': go.Layout(
-                title='Event Type Pie Chart',
-            )
-        }
+        return table_data, figure
     
+    event_table_data, event_figure = generate_table_and_figure(data2, 'Event type', 'Event Type')
+    funding_table_data, funding_figure = generate_table_and_figure(data2, 'Funding', 'Funding')
+    audience_table_data, audience_figure = generate_table_and_figure(data2, 'Target audience', 'Target Audience')
 
-    # Group by 'Event type' and count the occurrences
-    table_data = data2.groupby('Event type').size().reset_index(name='Events')
-    table_data = table_data[['Event type', 'Events']].to_dict('records')
-
-    return table_data, figure
+    return event_table_data, event_figure, funding_table_data, funding_figure, audience_table_data, audience_figure
 
 
 def get_tabs(request):
