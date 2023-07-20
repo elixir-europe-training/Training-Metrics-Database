@@ -3,3 +3,6 @@ flake8
 isort
 mypy
 django_plotly_dash
+django-plotly-dash==2.2.*
+dpd-static-support==0.0.*
+pandas
