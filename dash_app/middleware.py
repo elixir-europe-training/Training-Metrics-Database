@@ -2,15 +2,20 @@ import pandas as pd
 import dash_bootstrap_components as dbc
 
 from datetime import datetime
+from functools import lru_cache
 
-data = pd.read_csv('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
+@lru_cache
+def get_data(file_name):
+    data = pd.read_csv(file_name)
+    data['Start date'] = pd.to_datetime(data['Start date'], format='%d.%m.%Y')
+    data['End date'] = pd.to_datetime(data['End date'], format='%d.%m.%Y')
+    return data
 
-# convert dates to datetime
-data['Start date'] = pd.to_datetime(data['Start date'], format='%d.%m.%Y')
-data['End date'] = pd.to_datetime(data['End date'], format='%d.%m.%Y')
 
 class Group():
-    def __init__(self, fields):
+    def __init__(self, name, fields, data):
+        self.data = data
+        self.name = name
         self.fields = fields
         self.field_mapping = {
             '#': "id",
@@ -55,7 +60,7 @@ class Group():
         return field_id
     
     def get_values(self, event_type=None, funding=None, target_audience=None, date_from=None, date_to=None, node_only=False):
-        data2 = data.copy()
+        data2 = self.data.copy()
         if event_type is not None:
             data2 = data2[data2['Event type'] == event_type]
         if funding is not None:
@@ -74,6 +79,9 @@ class Group():
             for row in data2.to_dict(orient='records')
         ]
         return records
+    
+    def get_name(self):
+        return self.name
 
 
 class Metrics():
@@ -84,22 +92,27 @@ class Metrics():
         return self.groups.get(name, None)
 
 
-current_metric = Metrics(
-    {
-        "events": Group(
-            {
-                "event_type": sorted(list(set(data['Event type']))), 
-                "funding": sorted([str(x) for x in set(data['Funding']) if str(x) != 'nan']), 
-                "target_audience": sorted([str(x) for x in set(data['Target audience']) if str(x) != 'nan']),
-                "location": sorted(list(set(data['Location (city, country)'])))
-            }
-        )
-    }
-)
+@lru_cache
+def get_metrics():
+    data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
+    return Metrics(
+        {
+            "events": Group(
+                "Events",
+                {
+                    "event_type": sorted(list(set(data['Event type']))), 
+                    "funding": sorted([str(x) for x in set(data['Funding']) if str(x) != 'nan']), 
+                    "target_audience": sorted([str(x) for x in set(data['Target audience']) if str(x) != 'nan']),
+                    "location": sorted(list(set(data['Location (city, country)'])))
+                },
+                data
+            )
+        }
+    )
 
 def metrics_middleware(get_response):
     def middleware(request):
-        setattr(request, "metrics", current_metric)
+        setattr(request, "metrics", get_metrics())
         response = get_response(request)
         return response
 

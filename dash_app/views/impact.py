@@ -46,7 +46,7 @@ def generate_tables_and_figures(group, values):
         yield generate_figure(
             metrics,
             group.get_field_title(field_id),
-            'No. of Events',
+            f'No. of {group.get_name()}',
             group.get_field_title(field_id)
         )
         yield [
