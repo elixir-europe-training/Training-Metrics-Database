@@ -15,7 +15,7 @@ app = DjangoDash("SimpleExample")
 
 
 # read data from csv for now. To be replaced with db queries
-data = pd.read_csv('/Users/mariadoyle/github/ELIXIR-TrP-Training-Metrics-Database-Tango/raw-tmd-data/all_events_expanded.csv')
+data = pd.read_csv('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
 data['Year'] = pd.to_numeric(data['Start date'].str.split('.').str[-1])
 
 # extract values from all columns for plotting
