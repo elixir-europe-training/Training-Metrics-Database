@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact
+from .models import Event, Quality, Impact, Demographic
 
 
 class Group():
@@ -66,12 +66,24 @@ class Group():
         
     
     def get_values(self, **params):
-        print(params)
         query = self.model.objects.all()
         if params.get("event_type"):
             query = query.filter(event__type=params.get("event_type"))
+        if params.get("event_funding"):
+            query = query.filter(event__funding=params.get("event_funding"))
+        if params.get("event_target_audience"):
+            query = query.filter(event__target_audience=params.get("event_target_audience"))
+        if params.get("event_additional_platforms"):
+            query = query.filter(event__additional_platforms=params.get("event_additional_platforms"))
+
+        date_from = params.get("date_from")
+        date_to = params.get("date_to")
+        if date_from is not None and date_to is not None:
+            query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
+        if params.get("node_only"):
+            pass
+        
         result = list(query.values())
-        print(result)
         return result
     
     def get_name(self):
@@ -90,7 +102,7 @@ class Metrics():
 def get_metrics():
     groups = {
         "impact": Group(
-            "Impact",
+            "Number of answers",
             {},
             Impact,
             use_fields=[
@@ -106,7 +118,7 @@ def get_metrics():
             ]
         ),
         "quality": Group(
-            "Quality",
+            "Number of answers",
             {},
             Quality,
             use_fields=[
@@ -116,6 +128,18 @@ def get_metrics():
                 "course_rating",
                 "balance",
                 "email_contact",
+            ]
+        ),
+        "demographic": Group(
+            "Number of answers",
+            {},
+            Demographic,
+            use_fields=[
+                "employment_country",
+                "heard_from",
+                "employment_sector",
+                "gender",
+                "career_stage",
             ]
         ),
     }
