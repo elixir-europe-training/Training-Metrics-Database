@@ -80,7 +80,17 @@ class EventGroup():
             if node:
                 query = query.filter(node=node)
         
-        result = list(query.values())
+        related_values = list(query.values_list("node__name", "node_main__name", "organising_institution"))
+        values = list(query.values())
+        result = [
+            {
+                **value,
+                "node": node,
+                "organising_institution": organising_institution,
+                "node_main": node_main
+            }
+            for value, (node, node_main, organising_institution) in zip(values, related_values)
+        ]
         return result
     
     def get_name(self):
@@ -232,7 +242,7 @@ def get_metrics(request):
                 "code",
                 "title",
                 "node",
-                "node_main_id",
+                "node_main",
                 "date_start",
                 "date_end",
                 "type",
