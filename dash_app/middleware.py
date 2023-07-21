@@ -172,6 +172,36 @@ def get_metrics():
                 "attendance_reason",
             ]
         )
+    with suppress(FileNotFoundError):
+        quality_data = get_data('./raw-tmd-data/all-node_quality_metrics.csv')
+        groups["quality"] = Group(
+            "Quality",
+            {
+                'Event code': "event_code",
+                'Title': "title",
+                'Have you used the tool(s)/resource(s) covered in the course before?': "used_tools_before",
+                'Will you use the tool(s)/resource(s) covered in the course again?': "use_tools_again",
+                'Would you recommend the course?': "recommend",
+                'Please tell us your overall rating for the entire course': "overall_rating",
+                'May we contact you by email in the future for more feeback?': "may_contact",
+                'What part of the training did you enjoy the most?': "most_enjoyable",
+                'What part of the training did you enjoy the least?': "least_enjoyable",
+                'The balance of theoretical and practical content was': "theoretical_balance",
+                'What other topics would you like to see covered in the future?': "other_topics",
+                'Any other comments?': "comments"
+            },
+            quality_data,
+            use_fields=[
+                "used_tools_before",
+                "use_tools_again",
+                "recommend",
+                "overall_rating",
+            ],
+            filter_fields=[
+                "overall_rating",
+                "recommend"
+            ]
+        )
     return Metrics(groups)
 
 def metrics_middleware(get_response):
