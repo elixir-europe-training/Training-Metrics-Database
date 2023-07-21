@@ -185,20 +185,33 @@ class Metrics():
 
 @lru_cache
 def get_metrics():
+    shared_field_mapping = {
+        "Type": "event_type",
+        "Event funding": "event_funding",
+        "Target audience": "event_target_audience",
+        "Additional platforms": "event_additional_platforms"
+    }
     groups = {
         "event": EventGroup(
             "Number of events",
-            {},
+            {
+                "Type": "type",
+                "Event funding": "funding",
+                "Target audience": "target_audience",
+                "Additional platforms": "additional_platforms"
+            },
             use_fields=[
                 "type",
                 "funding",
                 "target_audience",
                 "additional_platforms"
-            ]
+            ],
         ),
         "impact": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Impact,
             use_fields=[
                 "when_attend_training",
@@ -215,7 +228,9 @@ def get_metrics():
         ),
         "quality": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Quality,
             use_fields=[
                 "used_resources_before",
@@ -229,7 +244,9 @@ def get_metrics():
         ),
         "demographic": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Demographic,
             use_fields=[
                 "employment_country",
