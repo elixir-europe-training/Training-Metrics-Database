@@ -24,27 +24,34 @@ class Command(BaseCommand):
         parser.add_argument("--random-pass", help='Whether password input should not be requested and a password is '
                                                   'automatically computed instead', action='store_true')
         parser.add_argument('-N', type=int, default=8)
-        parser.add_argument('--show')
+        parser.add_argument('--show', help='Whether final credentials should be shown to the command line instead of '
+                                           'being placed inside a file', action='store_true')
 
     def handle(self, *args, **options):
         username = input('Enter username for user: ') if options['username'] is None else options['username']
+        if User.objects.filter(username=username).exists():
+            print(f'Username "{username}" is not available')
+            return
         if not options['random_pass']:
-            pass0 = getpass.getpass(prompt='Enter password:')
-            pass1 = getpass.getpass(prompt='Enter password again:')
-            if pass0 != pass1:
-                print('Passwords do not match')
+            while True:
+                pass0 = getpass.getpass(prompt='Enter password:')
+                pass1 = getpass.getpass(prompt='Enter password again:')
+                if pass0 != pass1:
+                    print('Passwords do not match')
+                else:
+                    break
+        else:
+            if options['N'] < 1:
+                print('N argument must be at least 1')
                 return
-            else:
-                if options['N'] < 1:
-                    print('N argument must be at least 1')
-                    return
-                N = options['N']
-                pass0 = ''.join(random.choices(string.ascii_uppercase + string.digits + string.ascii_lowercase, k=N))
+            N = options['N']
 
-            user = User.objects.create_user(username=username, password=pass0)
+            pass0 = ''.join(random.choices(string.ascii_uppercase + string.digits + string.ascii_lowercase, k=N))
 
-            if options['show']:
-                print(f'User created - username: "{user.username}", password: "{pass0}"')
-            else:
-                with open(f'user-{user.username}.txt', 'w') as user_credentials_out:
-                    user_credentials_out.write(f'username: {user.username}, password: {pass0}')
+        user = User.objects.create_user(username=username, password=pass0)
+
+        if options['show']:
+            print(f'User created - username: "{user.username}", password: "{pass0}"')
+        else:
+            with open(f'user-{user.username}.txt', 'w') as user_credentials_out:
+                user_credentials_out.write(f'username: {user.username}, password: {pass0}')

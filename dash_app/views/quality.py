@@ -3,9 +3,9 @@ from .common import get_layout, use_callback, get_tabs
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
 
-app = DjangoDash("QualityReport")
 
 def quality_report(request):
+    app = DjangoDash("QualityReport")
     group = request.metrics.get_group('quality')
     dash_config = {}
     if group:

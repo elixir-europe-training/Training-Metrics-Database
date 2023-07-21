@@ -31,7 +31,8 @@ WITH _Entity AS (SELECT entity_id,
                         ttd5.name                              AS r_target_audience,
                         ttd6.name                              AS r_elixir_service_platforms_r,
                         ttd7.name                              AS r_communities_use_cases_rela,
-                        g_node.title                           AS group_elixir_node
+                        g_node.title                           AS group_elixir_node,
+                        g_user.title                           AS group_user
                  FROM (SELECT node.nid     AS entity_id,
                               'node'       AS entity_type,
                               'event'      AS bundle,
@@ -78,13 +79,16 @@ WITH _Entity AS (SELECT entity_id,
                           LEFT JOIN taxonomy_term_data ttd5 ON ttd5.tid = field_target_audience_tid
                           LEFT JOIN taxonomy_term_data ttd6 ON ttd6.tid = field_elixir_service_platforms_r_tid
                           LEFT JOIN taxonomy_term_data ttd7 ON ttd7.tid = field_communities_use_cases_rela_tid
-                          LEFT JOIN `groups` g_node ON g_node.gid = field_elixir_node_target_id),
+                          LEFT JOIN `groups` g_node ON g_node.gid = field_elixir_node_target_id
+                          LEFT JOIN group_membership gm_user ON gm_user.uid = e_uid AND gm_user.status = 'active'
+                          LEFT JOIN `groups` g_user ON g_user.gid = gm_user.gid),
      _Full AS (SELECT entity_id,
                       FROM_UNIXTIME(e_created)                             AS f_created,
                       FROM_UNIXTIME(e_changed)                             AS f_changed,
                       e_uid                                                AS f_created_by,
                       e_title                                              AS f_title,
                       JSON_ARRAYAGG(DISTINCT group_elixir_node)            AS f_elixir_node,
+                      JSON_ARRAYAGG(DISTINCT group_user)                   AS f_elixir_node_user,
                       field_date__start                                    AS f_date_start,
                       field_date__end                                      AS f_date_end,
                       field_duration                                       AS f_duration,
