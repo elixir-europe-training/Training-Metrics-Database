@@ -6,8 +6,7 @@ from metrics.models import Event, Demographic, Quality, Impact, Node, Organising
 from django.core.management.base import BaseCommand
 from datetime import datetime
 
-# events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
-events_csv_path = 'raw-tmd-data/example-data/tango_events_nye.csv'
+events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
 demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
 qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
 impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
