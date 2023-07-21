@@ -210,6 +210,30 @@ def get_metrics():
             ],
             graph_type="pie"
         )
+    with suppress(FileNotFoundError):
+        quality_data = get_data('./raw-tmd-data/all-demographics.csv')
+        quality_data = pd.merge(quality_data, shared_data, on="Event code")
+        groups["demographic"] = Group(
+            "Demographic",
+            {
+                **shared_mapping,
+                'Event code': "event_code",
+                'Title': "title",
+                'Title_y': "event_title",
+                'Where did you see the course advertised?': "heard_from",
+                'What is your career stage?': "career_stage",
+                'What is your employment sector?': "employment_sector",
+                'What is your country of employment?': "employment_country",
+                'What is your gender?': "gender",
+            },
+            quality_data,
+            use_fields=[
+                "heard_from",
+                "career_stage",
+                "gender",
+            ],
+            graph_type="pie"
+        )
     return Metrics(groups)
 
 def metrics_middleware(get_response):
