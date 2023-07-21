@@ -114,6 +114,27 @@ def get_callback(group):
     return update_graph_and_table
 
 
+def get_table_callback(group):
+    def update_graph_and_table(*filter_values):
+        filters = list(zip([*group.get_filter_fields(), "date_from", "date_to", "node_only"], filter_values))
+        values = group.get_values(**{
+            name: value
+            for name, value in filters
+        })
+
+        table_values = [
+            {
+                key: ", ".join(value) if type(value) == list else value
+                for key, value in row.items()
+            }
+            for row in values
+        ]
+        
+        return [table_values]
+    
+    return update_graph_and_table
+
+
 def get_outputs(group):
     for field_id in group.get_fields():
         yield Output(f'{field_id}-graph', 'figure')
@@ -134,6 +155,24 @@ def use_callback(app, group):
             Input('node-only-toggle', 'value'),
         ]
     )(get_callback(group))
+
+
+@lru_cache
+def use_table_callback(app, group):
+    app.callback(
+        [
+            Output('data-table', 'data')
+        ],
+        [
+            *[
+                Input(field_id, 'value')
+                for field_id in group.get_filter_fields()
+            ],
+            Input('date-picker-range', 'start_date'),
+            Input('date-picker-range', 'end_date'),
+            Input('node-only-toggle', 'value'),
+        ]
+    )(get_table_callback(group))
 
 
 def get_layout(app, group):
@@ -185,5 +224,71 @@ def get_layout(app, group):
                 ])
                 for field_id in group.get_fields()
             ]
+        ])
+    )
+
+
+def get_table_layout(app, group):
+    filter_fields = group.get_filter_fields()
+    fields = group.get_fields()
+    return (
+        app.layout
+    ) if app.layout else (
+        html.Div([
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Node Only: "),
+                    dbc.Switch(id='node-only-toggle', value=False)
+                ]),
+            ]),
+            dbc.Row([
+                *[
+                    dbc.Col([
+                        dcc.Dropdown(
+                            id=field_id,
+                            options=[{'label': i, 'value': i} for i in group.get_field_options(field_id)],
+                            value=None,
+                            multi=False,
+                            placeholder=group.get_field_placeholder(field_id),
+                        )
+                    ])
+                    for field_id in filter_fields
+                ],
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dcc.DatePickerRange(
+                        id='date-picker-range',
+                        initial_visible_month=datetime.now(),
+                    )
+                ]),
+            ]),
+            dbc.Row([
+                dash_table.DataTable(
+                    id='data-table',
+                    columns=[{"name": i, "id": i} for i in fields],
+                    page_size=50,
+                    style_table={'overflowX': 'auto'},
+                    style_cell={
+                        'minWidth': '50px', 'maxWidth': '180px',
+                        'whiteSpace': 'normal',
+                        'textAlign': 'left',
+                        'padding': '5px',
+                        'fontFamily': 'Arial, sans-serif'
+                    },
+                    style_header={
+                        'backgroundColor': 'rgb(230, 230, 230)',
+                        'fontWeight': 'bold',
+                        'color': 'black',
+                        'fontFamily': 'Arial, sans-serif'
+                    },
+                    style_data_conditional=[
+                        {
+                            'if': {'row_index': 'odd'},
+                            'backgroundColor': 'rgb(248, 248, 248)'
+                        }
+                    ],
+                )
+            ])
         ])
     )
