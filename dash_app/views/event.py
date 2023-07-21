@@ -28,6 +28,12 @@ location = sorted(list(set(data['Location (city, country)'])))
 app.layout = html.Div([
     dbc.Row([
         dbc.Col([
+            html.Label("Node Only: "),
+            dbc.Switch(id='node-only-toggle', value=False),
+        ]),
+    ]),
+    dbc.Row([
+        dbc.Col([
             dcc.Dropdown(
                 id='event-type',
                 options=[{'label': i, 'value': i} for i in event_type],
@@ -54,15 +60,13 @@ app.layout = html.Div([
                 placeholder="Select a Target Audience",
             )
         ]),
+    ]),
+    dbc.Row([
         dbc.Col([
             dcc.DatePickerRange(
                 id='date-picker-range',
                 initial_visible_month=datetime.now(),
             )
-        ]),
-        dbc.Col([
-            html.Label("Node Only: "),
-            dbc.Switch(id='node-only-toggle', value=False)
         ]),
     ]),
     dbc.Row([
