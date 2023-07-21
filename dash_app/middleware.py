@@ -168,11 +168,16 @@ def get_metrics():
             },
             impact_data,
             use_fields=[
-                "training_event",
                 "time_from_last_attendance",
                 "attendance_reason",
                 "tool_frequency_before",
-                "tool_frequency_after"
+                "tool_frequency_after",
+                "can_you_explain",
+                "tools_ability",
+                "how_did_event_help",
+                "facilitation",
+                "knowledge_transfer",
+                "recommend",
             ],
             graph_type="pie"
         )

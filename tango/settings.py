@@ -64,7 +64,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_plotly_dash.middleware.BaseMiddleware",
     "django_plotly_dash.middleware.ExternalRedirectionMiddleware",
-    "dash_app.middleware.metrics_middleware"
+    "metrics.middleware.metrics_middleware"
 ]
 
 ROOT_URLCONF = "tango.urls"

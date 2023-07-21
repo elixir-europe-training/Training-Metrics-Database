@@ -28,8 +28,10 @@ def get_tabs(request):
 def calculate_metrics(data, column):
     column_values = [d[column] for d in data]
     count = {}
-    for v in column_values:
-        count[v] = count.get(v, 0) + 1
+    for value in column_values:
+        values = value if type(value) == list else [value]
+        for v in values:
+            count[v] = count.get(v, 0) + 1
     return count
 
 
@@ -61,6 +63,12 @@ def generate_pie(metrics, title, xaxis, yaxis):
             title=title,
             xaxis={'title': xaxis, 'tickfont': {'size': 10}},
             yaxis={'title': yaxis},
+            legend={
+                "xanchor": "left",
+                "yanchor": "top",
+                "y": -1,
+                "x": 0  
+            }
         )
     }
 
