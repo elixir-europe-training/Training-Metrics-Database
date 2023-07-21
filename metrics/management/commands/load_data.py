@@ -24,7 +24,7 @@ def get_country_code(country_name):
 
 
 def convert_to_timestamp(date_string):
-    return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').date()
+    return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').timestamp()
 
 
 def load_events():
