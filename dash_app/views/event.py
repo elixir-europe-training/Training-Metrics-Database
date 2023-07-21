@@ -2,6 +2,7 @@ import dash
 import plotly.graph_objs as go
 import pandas as pd
 import dash_bootstrap_components as dbc
+from django.contrib.auth.models import AnonymousUser
 
 from django.shortcuts import render
 from django_plotly_dash import DjangoDash
@@ -109,7 +110,11 @@ app.layout = html.Div([
      Input('date-picker-range', 'end_date'),
      Input('node-only-toggle', 'value')]
 )
-def update_graph_and_table(event_type_value, funding_value, target_audience_value, date_from, date_to, node_only):
+def update_graph_and_table(event_type_value, funding_value, target_audience_value, date_from, date_to, node_only,
+                           **kwargs):
+    request = kwargs.get('request', None)
+    user = request.user if request is not None else AnonymousUser  # Just assume user is guest in case request is not
+    # passed
     data2 = data.copy()
     if event_type_value is not None:
         data2 = data2[data2['Event type'] == event_type_value]
