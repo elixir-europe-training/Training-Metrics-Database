@@ -267,7 +267,7 @@ def get_table_layout(app, group):
                 dash_table.DataTable(
                     id='data-table',
                     columns=[{"name": i, "id": i} for i in fields],
-                    page_size=50,
+                    page_size=10,
                     style_table={'overflowX': 'auto'},
                     style_cell={
                         'minWidth': '50px', 'maxWidth': '180px',
