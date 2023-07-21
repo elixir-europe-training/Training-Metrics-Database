@@ -9,6 +9,7 @@ from dash.dependencies import Output, Input, State
 import urllib
 
 from datetime import datetime
+from .common import get_tabs
 
 app = DjangoDash("AllEvents")
 
@@ -183,6 +184,7 @@ def all_events(request):
         request,
         'dash_app/template.html',
         context={
+            **get_tabs(request),
             "dash_name": "AllEvents"
         }
     )

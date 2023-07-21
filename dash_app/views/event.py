@@ -3,9 +3,9 @@ from .common import get_layout, use_callback, get_tabs
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
 
-app = DjangoDash("EventReport")
 
 def event_report(request):
+    app = DjangoDash("EventReport")
     group = request.metrics.get_group('event')
     dash_config = {}
     if group:

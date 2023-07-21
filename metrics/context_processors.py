@@ -12,15 +12,6 @@ def get_navigation(request):
                 ]
             ],
             *[
-                {"title": title, "icon": "clipboard-data", "url": reverse(name), "type": "reports"}
-                for title, name in [
-                    ("Events report", "event-report"),
-                    ("Quality metrics report", "quality-report"),
-                    ("Demographics metrics report", "demographic-report"),
-                    ("Impact metrics report", "impact-report")
-                ]
-            ],
-            *[
                 {"title": title, "icon": icon, "url": url, "type": "user"}
                 for title, icon, url in (
                     [
@@ -32,14 +23,5 @@ def get_navigation(request):
                     ]
                 )
             ],
-            *(
-                [
-                    {"title": title, "icon": icon, "url": url, "type": "auth"}
-                    for title, icon, url in [
-                        ("Sign out", "box-arrow-right", f"{reverse('admin:logout')}?next={request.path}"),
-                    ]
-                ] if request.user.is_authenticated
-                else []
-            )
         ]
     }

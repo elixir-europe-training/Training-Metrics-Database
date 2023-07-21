@@ -3,9 +3,9 @@ from .common import get_layout, use_callback, get_tabs
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
 
-app = DjangoDash("DemographicReport")
 
 def demographic_report(request):
+    app = DjangoDash("DemographicReport")
     group = request.metrics.get_group('demographic')
     dash_config = {}
     if group:

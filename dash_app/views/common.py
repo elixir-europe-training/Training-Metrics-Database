@@ -17,7 +17,8 @@ def get_tabs(request):
         "tabs": [
             {"title": title, "url": reverse(name), "active": view_name == name}
             for title, name in [
-                ("Events", "event-report"),
+                ("All events", "all-events"),
+                ("Event metrics", "event-report"),
                 ("Quality metrics", "quality-report"),
                 ("Demographics metrics", "demographic-report"),
                 ("Impact metrics", "impact-report")

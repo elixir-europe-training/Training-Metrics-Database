@@ -183,8 +183,7 @@ class Metrics():
         return self.groups.get(name, None)
 
 
-@lru_cache
-def get_metrics():
+def get_metrics(request):
     shared_field_mapping = {
         "Type": "event_type",
         "Event funding": "event_funding",
@@ -262,7 +261,7 @@ def get_metrics():
 
 def metrics_middleware(get_response):
     def middleware(request):
-        setattr(request, "metrics", get_metrics())
+        setattr(request, "metrics", get_metrics(request))
         response = get_response(request)
         return response
 
