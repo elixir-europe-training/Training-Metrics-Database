@@ -5,13 +5,11 @@ and a Python script to run said queries and convert the results into a useful fo
 
 ## Setup
 
-It's completely separate from the main application and has its own dependencies.
-Install them like so:
+The data migration scripts need a couple of extra dependencies, specified in the
+`extra_requirements.txt` file. Install them like so:
 
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+```shell
+pip install -r extra_requirements.txt
 ```
 
 You also need access to the old TMD database. This can be the live database
@@ -31,7 +29,7 @@ mysql+pymysql://user:pass@localhost/tmd?charset=utf8mb4
 With the virtualenv activated, run the `extract_from_db.py` script with the
 database connection string as the first argument, like so:
 
-```sh
+```shell
 ./extract_from_db.sh 'mysql+pymysql://user:pass@localhost/tmd?charset=utf8mb4'
 ```
 
