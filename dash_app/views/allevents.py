@@ -95,7 +95,7 @@ app.layout = html.Div([
             id='event-table',
             columns=[{"name": i, "id": i} for i in ['Event code', 'Title', 'ELIXIR Node', 'Start date', 'End date', 
                         'Event type', 'Main organiser']],
-            page_size=50,
+            page_size=10,
             style_table={'overflowX': 'auto'},
             style_cell={
                 'minWidth': '50px', 'maxWidth': '180px',
