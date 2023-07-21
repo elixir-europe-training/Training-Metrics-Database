@@ -145,8 +145,8 @@ def get_metrics():
             {
                 **shared_mapping,
                 'Event code': "event_code",
-                'Title_x': "title_x",
-                'Title_y': "title_y",
+                'Title_x': "title",
+                'Title_y': "event_title",
                 'Which training event did you take part in?': "training_event",
                 'How long ago did you attend the training?': "time_from_last_attendance",
                 'What was your main reason for attending the training?': "attendance_reason",
@@ -173,15 +173,19 @@ def get_metrics():
                 "attendance_reason",
                 "tool_frequency_before",
                 "tool_frequency_after"
-            ]
+            ],
+            graph_type="pie"
         )
     with suppress(FileNotFoundError):
         quality_data = get_data('./raw-tmd-data/all-node_quality_metrics.csv')
+        quality_data = pd.merge(quality_data, shared_data, on="Event code")
         groups["quality"] = Group(
             "Quality",
             {
+                **shared_mapping,
                 'Event code': "event_code",
-                'Title': "title",
+                'Title_x': "title",
+                'Title_y': "event_title",
                 'Have you used the tool(s)/resource(s) covered in the course before?': "used_tools_before",
                 'Will you use the tool(s)/resource(s) covered in the course again?': "use_tools_again",
                 'Would you recommend the course?': "recommend",
@@ -195,15 +199,11 @@ def get_metrics():
             },
             quality_data,
             use_fields=[
-                "used_tools_before",
-                "use_tools_again",
                 "recommend",
                 "overall_rating",
+                "may_contact",
             ],
-            filter_fields=[
-                "overall_rating",
-                "recommend"
-            ]
+            graph_type="pie"
         )
     return Metrics(groups)
 
