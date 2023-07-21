@@ -28,6 +28,12 @@ elixir_node = sorted([str(x) for x in set(data['ELIXIR Node']) if str(x) != 'nan
 app.layout = html.Div([
     dbc.Row([
         dbc.Col([
+            html.Label("Node Only: "),
+            dbc.Switch(id='node-only-toggle', value=False)
+        ]),
+    ]),
+    dbc.Row([
+        dbc.Col([
             dcc.Dropdown(
                 id='event-code',
                 options=[{'label': i, 'value': i} for i in sorted(list(set(data['Event code'])))],
@@ -69,16 +75,14 @@ app.layout = html.Div([
                 multi=False,
                 placeholder="Select a Node",
             )
-        ]),
+        ])
+    ]),
+    dbc.Row([
         dbc.Col([
             dcc.DatePickerRange(
                 id='date-picker-range',
                 initial_visible_month=datetime.now(),
             )
-        ]),
-        dbc.Col([
-            html.Label("Node Only: "),
-            dbc.Switch(id='node-only-toggle', value=False)
         ]),
     ]),
     dbc.Row([

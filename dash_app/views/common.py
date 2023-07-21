@@ -143,6 +143,12 @@ def get_layout(app, group):
     ) if app.layout else (
         html.Div([
             dbc.Row([
+                dbc.Col([
+                    html.Label("Node Only: "),
+                    dbc.Switch(id='node-only-toggle', value=False)
+                ]),
+            ]),
+            dbc.Row([
                 *[
                     dbc.Col([
                         dcc.Dropdown(
@@ -155,15 +161,13 @@ def get_layout(app, group):
                     ])
                     for field_id in fields
                 ],
+            ]),
+            dbc.Row([
                 dbc.Col([
                     dcc.DatePickerRange(
                         id='date-picker-range',
                         initial_visible_month=datetime.now(),
                     )
-                ]),
-                dbc.Col([
-                    html.Label("Node Only: "),
-                    dbc.Switch(id='node-only-toggle', value=False)
                 ]),
             ]),
             *[
