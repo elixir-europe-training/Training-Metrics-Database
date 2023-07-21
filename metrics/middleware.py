@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact, Demographic
+from .models import Event, Quality, Impact, Demographic, Node
 
 
 class EventGroup():
@@ -17,8 +17,10 @@ class EventGroup():
             "additional_platforms"
         ],
         graph_type="bar",
-        field_options_mapping={}
+        field_options_mapping={},
+        use_node=None
     ):
+        self.use_node = use_node
         self.field_mapping = field_mapping
         self.name = name
         self.filter_fields = filter_fields
@@ -73,8 +75,10 @@ class EventGroup():
         date_to = params.get("date_to")
         if date_from is not None and date_to is not None:
             query = query.filter(date_start__range=[date_from, date_to]).filter(date_end__range=[date_from, date_to])
-        if params.get("node_only"):
-            pass
+        if params.get("node_only") and self.use_node:
+            node = Node.objects.filter(name=self.use_node).values_list("pk", flat=True).first()
+            if node:
+                query = query.filter(event__node=node)
         
         result = list(query.values())
         return result
@@ -97,8 +101,10 @@ class Group():
             "event_additional_platforms"
         ],
         graph_type="bar",
-        field_options_mapping={}
+        field_options_mapping={},
+        use_node=None
     ):
+        self.use_node = use_node
         self.field_mapping = field_mapping
         self.name = name
         self.filter_fields = filter_fields
@@ -165,9 +171,11 @@ class Group():
         date_to = params.get("date_to")
         if date_from is not None and date_to is not None:
             query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
-        if params.get("node_only"):
-            pass
-        
+        if params.get("node_only") and self.use_node:
+            node = Node.objects.filter(name=self.use_node).values_list("pk", flat=True).first()
+            if node:
+                query = query.filter(event__node=node)
+
         result = list(query.values())
         return result
     
@@ -184,6 +192,11 @@ class Metrics():
 
 
 def get_metrics(request):
+    node = (
+        f"ELIXIR-{request.user.username.upper()}"
+        if request.user.is_authenticated
+        else None
+    )
     shared_field_mapping = {
         "Type": "event_type",
         "Event funding": "event_funding",
@@ -205,6 +218,7 @@ def get_metrics(request):
                 "target_audience",
                 "additional_platforms"
             ],
+            use_node=node
         ),
         "impact": Group(
             "Number of answers",
@@ -223,7 +237,8 @@ def get_metrics(request):
                 "people_share_knowledge",
                 "recommend_others",
             ],
-            graph_type="pie"
+            graph_type="pie",
+            use_node=node
         ),
         "quality": Group(
             "Number of answers",
@@ -239,7 +254,8 @@ def get_metrics(request):
                 "balance",
                 "email_contact",
             ],
-            graph_type="pie"
+            graph_type="pie",
+            use_node=node
         ),
         "demographic": Group(
             "Number of answers",
@@ -254,7 +270,8 @@ def get_metrics(request):
                 "gender",
                 "career_stage",
             ],
-            graph_type="pie"
+            graph_type="pie",
+            use_node=node
         ),
     }
     return Metrics(groups)
