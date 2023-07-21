@@ -8,7 +8,7 @@ class Event(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    code = models.TextField(unique=True)
+    code = models.TextField()
     title = models.TextField()
     node = models.ManyToManyField("Node")
     node_main = models.ForeignKey(

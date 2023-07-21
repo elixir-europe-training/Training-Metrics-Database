@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from datetime import datetime
 
 # events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
-events_csv_path = 'raw-tmd-data/example-data/tango_events-devv.csv'
+events_csv_path = 'raw-tmd-data/example-data/tango_events_nye.csv'
 demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
 qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
 impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
@@ -29,27 +29,29 @@ def convert_to_timestamp(date_string):
 
 
 def load_events():
-    with open(events_csv_path, newline='', encoding='ISO-8859-1') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter='\t')
+    with open(events_csv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=',')
         for row in reader:
-            # Convert date strings to datetime objects
             date_start = datetime.strptime(
                 row['date_start'], '%Y-%m-%d').date() if row['date_start'] else ''
             date_end = datetime.strptime(
                 row['date_end'], '%Y-%m-%d').date() if row['date_end'] else ''
 
-            # Convert the funding and other fields from CSV to Python lists
-            funding = [x for x in row['funding'].split(",")]
+            funding = [x for x in row['funding'].split(
+                ",")] if row['funding'] else []
             target_audience = [x
-                               for x in row['target_audience'].split(",")]
+                               for x in row['target_audience'].split(",")] if row['target_audience'] else []
             additional_platforms = [
-                x for x in row['additional_platforms'].split(",")]
-            communities = [x for x in row['communities'].split(",")]
+                x for x in row['additional_platforms'].split(",")] if row['additional_platforms'] else []
+            communities = [x for x in row['communities'].split(
+                ",")] if row['communities'] else []
 
             created = convert_to_timestamp(
                 row['created']) if row['created'] else ''
             modified = convert_to_timestamp(
                 row['modified']) if row['modified'] else ''
+
+            node_main = row['node_main'] if row['node_main'] else ''
 
             event = Event.objects.create(
                 user=User.objects.get(username=row['user']),
@@ -57,7 +59,8 @@ def load_events():
                 modified=modified,
                 code=slugify(row['code']),
                 title=row['title'],
-                node_main=Node.objects.get(name=row['node_main']),
+                node_main=Node.objects.get(
+                    name=node_main) if node_main else None,
                 date_start=date_start,
                 date_end=date_end,
                 duration=float(row['duration']),
