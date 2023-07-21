@@ -6,7 +6,7 @@ from django.shortcuts import render
 app = DjangoDash("ImpactReport")
 
 def impact_report(request):
-    group = request.metrics.get_group('events')
+    group = request.metrics.get_group('impact')
     dash_config = {}
     if group:
         app.layout = get_layout(app, group)

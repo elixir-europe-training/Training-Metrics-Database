@@ -3,12 +3,14 @@ import dash_bootstrap_components as dbc
 
 from datetime import datetime
 from functools import lru_cache
+from contextlib import suppress
 
 @lru_cache
 def get_data(file_name):
     data = pd.read_csv(file_name)
-    data['Start date'] = pd.to_datetime(data['Start date'], format='%d.%m.%Y')
-    data['End date'] = pd.to_datetime(data['End date'], format='%d.%m.%Y')
+    for date_id in ['Start date', 'End date']:
+        if date_id in data:
+            data[date_id] = pd.to_datetime(data[date_id], format='%d.%m.%Y')
     return data
 
 
@@ -28,16 +30,16 @@ class Group():
     ):
         self.data = data
         self.name = name
-        self.fields = {
-            field_mapping[name]: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
-            for name in use_fields
-        } if use_fields else {
-            field_id: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
-            for name, field_id in field_mapping.items()
-        }
         self.field_mapping = field_mapping
         self.filter_fields = filter_fields
         self.graph_type = graph_type
+        self.fields = {
+            field_id: sorted([str(x) for x in set(data[self.get_field_title(field_id)]) if str(x) != 'nan'])
+            for field_id in use_fields
+        } if use_fields else {
+            field_id: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
+            for name, field_id in self.field_mapping.items()
+        }
     
     def get_graph_type(self):
         return self.graph_type
@@ -97,42 +99,80 @@ class Metrics():
 
 @lru_cache
 def get_metrics():
-    data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
-    return Metrics(
-        {
-            "events": Group(
-                "Events",
-                {
-                    '#': "id",
-                    'Event code': "event_code",
-                    'Title': "title",
-                    'ELIXIR Node': "elixir_node",
-                    'Start date': "start_date",
-                    'End date': "end_date",
-                    'Duration': "duration",
-                    'Event type': "event_type",
-                    'Funding': "funding",
-                    'Organising Institution/s': "organizing_inititutions",
-                    'Location (city, country)': "location",
-                    'EXCELERATE subtask': "excelerate_subtask",
-                    'Target audience': "target_audience",
-                    'Additional ELIXIR Platforms involved': "additional_platforms",
-                    'ELIXIR Communities involved': "communities_involved",
-                    'Number of participants': "number_of_participants",
-                    'Number of trainers/ facilitators': "number_of_trainers",
-                    'Url to event page/ agenda': "url",
-                    'Main organiser': "main_organizer",
-                },
-                data,
-                use_fields=[
-                    "Event type",
-                    "Funding",
-                    "Target audience",
-                    "Location (city, country)"
-                ]
-            )
-        }
-    )
+    groups = {}
+    with suppress(FileNotFoundError):
+        event_data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
+        groups["events"] = Group(
+            "Events",
+            {
+                '#': "id",
+                'Event code': "event_code",
+                'Title': "title",
+                'ELIXIR Node': "elixir_node",
+                'Start date': "start_date",
+                'End date': "end_date",
+                'Duration': "duration",
+                'Event type': "event_type",
+                'Funding': "funding",
+                'Organising Institution/s': "organizing_inititutions",
+                'Location (city, country)': "location",
+                'EXCELERATE subtask': "excelerate_subtask",
+                'Target audience': "target_audience",
+                'Additional ELIXIR Platforms involved': "additional_platforms",
+                'ELIXIR Communities involved': "communities_involved",
+                'Number of participants': "number_of_participants",
+                'Number of trainers/ facilitators': "number_of_trainers",
+                'Url to event page/ agenda': "url",
+                'Main organiser': "main_organizer",
+            },
+            event_data,
+            use_fields=[
+                "event_type",
+                "funding",
+                "target_audience",
+                "location"
+            ]
+        )
+    with suppress(FileNotFoundError):
+        impact_data = get_data('./raw-tmd-data/all-node_impact_metrics.csv')
+        groups["impact"] = Group(
+            "Impact",
+            {
+                'Event code': "event_code",
+                'Title': "title",
+                'Which training event did you take part in?': "training_event",
+                'How long ago did you attend the training?': "time_from_last_attendance",
+                'What was your main reason for attending the training?': "attendance_reason",
+                'What was your main reason for attending the training? (Other)': "attendance_reason_other",
+                'How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?': "tool_frequency_before",
+                'How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?': "tool_frequency_after",
+                'Do you feel that you are able to explain to others what you learnt in the training?': "can_you_explain",
+                'Do you feel that you are able to explain to others what you learnt in the training? (Other)': "can_you_explain_other",
+                'Are you now able to use the tool(s)/ resource(s) covered in the training?': "tools_ability",
+                'Are you now able to use the tool(s)/ resource(s) covered in the training? (Other)': "tools_ability_other",
+                'How did the training event help with your work?': "how_did_event_help",
+                'How did the training event help with your work? (Other)': "how_did_event_help_other",
+                'Attending the training event led to/ facilitated': "facilitation",
+                'Attending the training event led to/ facilitated: (Other)': "facilitation_other",
+                'Please elaborate on any impact': "elaborated_impact",
+                'How many people have you shared the skills and/or knowledge that you learned during the training, with?': "knowledge_transfer",
+                'Would you recommend the training to others?': "recommend",
+                'Any other comments?': "comments"
+            },
+            impact_data,
+            use_fields=[
+                "training_event",
+                "time_from_last_attendance",
+                "attendance_reason",
+                "tool_frequency_before",
+                "tool_frequency_after"
+            ],
+            filter_fields=[
+                "training_event",
+                "attendance_reason",
+            ]
+        )
+    return Metrics(groups)
 
 def metrics_middleware(get_response):
     def middleware(request):
