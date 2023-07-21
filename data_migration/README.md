@@ -6,7 +6,7 @@ and a Python script to run said queries and convert the results into a useful fo
 ## Setup
 
 It's completely separate from the main application and has its own dependencies.
-Install them like so (and make sure you deactivate your previous venv beforehand):
+Install them like so:
 
 ```sh
 python3 -m venv .venv
