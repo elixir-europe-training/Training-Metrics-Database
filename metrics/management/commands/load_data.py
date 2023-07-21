@@ -206,7 +206,7 @@ class Command(BaseCommand):
         print("LOADING NODES")
         print("------------------------")
         load_nodes()
-        print("LOADING INSTIUTIONS")
+        print("LOADING INSTITUTIONS")
         print("------------------------")
         load_institutions()
         print("LOADING USERS")
