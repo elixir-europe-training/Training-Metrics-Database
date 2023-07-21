@@ -184,7 +184,7 @@ def get_layout(app, group):
             dbc.Row([
                 dbc.Col([
                     html.Label("Node Only: "),
-                    dbc.Switch(id='node-only-toggle', value=False, className='fa-2x')
+                    dbc.Switch(id='node-only-toggle', value=False, style={"fontSize": 24})
                 ], className='col-1'),
                 dbc.Col([
                     dcc.DatePickerRange(
@@ -239,7 +239,7 @@ def get_table_layout(app, group):
             dbc.Row([
                 dbc.Col([
                     html.Label("Node Only: "),
-                    dbc.Switch(id='node-only-toggle', value=False, className='fa-2x'),
+                    dbc.Switch(id='node-only-toggle', value=False, style={"fontSize": 24}),
                 ], className='col-1'),
                 dbc.Col([
                     dcc.DatePickerRange(
