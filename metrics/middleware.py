@@ -30,7 +30,7 @@ class EventGroup():
         self.field_options_mapping = field_options_mapping
         self.fields = {
             field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-            for field_id in self.use_fields
+            for field_id in set([*self.use_fields, *self.filter_fields])
         }
         
     
@@ -217,6 +217,26 @@ def get_metrics(request):
                 "funding",
                 "target_audience",
                 "additional_platforms"
+            ],
+            use_node=node
+        ),
+        "event_full": EventGroup(
+            "Events",
+            {
+                "Type": "type",
+                "Event funding": "funding",
+                "Target audience": "target_audience",
+                "Additional platforms": "additional_platforms"
+            },
+            use_fields=[
+                "code",
+                "title",
+                "node",
+                "node_main_id",
+                "date_start",
+                "date_end",
+                "type",
+                "organising_institution",
             ],
             use_node=node
         ),
