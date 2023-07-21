@@ -184,7 +184,15 @@ def get_layout(app, group):
             dbc.Row([
                 dbc.Col([
                     html.Label("Node Only: "),
-                    dbc.Switch(id='node-only-toggle', value=False)
+                    dbc.Switch(id='node-only-toggle', value=False, className='fa-2x')
+                ], className='col-1'),
+                dbc.Col([
+                    dcc.DatePickerRange(
+                        id='date-picker-range',
+                        initial_visible_month=datetime.now(),
+                        display_format='YYYY-MM-DD',
+                        style={'fontSize':14}
+                    )
                 ]),
             ]),
             dbc.Row([
@@ -201,14 +209,7 @@ def get_layout(app, group):
                     for field_id in fields
                 ],
             ]),
-            dbc.Row([
-                dbc.Col([
-                    dcc.DatePickerRange(
-                        id='date-picker-range',
-                        initial_visible_month=datetime.now(),
-                    )
-                ]),
-            ]),
+
             *[
                 dbc.Row([
                     dash_table.DataTable(
@@ -221,7 +222,7 @@ def get_layout(app, group):
                         style_cell={'textAlign': 'left'},
                     ),
                     dcc.Graph(id=f'{field_id}-graph')
-                ])
+                ], className='pt-4 pb-4')
                 for field_id in group.get_fields()
             ]
         ])
@@ -238,7 +239,15 @@ def get_table_layout(app, group):
             dbc.Row([
                 dbc.Col([
                     html.Label("Node Only: "),
-                    dbc.Switch(id='node-only-toggle', value=False)
+                    dbc.Switch(id='node-only-toggle', value=False, className='fa-2x'),
+                ], className='col-1'),
+                dbc.Col([
+                    dcc.DatePickerRange(
+                        id='date-picker-range',
+                        initial_visible_month=datetime.now(),
+                        display_format='YYYY-MM-DD',
+                        style={'fontSize':14}
+                    )
                 ]),
             ]),
             dbc.Row([
@@ -255,14 +264,7 @@ def get_table_layout(app, group):
                     for field_id in filter_fields
                 ],
             ]),
-            dbc.Row([
-                dbc.Col([
-                    dcc.DatePickerRange(
-                        id='date-picker-range',
-                        initial_visible_month=datetime.now(),
-                    )
-                ]),
-            ]),
+
             dbc.Row([
                 dash_table.DataTable(
                     id='data-table',
@@ -289,6 +291,6 @@ def get_table_layout(app, group):
                         }
                     ],
                 )
-            ])
+            ], className='pt-4 pb-4')
         ])
     )
