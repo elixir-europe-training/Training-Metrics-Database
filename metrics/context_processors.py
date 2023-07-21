@@ -21,14 +21,6 @@ def get_navigation(request):
                 ]
             ],
             *[
-                {"title": title, "icon": icon, "url": url, "type": "about"}
-                for title, icon, url in [
-                    ("Help", "question-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
-                    ("About", "info-circle", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
-                    ("Contribute", "github", "https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango"),
-                ]
-            ],
-            *[
                 {"title": title, "icon": icon, "url": url, "type": "user"}
                 for title, icon, url in (
                     [
