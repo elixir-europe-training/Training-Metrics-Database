@@ -8,7 +8,7 @@ from .views.quality import quality_report
 
 
 urlpatterns = [
-    path('allevents', all_events, name='all-events'),
+    path('', all_events, name='all-events'),
     path('event', event_report, name='event-report'),
     path('quality', quality_report, name='quality-report'),
     path('demographic', demographic_report, name='demographic-report'),
