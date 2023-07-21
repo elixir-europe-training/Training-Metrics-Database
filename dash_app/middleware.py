@@ -35,17 +35,18 @@ class Group():
         self.graph_type = graph_type
         self.fields = {
             field_id: sorted([str(x) for x in set(data[self.get_field_title(field_id)]) if str(x) != 'nan'])
-            for field_id in use_fields
+            for field_id in [*use_fields, *filter_fields]
         } if use_fields else {
             field_id: sorted([str(x) for x in set(data[name]) if str(x) != 'nan'])
             for name, field_id in self.field_mapping.items()
         }
+        self.use_fields = use_fields if use_fields else list(self.fields.keys())
     
     def get_graph_type(self):
         return self.graph_type
 
     def get_fields(self):
-        return list(self.fields.keys())
+        return self.use_fields
     
     def get_filter_fields(self):
         return self.filter_fields
@@ -100,31 +101,34 @@ class Metrics():
 @lru_cache
 def get_metrics():
     groups = {}
+    shared_data = None
+    shared_mapping = {
+        '#': "id",
+        'Event code': "event_code",
+        'Title': "title",
+        'ELIXIR Node': "elixir_node",
+        'Start date': "start_date",
+        'End date': "end_date",
+        'Duration': "duration",
+        'Event type': "event_type",
+        'Funding': "funding",
+        'Organising Institution/s': "organizing_inititutions",
+        'Location (city, country)': "location",
+        'EXCELERATE subtask': "excelerate_subtask",
+        'Target audience': "target_audience",
+        'Additional ELIXIR Platforms involved': "additional_platforms",
+        'ELIXIR Communities involved': "communities_involved",
+        'Number of participants': "number_of_participants",
+        'Number of trainers/ facilitators': "number_of_trainers",
+        'Url to event page/ agenda': "url",
+        'Main organiser': "main_organizer",
+    }
     with suppress(FileNotFoundError):
         event_data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
+        shared_data = event_data
         groups["events"] = Group(
             "Events",
-            {
-                '#': "id",
-                'Event code': "event_code",
-                'Title': "title",
-                'ELIXIR Node': "elixir_node",
-                'Start date': "start_date",
-                'End date': "end_date",
-                'Duration': "duration",
-                'Event type': "event_type",
-                'Funding': "funding",
-                'Organising Institution/s': "organizing_inititutions",
-                'Location (city, country)': "location",
-                'EXCELERATE subtask': "excelerate_subtask",
-                'Target audience': "target_audience",
-                'Additional ELIXIR Platforms involved': "additional_platforms",
-                'ELIXIR Communities involved': "communities_involved",
-                'Number of participants': "number_of_participants",
-                'Number of trainers/ facilitators': "number_of_trainers",
-                'Url to event page/ agenda': "url",
-                'Main organiser': "main_organizer",
-            },
+            shared_mapping,
             event_data,
             use_fields=[
                 "event_type",
@@ -135,11 +139,14 @@ def get_metrics():
         )
     with suppress(FileNotFoundError):
         impact_data = get_data('./raw-tmd-data/all-node_impact_metrics.csv')
+        impact_data = pd.merge(impact_data, shared_data, on="Event code")
         groups["impact"] = Group(
             "Impact",
             {
+                **shared_mapping,
                 'Event code': "event_code",
-                'Title': "title",
+                'Title_x': "title_x",
+                'Title_y': "title_y",
                 'Which training event did you take part in?': "training_event",
                 'How long ago did you attend the training?': "time_from_last_attendance",
                 'What was your main reason for attending the training?': "attendance_reason",
@@ -166,10 +173,6 @@ def get_metrics():
                 "attendance_reason",
                 "tool_frequency_before",
                 "tool_frequency_after"
-            ],
-            filter_fields=[
-                "training_event",
-                "attendance_reason",
             ]
         )
     with suppress(FileNotFoundError):
