@@ -232,8 +232,8 @@ def get_metrics():
             quality_data,
             use_fields=[
                 "heard_from",
-                "career_stage",
                 "gender",
+                "career_stage",
             ],
             graph_type="pie"
         )
