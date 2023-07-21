@@ -78,7 +78,7 @@ class EventGroup():
         if params.get("node_only") and self.use_node:
             node = Node.objects.filter(name=self.use_node).values_list("pk", flat=True).first()
             if node:
-                query = query.filter(event__node=node)
+                query = query.filter(node=node)
         
         result = list(query.values())
         return result
