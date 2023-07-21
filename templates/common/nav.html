@@ -35,15 +35,9 @@
                 {% for item in nav_items %}{% if item.type == "side" %}
                 {% include 'common/nav-item.html' %}
                 {% endif %}{% endfor %}
-        <li role="separator" class="divider"></li>
                 {% for item in nav_items %}{% if item.type == "reports" %}
                 {% include 'common/nav-item.html' %}
                 {% endif %}{% endfor %}
-        <li role="separator" class="divider"></li>
-                {% for item in nav_items %}{% if item.type == "about" %}
-                {% include 'common/nav-item.html' %}
-                {% endif %}{% endfor %}
-        <li role="separator" class="divider"></li>
                 {% for item in nav_items %}{% if item.type == "auth" %}
                 {% include 'common/nav-item.html' %}
                 {% endif %}{% endfor %}

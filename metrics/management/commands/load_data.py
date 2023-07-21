@@ -23,6 +23,10 @@ def get_country_code(country_name):
     return None
 
 
+def convert_to_timestamp(date_string):
+    return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').timestamp()
+
+
 def load_events():
     with open(events_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
@@ -40,10 +44,15 @@ def load_events():
                 x for x in row['additional_platforms'].split(",")]
             communities = [x for x in row['communities'].split(",")]
 
+            created = convert_to_timestamp(
+                row['created']) if row['created'] else ''
+            modified = convert_to_timestamp(
+                row['modified']) if row['modified'] else ''
+
             event = Event.objects.create(
                 user=User.objects.get(username=row['user']),
-                created=None,
-                modified=None,
+                created=created,
+                modified=modified,
                 code=slugify(row['code']),
                 title=row['title'],
                 node_main=Node.objects.get(name=row['node_main']),
@@ -77,10 +86,14 @@ def load_demographics():
     with open(demographics_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            created = convert_to_timestamp(
+                row['created']) if row['created'] else ''
+            modified = convert_to_timestamp(
+                row['modified']) if row['modified'] else ''
             demographic = Demographic.objects.create(
                 user=User.objects.get(username=row['user']),
-                created=None,
-                modified=None,
+                created=created,
+                modified=modified,
                 event=Event.objects.get(code=int(row['event'])),
                 heard_from=[x for x in row['heard_from'].split(",")],
                 employment_sector=row['employment_sector'],
@@ -94,10 +107,14 @@ def load_qualities():
     with open(qualities_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            created = convert_to_timestamp(
+                row['created']) if row['created'] else ''
+            modified = convert_to_timestamp(
+                row['modified']) if row['modified'] else ''
             quality = Quality.objects.create(
                 user=User.objects.get(username=row['user']),
-                created=None,
-                modified=None,
+                created=created,
+                modified=modified,
                 event=Event.objects.get(code=row['event']),
                 used_resources_before=row['used_resources_before'],
                 used_resources_future=row['used_resources_future'],
@@ -112,10 +129,14 @@ def load_impacts():
     with open(impacts_csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            created = convert_to_timestamp(
+                row['created']) if row['created'] else ''
+            modified = convert_to_timestamp(
+                row['modified']) if row['modified'] else ''
             impact = Impact.objects.create(
                 user=User.objects.get(username=row['user']),
-                created=None,
-                modified=None,
+                created=created,
+                modified=modified,
                 event=Event.objects.get(code=row['event']),
                 when_attend_training=row['when_attend_training'],
                 main_attend_reason=row['main_attend_reason'],
@@ -124,7 +145,7 @@ def load_impacts():
                 able_to_explain=row['able_to_explain'],
                 able_use_now=row['able_use_now'],
                 help_work=[x for x in row['help_work'].split(",")],
-                attending_led_to=[int(x)
+                attending_led_to=[x
                                   for x in row['attending_led_to'].split(",")],
                 people_share_knowledge=row['people_share_knowledge'],
                 recommend_others=row['recommend_others'],
