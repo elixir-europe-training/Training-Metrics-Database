@@ -27,7 +27,7 @@ class Event(models.Model):
     )
     organising_institution = models.ManyToManyField("OrganisingInstitution")
     location_city = models.TextField()
-    location_country = CountryField()
+    location_country = models.TextField()
     funding = ArrayField(base_field=models.TextField(),
                          choices=[
                          ("ELIXIR Converge", "ELIXIR Converge"),
@@ -81,7 +81,7 @@ class Event(models.Model):
 
     number_participants = models.TextField()
     number_trainers = models.TextField()
-    url = models.URLField()
+    url = models.URLField(max_length=255)
     status = models.TextField(
         choices=[
             (1, "Complete"),
@@ -333,7 +333,7 @@ class Impact(models.Model):
 
 class Node(models.Model):
     name = models.TextField()
-    country = CountryField()
+    country = models.TextField()
 
 
 class OrganisingInstitution(models.Model):

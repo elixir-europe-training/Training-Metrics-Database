@@ -6,7 +6,8 @@ from metrics.models import Event, Demographic, Quality, Impact, Node, Organising
 from django.core.management.base import BaseCommand
 from datetime import datetime
 
-events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
+# events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
+events_csv_path = 'raw-tmd-data/example-data/tango_events-devv.csv'
 demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
 qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
 impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
@@ -28,13 +29,14 @@ def convert_to_timestamp(date_string):
 
 
 def load_events():
-    with open(events_csv_path, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
+    with open(events_csv_path, newline='', encoding='ISO-8859-1') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             # Convert date strings to datetime objects
             date_start = datetime.strptime(
-                row['date_start'], '%Y-%m-%d').date()
-            date_end = datetime.strptime(row['date_end'], '%Y-%m-%d').date()
+                row['date_start'], '%Y-%m-%d').date() if row['date_start'] else ''
+            date_end = datetime.strptime(
+                row['date_end'], '%Y-%m-%d').date() if row['date_end'] else ''
 
             # Convert the funding and other fields from CSV to Python lists
             funding = [x for x in row['funding'].split(",")]
@@ -62,7 +64,7 @@ def load_events():
                 type=row['type'],
                 funding=funding,
                 location_city=row['location_city'],
-                location_country=get_country_code(row['location_country']),
+                location_country=row['location_country'],
                 target_audience=target_audience,
                 additional_platforms=additional_platforms,
                 communities=communities,
@@ -72,8 +74,10 @@ def load_events():
                 status=row['status'],
             )
             # event.organising_institution.set([row['organising_institution']])
+            node_names = row['node'].split(",")
+            stripped_names = [name.strip() for name in node_names]
             nodes = [Node.objects.get(name=node)
-                     for node in row['node'].split(",")]
+                     for node in stripped_names]
             event.node.add(*nodes)
 
             # Adding ManyToMany relationship with OrganisingInstitution
