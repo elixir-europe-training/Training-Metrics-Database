@@ -48,19 +48,3 @@ python3 manage.py runserver
 ```shell
 pre-commit run -a
 ```
-
-## Production
-
-### Environment
-
-The following settings need to be defined in the environment
-
-```
-DJANGO_PRODUCTION           # Set to 1 only in production
-DJANGO_SECRET_KEY           # A random string of characters - e.g. 3i%9&+g@dux1+bj)d&g=isgtza29tohv$)9zpp8$lg=x6-=bcr
-DJANGO_POSTGRESQL_DBNAME    # Name of database
-DJANGO_POSTGRESQL_USER
-DJANGO_POSTGRESQL_PASSWORD
-DJANGO_POSTGRESQL_HOST      # Hostname or IP address
-DJANGO_POSTGRESQL_PORT      # Typically 5432
-```
