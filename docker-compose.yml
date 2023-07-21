@@ -12,6 +12,8 @@ services:
     env_file: .env
     ports:
       - 127.0.0.1:8000:8000
+    networks:
+      - tango-network
 
   postgres:
     container_name: tango-pg
@@ -22,6 +24,12 @@ services:
     restart: unless-stopped
     ports:
       - 127.0.0.1:5432:5432
-
+    networks:
+      - tango-network
+      
 volumes:
   pg:
+
+networks:
+  tango-network:
+    driver: bridge
