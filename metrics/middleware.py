@@ -4,6 +4,79 @@ from contextlib import suppress
 from .models import Event, Quality, Impact, Demographic
 
 
+class EventGroup():
+    def __init__(
+        self,
+        name,
+        field_mapping,
+        use_fields=None,
+        filter_fields=[
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms"
+        ],
+        graph_type="bar"
+    ):
+        self.field_mapping = field_mapping
+        self.name = name
+        self.filter_fields = filter_fields
+        self.graph_type = graph_type
+        self.model = Event
+        self.use_fields = use_fields
+        self.fields = {
+            field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
+            for field_id in self.use_fields
+        }
+        
+    
+    def get_graph_type(self):
+        return self.graph_type
+
+    def get_fields(self):
+        return self.use_fields
+    
+    def get_filter_fields(self):
+        return self.filter_fields
+    
+    def get_field_placeholder(self, field_id):
+        return f"Select {self.get_field_title(field_id)}"
+    
+    def get_field_options(self, field_id):
+        return self.fields[field_id]
+    
+    def get_field_title(self, lookup_id):
+        for name, field_id in self.field_mapping.items():
+            if lookup_id == field_id:
+                return name
+        return lookup_id
+        
+    
+    def get_values(self, **params):
+        query = self.model.objects.all()
+        if params.get("type"):
+            query = query.filter(type=params.get("type"))
+        if params.get("funding"):
+            query = query.filter(funding=params.get("funding"))
+        if params.get("target_audience"):
+            query = query.filter(target_audience=params.get("target_audience"))
+        if params.get("additional_platforms"):
+            query = query.filter(additional_platforms=params.get("additional_platforms"))
+
+        date_from = params.get("date_from")
+        date_to = params.get("date_to")
+        if date_from is not None and date_to is not None:
+            query = query.filter(date_start__range=[date_from, date_to]).filter(date_end__range=[date_from, date_to])
+        if params.get("node_only"):
+            pass
+        
+        result = list(query.values())
+        return result
+    
+    def get_name(self):
+        return self.name
+
+
 class Group():
     def __init__(
         self,
@@ -101,6 +174,16 @@ class Metrics():
 @lru_cache
 def get_metrics():
     groups = {
+        "event": EventGroup(
+            "Number of answers",
+            {},
+            use_fields=[
+                "type",
+                "funding",
+                "target_audience",
+                "additional_platforms"
+            ]
+        ),
         "impact": Group(
             "Number of answers",
             {},
@@ -115,7 +198,8 @@ def get_metrics():
                 "attending_led_to",
                 "people_share_knowledge",
                 "recommend_others",
-            ]
+            ],
+            graph_type="pie"
         ),
         "quality": Group(
             "Number of answers",
@@ -128,7 +212,8 @@ def get_metrics():
                 "course_rating",
                 "balance",
                 "email_contact",
-            ]
+            ],
+            graph_type="pie"
         ),
         "demographic": Group(
             "Number of answers",
@@ -140,7 +225,8 @@ def get_metrics():
                 "employment_sector",
                 "gender",
                 "career_stage",
-            ]
+            ],
+            graph_type="pie"
         ),
     }
     return Metrics(groups)
