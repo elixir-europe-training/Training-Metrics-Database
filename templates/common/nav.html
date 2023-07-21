@@ -1,21 +1,21 @@
 <nav class="navbar navbar-dark bg-dark">
   <div class="navbar-expand container">
-    <a class="navbar-brand" href="#">
+    <a class="navbar-brand" href="">
       <img
         src="https://elixir-europe.org/system/files/white-orange-logo.png"
-        alt="Elixir TMD"
+        alt="Tango"
         height="40px"
       />
     </a>
     <ul class="navbar-nav me-auto">
-            {% for item in nav_items %}{% if item.type == "main" %}
-            {% include 'common/nav-item.html' %}
-            {% endif %}{% endfor %}
+      {% for item in nav_items %}{% if item.type == "main" %}
+      {% include 'common/nav-item.html' %}
+      {% endif %}{% endfor %}
     </ul>
     <ul class="navbar-nav ms-auto">
-            {% for item in nav_items %}{% if item.type == "user" %}
-            {% include 'common/nav-item.html' %}
-            {% endif %}{% endfor %}
+      {% for item in nav_items %}{% if item.type == "user" %}
+      {% include 'common/nav-item.html' %}
+      {% endif %}{% endfor %}
     </ul>
   </div>
 </nav>
