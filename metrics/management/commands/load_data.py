@@ -124,7 +124,7 @@ def load_impacts():
                 able_to_explain=row['able_to_explain'],
                 able_use_now=row['able_use_now'],
                 help_work=[x for x in row['help_work'].split(",")],
-                attending_led_to=[int(x)
+                attending_led_to=[x
                                   for x in row['attending_led_to'].split(",")],
                 people_share_knowledge=row['people_share_knowledge'],
                 recommend_others=row['recommend_others'],
