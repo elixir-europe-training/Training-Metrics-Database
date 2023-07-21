@@ -57,6 +57,9 @@ class Group():
     def get_field_options(self, field_id):
         return self.fields[field_id]
     
+    def get_field_option_name(self, field_id, option_id):
+        return option_id
+    
     def get_field_title(self, lookup_id):
         for name, field_id in self.field_mapping.items():
             if lookup_id == field_id:
@@ -126,7 +129,7 @@ def get_metrics():
     with suppress(FileNotFoundError):
         event_data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
         shared_data = event_data
-        groups["events"] = Group(
+        groups["event"] = Group(
             "Events",
             shared_mapping,
             event_data,
