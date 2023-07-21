@@ -76,6 +76,10 @@ def generate_pie(metrics, title, xaxis, yaxis):
 def generate_tables_and_figures(group, values):
     for field_id in group.get_fields():
         metrics = calculate_metrics(values, field_id)
+        metrics = {
+            group.get_field_option_name(field_id, option_id): count
+            for option_id, count in metrics.items()
+        }
         if group.get_graph_type() == "bar":
             yield generate_bar(
                 metrics,

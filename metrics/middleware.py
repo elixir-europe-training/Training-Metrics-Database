@@ -16,7 +16,8 @@ class EventGroup():
             "target_audience",
             "additional_platforms"
         ],
-        graph_type="bar"
+        graph_type="bar",
+        field_options_mapping={}
     ):
         self.field_mapping = field_mapping
         self.name = name
@@ -24,6 +25,7 @@ class EventGroup():
         self.graph_type = graph_type
         self.model = Event
         self.use_fields = use_fields
+        self.field_options_mapping = field_options_mapping
         self.fields = {
             field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
             for field_id in self.use_fields
@@ -44,6 +46,10 @@ class EventGroup():
     
     def get_field_options(self, field_id):
         return self.fields[field_id]
+    
+    def get_field_option_name(self, field_id, option_id):
+        field_option_id = f"{field_id}:{option_id}"
+        return self.field_options_mapping.get(field_option_id, option_id)
     
     def get_field_title(self, lookup_id):
         for name, field_id in self.field_mapping.items():
@@ -90,7 +96,8 @@ class Group():
             "event_target_audience",
             "event_additional_platforms"
         ],
-        graph_type="bar"
+        graph_type="bar",
+        field_options_mapping={}
     ):
         self.field_mapping = field_mapping
         self.name = name
@@ -98,6 +105,7 @@ class Group():
         self.graph_type = graph_type
         self.model = model
         self.use_fields = use_fields
+        self.field_options_mapping = field_options_mapping
         self.fields = {
             **{
                 field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
@@ -130,6 +138,10 @@ class Group():
     
     def get_field_options(self, field_id):
         return self.fields[field_id]
+    
+    def get_field_option_name(self, field_id, option_id):
+        field_option_id = f"{field_id}:{option_id}"
+        return self.field_options_mapping.get(field_option_id, option_id)
     
     def get_field_title(self, lookup_id):
         for name, field_id in self.field_mapping.items():
@@ -173,20 +185,33 @@ class Metrics():
 
 @lru_cache
 def get_metrics():
+    shared_field_mapping = {
+        "Type": "event_type",
+        "Event funding": "event_funding",
+        "Target audience": "event_target_audience",
+        "Additional platforms": "event_additional_platforms"
+    }
     groups = {
         "event": EventGroup(
-            "Number of answers",
-            {},
+            "Number of events",
+            {
+                "Type": "type",
+                "Event funding": "funding",
+                "Target audience": "target_audience",
+                "Additional platforms": "additional_platforms"
+            },
             use_fields=[
                 "type",
                 "funding",
                 "target_audience",
                 "additional_platforms"
-            ]
+            ],
         ),
         "impact": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Impact,
             use_fields=[
                 "when_attend_training",
@@ -203,7 +228,9 @@ def get_metrics():
         ),
         "quality": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Quality,
             use_fields=[
                 "used_resources_before",
@@ -217,7 +244,9 @@ def get_metrics():
         ),
         "demographic": Group(
             "Number of answers",
-            {},
+            {
+               **shared_field_mapping,
+            },
             Demographic,
             use_fields=[
                 "employment_country",

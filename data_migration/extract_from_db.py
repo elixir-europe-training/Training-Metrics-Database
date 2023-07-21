@@ -359,6 +359,21 @@ class ModelEvent(BaseModel):
     @classmethod
     def from_query(cls, v: Any) -> Self:
         nodes = json_unarray(v.f_elixir_node)
+        nodes_user = json_unarray(v.f_elixir_node_user)
+
+        if len(nodes) == 1:
+            node_main = nodes[0]
+        elif len(nodes_user) == 1:
+            node_main = nodes_user[0]
+        else:
+            s_nodes = {*nodes}
+            s_nodes_user = {*nodes_user}
+            nodes_intersect = s_nodes & s_nodes_user
+            if len(nodes_intersect) > 1:
+                node_main = next(iter(nodes_intersect))
+            else:
+                node_main = next(iter(s_nodes | s_nodes_user))
+
         return cls(
             id_event=v.entity_id,
             user=v.f_created_by,
@@ -366,7 +381,7 @@ class ModelEvent(BaseModel):
             modified=v.f_changed,
             title=v.f_title,
             node=nodes,
-            node_main=nodes[0],
+            node_main=node_main,
             date_start=v.f_date_start,
             date_end=v.f_date_end,
             duration=v.f_duration,
