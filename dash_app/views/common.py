@@ -219,7 +219,26 @@ def get_layout(app, group):
                             {"name": group.get_name(), "id": "value"}
                         ],
                         page_size=10,
-                        style_cell={'textAlign': 'left'},
+                        style_table={'overflowX': 'auto'},
+                        style_cell={
+                            'minWidth': '50px', 'maxWidth': '180px',
+                            'whiteSpace': 'normal',
+                            'textAlign': 'left',
+                            'padding': '5px',
+                            'fontFamily': 'Roboto, sans-serif'
+                        },
+                        style_header={
+                            'backgroundColor': 'rgb(230, 230, 230)',
+                            'fontWeight': 'bold',
+                            'color': 'black',
+                            'fontFamily': 'Roboto, sans-serif'
+                        },
+                        style_data_conditional=[
+                            {
+                                'if': {'row_index': 'odd'},
+                                'backgroundColor': 'rgb(248, 248, 248)'
+                            }
+                        ],
                     ),
                     dcc.Graph(id=f'{field_id}-graph')
                 ], className='pt-4 pb-4')
@@ -275,13 +294,13 @@ def get_table_layout(app, group):
                         'whiteSpace': 'normal',
                         'textAlign': 'left',
                         'padding': '5px',
-                        'fontFamily': 'Arial, sans-serif'
+                        'fontFamily': 'Roboto, sans-serif'
                     },
                     style_header={
                         'backgroundColor': 'rgb(230, 230, 230)',
                         'fontWeight': 'bold',
                         'color': 'black',
-                        'fontFamily': 'Arial, sans-serif'
+                        'fontFamily': 'Roboto, sans-serif'
                     },
                     style_data_conditional=[
                         {
