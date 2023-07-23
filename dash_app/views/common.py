@@ -21,7 +21,8 @@ def get_tabs(request):
                 ("Event metrics", "event-report"),
                 ("Quality metrics", "quality-report"),
                 ("Demographics metrics", "demographic-report"),
-                ("Impact metrics", "impact-report")
+                ("Impact metrics", "impact-report"),
+                ("World map", "world-map")
             ]
         ]
     }
