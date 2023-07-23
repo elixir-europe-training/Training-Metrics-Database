@@ -215,8 +215,8 @@ def get_layout(app, group):
                     dash_table.DataTable(
                         id=f'{field_id}-table',
                         columns=[
-                            {"name": group.get_field_title(field_id), "id": "name"},
-                            {"name": group.get_name(), "id": "value"}
+                            {"name": group.get_field_title(field_id), "id": "name", "type": "text"},
+                            {"name": group.get_name(), "id": "value", "type": "numeric"}
                         ],
                         page_size=10,
                         style_table={'overflowX': 'auto'},
@@ -233,10 +233,20 @@ def get_layout(app, group):
                             'color': 'black',
                             'fontFamily': 'Roboto, sans-serif'
                         },
+                        style_header_conditional=[
+                            {
+                                'if': {'column_id': 'value'},
+                                'textAlign': 'right'
+                            }
+                        ],
                         style_data_conditional=[
                             {
                                 'if': {'row_index': 'odd'},
                                 'backgroundColor': 'rgb(248, 248, 248)'
+                            },
+                            {
+                                'if': {'column_type': 'numeric'},
+                                'textAlign': 'right'
                             }
                         ],
                     ),
@@ -306,6 +316,10 @@ def get_table_layout(app, group):
                         {
                             'if': {'row_index': 'odd'},
                             'backgroundColor': 'rgb(248, 248, 248)'
+                        },
+                        {
+                            'if': {'column_type': 'numeric'},
+                            'textAlign': 'right'
                         }
                     ],
                 )
