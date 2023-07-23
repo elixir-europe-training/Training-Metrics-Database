@@ -85,15 +85,15 @@ def generate_tables_and_figures(group, values):
             yield generate_bar(
                 metrics,
                 group.get_field_title(field_id),
-                f'No. of {group.get_name()}',
-                group.get_field_title(field_id)
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}'
             )
         else:
             yield generate_pie(
                 metrics,
                 group.get_field_title(field_id),
-                f'No. of {group.get_name()}',
-                group.get_field_title(field_id)
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}'
             )
         yield [
             {"name": name, "value": value}
