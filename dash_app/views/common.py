@@ -249,6 +249,7 @@ def get_layout(app, group):
                                 'textAlign': 'right'
                             }
                         ],
+                        export_format='csv'
                     ),
                     dcc.Graph(id=f'{field_id}-graph')
                 ], className='pt-4 pb-4')
@@ -322,6 +323,7 @@ def get_table_layout(app, group):
                             'textAlign': 'right'
                         }
                     ],
+                    export_format='csv'
                 )
             ], className='pt-4 pb-4')
         ])
