@@ -17,12 +17,12 @@ def get_tabs(request):
         "tabs": [
             {"title": title, "url": reverse(name), "active": view_name == name}
             for title, name in [
-                ("All events", "all-events"),
+                ("World map", "world-map"),
                 ("Event metrics", "event-report"),
                 ("Quality metrics", "quality-report"),
                 ("Demographics metrics", "demographic-report"),
                 ("Impact metrics", "impact-report"),
-                ("World map", "world-map")
+                ("All events", "all-events")
             ]
         ]
     }

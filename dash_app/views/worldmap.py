@@ -14,9 +14,7 @@ def get_event_data():
 
     # Convert the QuerySet to a DataFrame
     df = pd.DataFrame(list(event_counts))
-
     total_events = df['count'].sum()
-
     return df, total_events
 
 def world_map(request):
@@ -31,7 +29,8 @@ def world_map(request):
     fig = px.choropleth(df, locations='location_country', color='count',
                         locationmode='country names',
                         color_continuous_scale=px.colors.sequential.Viridis,
-                        title=f'Number of events per country (Total: {format(total_events, ",")})')
+                        title=f'Number of events per country (Total: {format(total_events, ",")})',
+                        height=600)
 
     fig.update_traces(hovertemplate='%{location}<br>%{z}<extra></extra>')
 
@@ -41,13 +40,17 @@ def world_map(request):
             'x':0.5,
             'xanchor': 'center',
             'yanchor': 'top'
-        })
+        },
+        geo=dict(
+            showframe=False,
+            showcoastlines=False
+        )
+    )
 
-    fig.update_geos(showcountries=True, countrywidth=0.2, countrycolor="Black",
-                    lataxis_range=[-60, 90])
+    fig.update_geos(showcountries=True, countrywidth=0.2, lataxis_range=[-60, 90])
 
     app.layout = html.Div([
-        dcc.Graph(id='choropleth', figure=fig, style={'width': '90vw', 'height': '70vh'})
+        dcc.Graph(id='choropleth', figure=fig)
     ])
 
     dash_config = {"dash_name": "WorldMap"}
