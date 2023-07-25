@@ -1,6 +1,9 @@
 version: "3"
 services:
   tango:
+    depends_on:
+      postgres:
+        condition: service_healthy
     container_name: tango-django
     build:
       context: .
@@ -16,6 +19,11 @@ services:
       - tango-network
 
   postgres:
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "tango"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     container_name: tango-pg
     image: postgres:15.3-alpine
     env_file: ./postgres/postgres.env
