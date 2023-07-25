@@ -10,7 +10,7 @@ from metrics.models import Event
 
 def get_event_data():
     # Query database to get counts of events by country
-    event_counts = Event.objects.values('location_country').annotate(count=Count('id'))
+    event_counts = Event.objects.values('location_country').annotate(count=Count('code', distinct=True))
 
     # Convert the QuerySet to a DataFrame
     df = pd.DataFrame(list(event_counts))
