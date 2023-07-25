@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django_countries.fields import CountryField
 from django.contrib.postgres.fields import ArrayField
 
 
@@ -338,7 +337,7 @@ class Node(models.Model):
 
 class OrganisingInstitution(models.Model):
     name = models.TextField()
-    country = CountryField()
+    country = models.TextField()
 
 
 class User(AbstractUser):

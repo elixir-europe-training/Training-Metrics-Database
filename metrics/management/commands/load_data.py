@@ -1,6 +1,5 @@
 import csv
 from datetime import datetime
-from django_countries import countries
 from django.utils.text import slugify
 from metrics.models import Event, Demographic, Quality, Impact, Node, OrganisingInstitution, User
 from django.core.management.base import BaseCommand
@@ -13,13 +12,6 @@ impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
 users_csv_path = 'raw-tmd-data/example-data/users.csv'
 inst_csv_path = 'raw-tmd-data/example-data/institutions.csv'
 nodes_csv_path = 'raw-tmd-data/example-data/nodes.csv'
-
-
-def get_country_code(country_name):
-    for code, name in list(countries):
-        if name == country_name:
-            return code
-    return None
 
 
 def convert_to_timestamp(date_string):
@@ -96,7 +88,7 @@ def load_demographics():
                 event=Event.objects.get(code=int(row['event'])),
                 heard_from=csv_to_array(row['heard_from']),
                 employment_sector=row['employment_sector'],
-                employment_country=get_country_code(row['employment_country']),
+                employment_country=row['employment_country'],
                 gender=row['gender'],
                 career_stage=row['career_stage'],
             )
