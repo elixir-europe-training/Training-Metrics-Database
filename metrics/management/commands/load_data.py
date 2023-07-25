@@ -143,10 +143,6 @@ def load_impacts():
 
 
 def load_user():
-    User.objects.create_user(
-        username='tangouser',
-        password='tangouser',
-    )
     with open(users_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
