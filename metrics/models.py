@@ -94,8 +94,7 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    employment_country = CountryField()
-
+    employment_country = models.TextField()
     heard_from = ArrayField(base_field=models.TextField(),
                             verbose_name="Where did you hear about this course?",
                             choices=[
