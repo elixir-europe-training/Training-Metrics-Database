@@ -17,11 +17,12 @@ def get_tabs(request):
         "tabs": [
             {"title": title, "url": reverse(name), "active": view_name == name}
             for title, name in [
-                ("All events", "all-events"),
+                ("World map", "world-map"),
                 ("Event metrics", "event-report"),
                 ("Quality metrics", "quality-report"),
                 ("Demographics metrics", "demographic-report"),
-                ("Impact metrics", "impact-report")
+                ("Impact metrics", "impact-report"),
+                ("All events", "all-events")
             ]
         ]
     }
@@ -85,15 +86,15 @@ def generate_tables_and_figures(group, values):
             yield generate_bar(
                 metrics,
                 group.get_field_title(field_id),
-                f'No. of {group.get_name()}',
-                group.get_field_title(field_id)
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}'
             )
         else:
             yield generate_pie(
                 metrics,
                 group.get_field_title(field_id),
-                f'No. of {group.get_name()}',
-                group.get_field_title(field_id)
+                group.get_field_title(field_id),
+                f'No. of {group.get_name()}'
             )
         yield [
             {"name": name, "value": value}
@@ -215,11 +216,41 @@ def get_layout(app, group):
                     dash_table.DataTable(
                         id=f'{field_id}-table',
                         columns=[
-                            {"name": group.get_field_title(field_id), "id": "name"},
-                            {"name": group.get_name(), "id": "value"}
+                            {"name": group.get_field_title(field_id), "id": "name", "type": "text"},
+                            {"name": group.get_name(), "id": "value", "type": "numeric"}
                         ],
                         page_size=10,
-                        style_cell={'textAlign': 'left'},
+                        style_table={'overflowX': 'auto'},
+                        style_cell={
+                            'minWidth': '50px', 'maxWidth': '180px',
+                            'whiteSpace': 'normal',
+                            'textAlign': 'left',
+                            'padding': '5px',
+                            'fontFamily': 'Roboto, sans-serif'
+                        },
+                        style_header={
+                            'backgroundColor': 'rgb(230, 230, 230)',
+                            'fontWeight': 'bold',
+                            'color': 'black',
+                            'fontFamily': 'Roboto, sans-serif'
+                        },
+                        style_header_conditional=[
+                            {
+                                'if': {'column_id': 'value'},
+                                'textAlign': 'right'
+                            }
+                        ],
+                        style_data_conditional=[
+                            {
+                                'if': {'row_index': 'odd'},
+                                'backgroundColor': 'rgb(248, 248, 248)'
+                            },
+                            {
+                                'if': {'column_type': 'numeric'},
+                                'textAlign': 'right'
+                            }
+                        ],
+                        export_format='csv'
                     ),
                     dcc.Graph(id=f'{field_id}-graph')
                 ], className='pt-4 pb-4')
@@ -275,20 +306,25 @@ def get_table_layout(app, group):
                         'whiteSpace': 'normal',
                         'textAlign': 'left',
                         'padding': '5px',
-                        'fontFamily': 'Arial, sans-serif'
+                        'fontFamily': 'Roboto, sans-serif'
                     },
                     style_header={
                         'backgroundColor': 'rgb(230, 230, 230)',
                         'fontWeight': 'bold',
                         'color': 'black',
-                        'fontFamily': 'Arial, sans-serif'
+                        'fontFamily': 'Roboto, sans-serif'
                     },
                     style_data_conditional=[
                         {
                             'if': {'row_index': 'odd'},
                             'backgroundColor': 'rgb(248, 248, 248)'
+                        },
+                        {
+                            'if': {'column_type': 'numeric'},
+                            'textAlign': 'right'
                         }
                     ],
+                    export_format='csv'
                 )
             ], className='pt-4 pb-4')
         ])
