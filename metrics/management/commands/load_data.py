@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from metrics.models import Event, Demographic, Quality, Impact, Node, OrganisingInstitution, User
 from django.core.management.base import BaseCommand
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 DATA_SOURCES = {Event:  'raw-tmd-data/example-data/tango_events.csv',
                 Demographic: 'raw-tmd-data/example-data/demographics.csv',
@@ -34,7 +35,7 @@ def are_headers_in_model(csv_file_path, model):
         headers = (reader.fieldnames)
         uncommon_headers = set(
             model_attributes).symmetric_difference(set(headers))
-        if (uncommon_headers) > 1:
+        if len(uncommon_headers) > 1:
             print(f"Uncommon headers: {uncommon_headers}")
         return len(uncommon_headers) == 1
 
@@ -209,12 +210,18 @@ class Command(BaseCommand):
         print("LOADING EVENTS")
         print("------------------------")
         load_events()
-        print("LOADING DEMOGRAPHICS")
+        print("LOADING METRICS")
         print("------------------------")
-        load_demographics()
-        print("LOADING QUALITIES")
-        print("------------------------")
-        load_qualities()
-        print("LOADING IMPACTS")
-        print("------------------------")
-        load_impacts()
+
+        num_workers = 3
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            functions_to_execute = [
+                load_demographics, load_qualities, load_impacts]
+
+            futures = [executor.submit(func) for func in functions_to_execute]
+
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"An error occurred: {e}")
