@@ -5,13 +5,13 @@ from metrics.models import Event, Demographic, Quality, Impact, Node, Organising
 from django.core.management.base import BaseCommand
 from datetime import datetime
 
-events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
-demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
-qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
-impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
-users_csv_path = 'raw-tmd-data/example-data/users.csv'
-inst_csv_path = 'raw-tmd-data/example-data/institutions.csv'
-nodes_csv_path = 'raw-tmd-data/example-data/nodes.csv'
+DATA_SOURCES = {Event:  'raw-tmd-data/example-data/tango_events.csv',
+                Demographic: 'raw-tmd-data/example-data/demographics.csv',
+                Quality: 'raw-tmd-data/example-data/qualities_old.csv',
+                Impact: 'raw-tmd-data/example-data/impacts.csv',
+                User: 'raw-tmd-data/example-data/users.csv',
+                OrganisingInstitution: 'raw-tmd-data/example-data/institutions.csv',
+                Node: 'raw-tmd-data/example-data/nodes.csv'}
 
 
 def convert_to_timestamp(date_string):
@@ -26,8 +26,21 @@ def csv_to_array(csv_string):
     return [x for x in csv_string.split(",")] if csv_string else []
 
 
+def are_headers_in_model(csv_file_path, model):
+    with open(csv_file_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=',')
+        model_attributes = (list(field.name for field in model._meta.fields +
+                                 model._meta.many_to_many))
+        headers = (reader.fieldnames)
+        uncommon_headers = set(
+            model_attributes).symmetric_difference(set(headers))
+        if (uncommon_headers) > 1:
+            print(f"Uncommon headers: {uncommon_headers}")
+        return len(uncommon_headers) == 1
+
+
 def load_events():
-    with open(events_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Event], newline='') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         for row in reader:
             created = convert_to_timestamp(
@@ -74,7 +87,7 @@ def load_events():
 
 
 def load_demographics():
-    with open(demographics_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Demographic], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
@@ -95,7 +108,7 @@ def load_demographics():
 
 
 def load_qualities():
-    with open(qualities_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Quality], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
@@ -117,7 +130,7 @@ def load_qualities():
 
 
 def load_impacts():
-    with open(impacts_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Impact], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
@@ -143,7 +156,7 @@ def load_impacts():
 
 
 def load_user():
-    with open(users_csv_path) as csvfile:
+    with open(DATA_SOURCES[User]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             User.objects.create_user(
@@ -153,7 +166,7 @@ def load_user():
 
 
 def load_nodes():
-    with open(nodes_csv_path) as csvfile:
+    with open(DATA_SOURCES[Node]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             Node.objects.create(
@@ -162,7 +175,7 @@ def load_nodes():
 
 
 def load_institutions():
-    with open(inst_csv_path) as csvfile:
+    with open(DATA_SOURCES[OrganisingInstitution]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             OrganisingInstitution.objects.create(
@@ -174,14 +187,15 @@ class Command(BaseCommand):
     help = 'Load data from CSV files into the database.'
 
     def handle(self, *args, **options):
-        Node.objects.all().delete()
-        User.objects.all().delete()
-        Event.objects.all().delete()
-        Demographic.objects.all().delete()
-        Quality.objects.all().delete()
-        Impact.objects.all().delete()
-        OrganisingInstitution.objects.all().delete()
-        Node.objects.all().delete()
+        for model, csv_file_path in DATA_SOURCES.items():
+            if model == User:
+                continue
+            if not are_headers_in_model(csv_file_path, model):
+                raise Exception(
+                    f'Some headers are not present for model {model.__name__} in {csv_file_path}')
+
+        for model in DATA_SOURCES.keys():
+            model.objects.all().delete()
 
         print("LOADING NODES")
         print("------------------------")
