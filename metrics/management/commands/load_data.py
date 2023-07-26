@@ -1,50 +1,49 @@
 import csv
 from datetime import datetime
-from django_countries import countries
 from django.utils.text import slugify
 from metrics.models import Event, Demographic, Quality, Impact, Node, OrganisingInstitution, User
 from django.core.management.base import BaseCommand
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-events_csv_path = 'raw-tmd-data/example-data/tango_events.csv'
-demographics_csv_path = 'raw-tmd-data/example-data/demographics.csv'
-qualities_csv_path = 'raw-tmd-data/example-data/qualities_old.csv'
-impacts_csv_path = 'raw-tmd-data/example-data/impacts.csv'
-users_csv_path = 'raw-tmd-data/example-data/users.csv'
-inst_csv_path = 'raw-tmd-data/example-data/institutions.csv'
-nodes_csv_path = 'raw-tmd-data/example-data/nodes.csv'
-
-
-def get_country_code(country_name):
-    # Helper function to get the country code from the country name
-    for code, name in list(countries):
-        if name == country_name:
-            return code
-    return None
+DATA_SOURCES = {Event:  'raw-tmd-data/example-data/tango_events.csv',
+                Demographic: 'raw-tmd-data/example-data/demographics.csv',
+                Quality: 'raw-tmd-data/example-data/qualities_old.csv',
+                Impact: 'raw-tmd-data/example-data/impacts.csv',
+                User: 'raw-tmd-data/example-data/users.csv',
+                OrganisingInstitution: 'raw-tmd-data/example-data/institutions.csv',
+                Node: 'raw-tmd-data/example-data/nodes.csv'}
 
 
 def convert_to_timestamp(date_string):
     return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').timestamp()
 
 
+def convert_to_date(date_string):
+    return datetime.strptime(date_string, '%Y-%m-%d').date()
+
+
+def csv_to_array(csv_string):
+    return [x for x in csv_string.split(",")] if csv_string else []
+
+
+def are_headers_in_model(csv_file_path, model):
+    with open(csv_file_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=',')
+        model_attributes = (list(field.name for field in model._meta.fields +
+                                 model._meta.many_to_many))
+        headers = (reader.fieldnames)
+        uncommon_headers = set(
+            model_attributes).symmetric_difference(set(headers))
+        if len(uncommon_headers) > 1:
+            print(f"Uncommon headers: {uncommon_headers}")
+        return len(uncommon_headers) == 1
+
+
 def load_events():
-    with open(events_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Event], newline='') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         for row in reader:
-            date_start = datetime.strptime(
-                row['date_start'], '%Y-%m-%d').date() if row['date_start'] else ''
-            date_end = datetime.strptime(
-                row['date_end'], '%Y-%m-%d').date() if row['date_end'] else ''
-
-            funding = [x for x in row['funding'].split(
-                ",")] if row['funding'] else []
-            target_audience = [x
-                               for x in row['target_audience'].split(",")] if row['target_audience'] else []
-            additional_platforms = [
-                x for x in row['additional_platforms'].split(",")] if row['additional_platforms'] else []
-            communities = [x for x in row['communities'].split(
-                ",")] if row['communities'] else []
-
             created = convert_to_timestamp(
                 row['created']) if row['created'] else ''
             modified = convert_to_timestamp(
@@ -60,16 +59,16 @@ def load_events():
                 title=row['title'],
                 node_main=Node.objects.get(
                     name=node_main) if node_main else None,
-                date_start=date_start,
-                date_end=date_end,
+                date_start=convert_to_date(row['date_start']),
+                date_end=convert_to_date(row['date_end']),
                 duration=float(row['duration']),
                 type=row['type'],
-                funding=funding,
+                funding=csv_to_array(row['funding']),
                 location_city=row['location_city'],
                 location_country=row['location_country'],
-                target_audience=target_audience,
-                additional_platforms=additional_platforms,
-                communities=communities,
+                target_audience=csv_to_array(row['target_audience']),
+                additional_platforms=csv_to_array(row['additional_platforms']),
+                communities=csv_to_array(row['communities']),
                 number_participants=row['number_participants'],
                 number_trainers=row['number_trainers'],
                 url=row['url'],
@@ -89,35 +88,35 @@ def load_events():
 
 
 def load_demographics():
-    with open(demographics_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Demographic], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
                 row['created']) if row['created'] else ''
             modified = convert_to_timestamp(
                 row['modified']) if row['modified'] else ''
-            demographic = Demographic.objects.create(
+            Demographic.objects.create(
                 user=User.objects.get(username=row['user']),
                 created=created,
                 modified=modified,
                 event=Event.objects.get(code=int(row['event'])),
-                heard_from=[x for x in row['heard_from'].split(",")],
+                heard_from=csv_to_array(row['heard_from']),
                 employment_sector=row['employment_sector'],
-                employment_country=get_country_code(row['employment_country']),
+                employment_country=row['employment_country'],
                 gender=row['gender'],
                 career_stage=row['career_stage'],
             )
 
 
 def load_qualities():
-    with open(qualities_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Quality], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
                 row['created']) if row['created'] else ''
             modified = convert_to_timestamp(
                 row['modified']) if row['modified'] else ''
-            quality = Quality.objects.create(
+            Quality.objects.create(
                 user=User.objects.get(username=row['user']),
                 created=created,
                 modified=modified,
@@ -132,14 +131,14 @@ def load_qualities():
 
 
 def load_impacts():
-    with open(impacts_csv_path, newline='') as csvfile:
+    with open(DATA_SOURCES[Impact], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             created = convert_to_timestamp(
                 row['created']) if row['created'] else ''
             modified = convert_to_timestamp(
                 row['modified']) if row['modified'] else ''
-            impact = Impact.objects.create(
+            Impact.objects.create(
                 user=User.objects.get(username=row['user']),
                 created=created,
                 modified=modified,
@@ -150,20 +149,15 @@ def load_impacts():
                 how_often_use_after=row['how_often_use_after'],
                 able_to_explain=row['able_to_explain'],
                 able_use_now=row['able_use_now'],
-                help_work=[x for x in row['help_work'].split(",")],
-                attending_led_to=[x
-                                  for x in row['attending_led_to'].split(",")],
+                help_work=csv_to_array(row['help_work']),
+                attending_led_to=csv_to_array(row['attending_led_to']),
                 people_share_knowledge=row['people_share_knowledge'],
                 recommend_others=row['recommend_others'],
             )
 
 
 def load_user():
-    User.objects.create_user(
-        username='tangouser',
-        password='tangouser',
-    )
-    with open(users_csv_path) as csvfile:
+    with open(DATA_SOURCES[User]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             User.objects.create_user(
@@ -173,7 +167,7 @@ def load_user():
 
 
 def load_nodes():
-    with open(nodes_csv_path) as csvfile:
+    with open(DATA_SOURCES[Node]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             Node.objects.create(
@@ -182,7 +176,7 @@ def load_nodes():
 
 
 def load_institutions():
-    with open(inst_csv_path) as csvfile:
+    with open(DATA_SOURCES[OrganisingInstitution]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             OrganisingInstitution.objects.create(
@@ -194,14 +188,15 @@ class Command(BaseCommand):
     help = 'Load data from CSV files into the database.'
 
     def handle(self, *args, **options):
-        Node.objects.all().delete()
-        User.objects.all().delete()
-        Event.objects.all().delete()
-        Demographic.objects.all().delete()
-        Quality.objects.all().delete()
-        Impact.objects.all().delete()
-        OrganisingInstitution.objects.all().delete()
-        Node.objects.all().delete()
+        for model, csv_file_path in DATA_SOURCES.items():
+            if model == User:
+                continue
+            if not are_headers_in_model(csv_file_path, model):
+                raise Exception(
+                    f'Some headers are not present for model {model.__name__} in {csv_file_path}')
+
+        for model in DATA_SOURCES.keys():
+            model.objects.all().delete()
 
         print("LOADING NODES")
         print("------------------------")
@@ -215,12 +210,18 @@ class Command(BaseCommand):
         print("LOADING EVENTS")
         print("------------------------")
         load_events()
-        print("LOADING DEMOGRAPHICS")
+        print("LOADING METRICS")
         print("------------------------")
-        load_demographics()
-        print("LOADING QUALITIES")
-        print("------------------------")
-        load_qualities()
-        print("LOADING IMPACTS")
-        print("------------------------")
-        load_impacts()
+
+        num_workers = 3
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            functions_to_execute = [
+                load_demographics, load_qualities, load_impacts]
+
+            futures = [executor.submit(func) for func in functions_to_execute]
+
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"An error occurred: {e}")

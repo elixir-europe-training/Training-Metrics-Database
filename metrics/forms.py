@@ -16,10 +16,3 @@ class UserLoginForm(AuthenticationForm):
 
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}))
-
-
-class EventForm(forms.ModelForm):
-    class Meta:
-        model = models.Event
-        fields = ("code", 'organising_institution',
-                  'node', 'url')

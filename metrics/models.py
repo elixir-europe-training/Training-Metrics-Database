@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django_countries.fields import CountryField
 from django.contrib.postgres.fields import ArrayField
 
 
@@ -95,8 +94,7 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    employment_country = CountryField()
-
+    employment_country = models.TextField()
     heard_from = ArrayField(base_field=models.TextField(),
                             verbose_name="Where did you hear about this course?",
                             choices=[
@@ -338,7 +336,7 @@ class Node(models.Model):
 
 class OrganisingInstitution(models.Model):
     name = models.TextField()
-    country = CountryField()
+    country = models.TextField()
 
 
 class User(AbstractUser):
