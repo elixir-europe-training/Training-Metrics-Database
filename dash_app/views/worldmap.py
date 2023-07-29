@@ -1,10 +1,11 @@
-﻿from .common import get_tabs
+from .common import get_tabs
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
 import plotly.express as px
 from dash import dcc
 from dash import html
 import pandas as pd
+import numpy as np
 from django.db.models import Count, F
 from metrics.models import Event, Node
 
@@ -30,16 +31,20 @@ def world_map(request):
     except Exception as e:
         print(f"Error getting event data for map: {e}")
         return render(request, 'error.html', {"message": "Error getting event data for map."})
-
-    fig = px.choropleth(df, locations='location_country', color='count',
+    
+    df['log_count'] = np.log10(df['count'] + 0.1)
+    
+    fig = px.choropleth(df, locations='location_country', color='log_count',
                         locationmode='country names',
                         color_continuous_scale=px.colors.sequential.Viridis,
                         title=f'Number of events per country (Total: {format(total_events, ",")})',
-                        custom_data=['aggregated'],
+                        custom_data=['count', 'aggregated'],
                         height=600)
 
-    fig.update_traces(hovertemplate='%{location} - %{z} events<br>%{customdata}<extra></extra>')
+    fig.update_traces(hovertemplate='%{location} - %{customdata[0]} events<br>%{customdata[1]}<extra></extra>')
 
+    max_log_count = np.ceil(df['log_count'].max())
+    
     fig.update_layout(
         title={
             'y':0.9,
@@ -53,7 +58,12 @@ def world_map(request):
             showcountries=True,
             countrywidth=0.2,
             lataxis_range=[-60, 90]
-        )
+        ),
+        coloraxis_colorbar=dict(
+          title='Count',
+          tickvals=[i for i in range(int(max_log_count)+1)],
+          ticktext=[str(int(10**i)) for i in range(int(max_log_count)+1)],
+        ),
     )
 
     app.layout = html.Div([
