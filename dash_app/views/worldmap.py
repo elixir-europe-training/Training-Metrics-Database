@@ -36,7 +36,7 @@ def world_map(request):
     
     fig = px.choropleth(df, locations='location_country', color='log_count',
                         locationmode='country names',
-                        color_continuous_scale=px.colors.sequential.Viridis,
+                        color_continuous_scale=["#ffffff", "#F47D20"],
                         title=f'Number of events per country (Total: {format(total_events, ",")})',
                         custom_data=['count', 'aggregated'],
                         height=600)
