@@ -1,3 +1,5 @@
+mainConfiguration: https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango
+
 tasks:
   - name: Setup and startup
     init: |
