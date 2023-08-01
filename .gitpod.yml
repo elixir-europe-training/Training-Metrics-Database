@@ -8,7 +8,7 @@ tasks:
     command: docker compose up -d
   - name: Populate database
     init: |
-      gp ports await 5432
+      gp ports await 8000
       docker compose exec tango python manage.py load_data
 
 ports:
@@ -16,6 +16,7 @@ ports:
     description: the port used by the Django container
     port: 8000
     onOpen: open-preview
+    visibility: public
   - name: Postgres
     description: the port used by the Postgres container
     port: 5432
