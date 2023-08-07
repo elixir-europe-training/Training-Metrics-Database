@@ -3,13 +3,16 @@ mainConfiguration: https://github.com/elixir-europe-training/ELIXIR-TrP-Training
 tasks:
   - name: Setup and startup
     init: |
-      cp -n .env.default .env
-      cp -n postgres/postgres.env.default postgres/postgres.env
+      cp -n env/django.env.default env/django.env
+      cp -n env/postgres.env.default env/postgres.env
+      cp -n env/metabase.env.default env/metabase.env
     command: docker compose up -d
   - name: Populate database
     init: |
       gp ports await 8000
-      docker compose exec tango python manage.py load_data
+      source env/metabase.env
+      docker compose exec tango-pg psql --user $MB_DB_USER -c "CREATE DATABASE ${MB_DB_DBNAME}"
+      docker compose exec tango-dj python manage.py load_data
 
 ports:
   - name: Django
@@ -21,4 +24,9 @@ ports:
     description: the port used by the Postgres container
     port: 5432
     onOpen: ignore
+  - name: Metabase
+    description: the port used by the Metabase container
+    port: 3000
+    onOpen: open-preview
+    visibility: public
     
