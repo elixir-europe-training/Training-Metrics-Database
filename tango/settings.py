@@ -33,6 +33,7 @@ SECRET_KEY = os.environ.get(
 )
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+CSRF_TRUSTED_ORIGINS = ["https://tango.elixir-hpc.si"]
 
 # Application definition
 
