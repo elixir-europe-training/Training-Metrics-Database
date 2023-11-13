@@ -1,4 +1,4 @@
-mainConfiguration: https://github.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango
+mainConfiguration: https://github.com/elixir-europe-training/Training-Metrics-Database
 
 tasks:
   - name: Setup and startup
@@ -11,8 +11,8 @@ tasks:
     init: |
       gp ports await 8000
       source env/metabase.env
-      docker compose exec tango-pg psql --user $MB_DB_USER -c "CREATE DATABASE ${MB_DB_DBNAME}"
-      docker compose exec tango-dj python manage.py load_data
+      docker compose exec tmd-pg psql --user $MB_DB_USER -c "CREATE DATABASE ${MB_DB_DBNAME}"
+      docker compose exec tmd-dj python manage.py load_data
 
 ports:
   - name: Django

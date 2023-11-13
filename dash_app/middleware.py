@@ -127,7 +127,7 @@ def get_metrics():
         'Main organiser': "main_organizer",
     }
     with suppress(FileNotFoundError):
-        event_data = get_data('https://raw.githubusercontent.com/elixir-europe-training/ELIXIR-TrP-Training-Metrics-Database-Tango/main/raw-tmd-data/all_events_expanded.csv')
+        event_data = get_data('https://raw.githubusercontent.com/elixir-europe-training/Training-Metrics-Database/main/raw-tmd-data/all_events_expanded.csv')
         shared_data = event_data
         groups["event"] = Group(
             "Events",
