@@ -8,7 +8,7 @@ assignees: ''
 
 **Describe the solution you'd like**
 <!-- A clear and concise description of what you want to happen. -->
-As a [type of user, e.g., Training Coordinator], I want to [do a specific action in Tango], so that [describe the value that you get out of it].
+As a [type of user, e.g., Training Coordinator], I want to [do a specific action in TMD], so that [describe the value that you get out of it].
 
 **Describe alternatives you've considered**
 <!-- A clear and concise description of any alternative solutions or features you've considered. -->

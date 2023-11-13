@@ -1,10 +1,10 @@
 version: "3"
 services:
-  tango:
+  tmd-dj:
     depends_on:
-      postgres:
+      tmd-pg:
         condition: service_healthy
-    container_name: tango-django
+    container_name: tmd-dj
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -12,30 +12,51 @@ services:
     volumes:
       - ./:/code/
     restart: on-failure
-    env_file: .env
+    env_file: env/django.env
     ports:
       - 127.0.0.1:8000:8000
     networks:
-      - tango-network
+      - tmd-network
 
-  postgres:
+  tmd-pg:
+    container_name: tmd-pg
+    image: postgres:15.3-alpine
+    volumes:
+      - pg:/var/lib/postgresql/data
+    env_file: env/postgres.env
+    restart: unless-stopped
+    networks:
+      - tmd-network
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "tango"]
+      test: ["CMD", "pg_isready", "-U", "tmd"]
       interval: 5s
       timeout: 5s
       retries: 5
-    container_name: tango-pg
-    image: postgres:15.3-alpine
-    env_file: ./postgres/postgres.env
+
+  tmd-mb:
+    depends_on:
+      tmd-pg:
+        condition: service_healthy
+    container_name: tmd-mb
+    image: metabase/metabase:latest
     volumes:
-      - pg:/var/lib/postgresql/data
-    restart: unless-stopped
+      - mb:/metabase-data
+    restart: on-failure
+    env_file: env/metabase.env
+    ports:
+      - 127.0.0.1:3000:3000
     networks:
-      - tango-network
+      - tmd-network
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pg:
+  mb:
 
 networks:
-  tango-network:
+  tmd-network:
     driver: bridge
