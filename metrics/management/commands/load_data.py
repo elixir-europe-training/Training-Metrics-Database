@@ -6,13 +6,20 @@ from django.core.management.base import BaseCommand
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-DATA_SOURCES = {Event:  'raw-tmd-data/example-data/tango_events.csv',
-                Demographic: 'raw-tmd-data/example-data/demographics.csv',
-                Quality: 'raw-tmd-data/example-data/qualities_old.csv',
-                Impact: 'raw-tmd-data/example-data/impacts.csv',
-                User: 'raw-tmd-data/example-data/users.csv',
-                OrganisingInstitution: 'raw-tmd-data/example-data/institutions.csv',
-                Node: 'raw-tmd-data/example-data/nodes.csv'}
+
+def get_data_sources(targetdir="example-data"):
+    return {
+        Event:  f'raw-tmd-data/{targetdir}/tango_events.csv',
+        Demographic: f'raw-tmd-data/{targetdir}/tango_demographics.csv',
+        Quality: f'raw-tmd-data/{targetdir}/tango_qualities.csv',
+        Impact: f'raw-tmd-data/{targetdir}/tango_impacts.csv',
+        User: f'raw-tmd-data/{targetdir}/users.csv',
+        OrganisingInstitution: f'raw-tmd-data/{targetdir}/institutions.csv',
+        Node: f'raw-tmd-data/{targetdir}/nodes.csv'
+    }
+
+
+DATA_SOURCES = get_data_sources()
 
 
 def convert_to_timestamp(date_string):
@@ -187,7 +194,18 @@ def load_institutions():
 class Command(BaseCommand):
     help = 'Load data from CSV files into the database.'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--targetdir",
+            type=str,
+            required=False,
+        )
+
     def handle(self, *args, **options):
+        global DATA_SOURCES
+        if options["targetdir"]:
+            DATA_SOURCES = get_data_sources(options["targetdir"])
+
         for model, csv_file_path in DATA_SOURCES.items():
             if model == User:
                 continue
