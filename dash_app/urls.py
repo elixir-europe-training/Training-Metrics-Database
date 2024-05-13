@@ -6,6 +6,7 @@ from .views.demographic import demographic_report
 from .views.impact import impact_report
 from .views.quality import quality_report
 from .views.worldmap import world_map
+from .views.upload import upload_data
 
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('demographic', demographic_report, name='demographic-report'),
     path('impact', impact_report, name='impact-report'),
     path('world-map', world_map, name='world-map'),
+    path('upload-data', upload_data, name='upload-data'),
 ]
