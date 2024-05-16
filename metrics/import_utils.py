@@ -5,12 +5,13 @@ from django.core.exceptions import ValidationError
 
 
 class ImportContext:
-    def __init__(self, user=None, node_main=None):
+    def __init__(self, user=None, node_main=None, timestamps=None):
         self._user = user
         self._node_main = node_main
+        self._timestamps = timestamps
 
     def event_from_dict(self, data: dict):
-        (created, modified) = timestamps_from_dict(data)
+        (created, modified) = self.timestamps_from_data(data)
 
         event = Event.objects.create(
             user=self.user_from_data(data),
@@ -46,7 +47,7 @@ class ImportContext:
         return event
 
     def demographic_from_dict(self, data: dict):
-        (created, modified) = timestamps_from_dict(data)
+        (created, modified) = self.timestamps_from_data(data)
         demographic = Demographic.objects.create(
             user=self.user_from_data(data),
             created=created,
@@ -61,7 +62,7 @@ class ImportContext:
         return demographic
 
     def quality_from_dict(self, data: dict):
-        (created, modified) = timestamps_from_dict(data)
+        (created, modified) = self.timestamps_from_data(data)
         quality = Quality.objects.create(
             user=self.user_from_data(data),
             created=created,
@@ -77,7 +78,7 @@ class ImportContext:
         return quality
 
     def impact_from_dict(self, data: dict):
-        (created, modified) = timestamps_from_dict(data)
+        (created, modified) = self.timestamps_from_data(data)
         impact = Impact.objects.create(
             user=self.user_from_data(data),
             created=created,
@@ -110,6 +111,13 @@ class ImportContext:
                 name=node_main
             ) if node_main and self._node_main is None
             else self._node_main
+        )
+    
+    def timestamps_from_data(self, data: dict):
+        return (
+            timestamps_from_dict(data)
+            if self._timestamps is None
+            else self._timestamps
         )
 
     @staticmethod

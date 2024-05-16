@@ -9,6 +9,7 @@ from metrics import import_utils, models
 import traceback
 from django.core.exceptions import ValidationError
 from django.db import transaction
+import datetime
 
 
 UPLOAD_TYPES = {
@@ -84,9 +85,14 @@ def upload_data(request):
 
                 node_main_id = f"ELIXIR-{request.user.username.upper()}"
                 node_main = models.Node.objects.get(name=node_main_id)
+                current_time = datetime.datetime.now()
                 import_context = import_utils.ImportContext(
                     user=request.user,
                     node_main=node_main,
+                    timestamps=(
+                        current_time,
+                        current_time
+                    )
                 )
 
                 (parser, importer) = {
