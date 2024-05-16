@@ -9,6 +9,12 @@
     {% for form in forms %}
     <h2>{{form.title}}</h2>
     {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
+    {% if form.non_field_errors %}{% for error in form.non_field_errors %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        {{error}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}{% endif %}
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="input-group">

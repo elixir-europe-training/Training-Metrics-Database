@@ -5,7 +5,6 @@ from django.forms.widgets import FileInput, Select
 import re
 import csv
 import io
-import json
 from metrics import import_utils
 
 
@@ -72,7 +71,6 @@ def _parse_legacy_impact_metrics(context, row):
 
 def _parse_legacy_quality_or_demographic_metrics(context, row):
     updated_data = import_utils.legacy_to_current_quality_or_demographic_dict(row)
-    print(json.dumps(updated_data, indent=2))
     return context.demographic_from_dict(updated_data)
 
 
@@ -91,9 +89,8 @@ def upload_data(request):
 
     if request.method == "POST":
         for form in forms:
-            if form.is_valid() and form.has_changed():
+            if form.has_changed() and form.is_valid():
                 data = form.cleaned_data
-                print(data)
                 upload_type = data["upload_type"]
                 file = data["file"]
                 importer = {
@@ -109,9 +106,11 @@ def upload_data(request):
 
                 csv_stream = io.StringIO(file.read().decode())
                 reader = csv.DictReader(csv_stream, delimiter=',')
-                for row in reader:
-                    print(row)
-                    importer(import_context, row)
+                for (index, row) in enumerate(reader):
+                    try:
+                        importer(import_context, row)
+                    except Exception as e:
+                        form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
     return render(
         request,
