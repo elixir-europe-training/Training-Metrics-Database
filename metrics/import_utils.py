@@ -254,4 +254,3 @@ def parse_location(data: dict, key="location") -> dict:
         }
     except ValueError as e:
         raise ValidationError(f"Failed to parse location: {e}")
-

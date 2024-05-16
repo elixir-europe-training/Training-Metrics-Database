@@ -8,6 +8,7 @@ import io
 from metrics import import_utils, models
 import traceback
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 
 UPLOAD_TYPES = {
@@ -61,21 +62,6 @@ class DataUploadForm(forms.Form):
         self.title = title
 
 
-def _parse_legacy_event(context, row):
-    updated_data = import_utils.legacy_to_current_event_dict(row)
-    return context.event_from_dict(updated_data)
-
-
-def _parse_legacy_impact_metrics(context, row):
-    updated_data = import_utils.demographic_from_dict(row)
-    return context.impact_from_dict(updated_data)
-
-
-def _parse_legacy_quality_or_demographic_metrics(context, row):
-    updated_data = import_utils.legacy_to_current_quality_or_demographic_dict(row)
-    return context.demographic_from_dict(updated_data)
-
-
 def upload_data(request):
     forms = [
         DataUploadForm(
@@ -95,11 +81,7 @@ def upload_data(request):
                 data = form.cleaned_data
                 upload_type = data["upload_type"]
                 file = data["file"]
-                importer = {
-                    "events": _parse_legacy_event,
-                    "demographic_quality_metrics": _parse_legacy_quality_or_demographic_metrics,
-                    "impact_metrics": _parse_legacy_impact_metrics,
-                }[upload_type]
+
                 node_main_id = f"ELIXIR-{request.user.username.upper()}"
                 node_main = models.Node.objects.get(name=node_main_id)
                 import_context = import_utils.ImportContext(
@@ -107,14 +89,39 @@ def upload_data(request):
                     node_main=node_main,
                 )
 
+                (parser, importer) = {
+                    "events": (
+                        import_utils.legacy_to_current_event_dict,
+                        import_context.event_from_dict
+                    ),
+                    "demographic_quality_metrics": (
+                        import_utils.legacy_to_current_quality_or_demographic_dict,
+                        import_context.demographic_from_dict
+                    ),
+                    "impact_metrics": (
+                        import_utils.legacy_to_current_impact_dict,
+                        import_context.impact_from_dict
+                    ),
+                }[upload_type]
+
                 csv_stream = io.StringIO(file.read().decode())
                 reader = csv.DictReader(csv_stream, delimiter=',')
+                entries = []
                 for (index, row) in enumerate(reader):
                     try:
-                        importer(import_context, row)
+                        entries.append(parser(row))
                     except ValidationError as e:
                         traceback.print_exc()
                         form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+
+                if len(form.errors) == 0:
+                    try:
+                        with transaction.atomic():
+                            for entry in entries:
+                                importer(entry)
+                    except Exception as e:
+                        traceback.print_exc()
+                        form.add_error(None, f"Failed to import '{upload_type}': {e}")
 
     return render(
         request,
