@@ -1,6 +1,7 @@
 from datetime import datetime
 from metrics.models import Event, Demographic, Quality, Impact, User, Node
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 
 class ImportContext:
@@ -151,7 +152,7 @@ def legacy_to_current_event_dict(data: dict) -> dict:
         "Event type": "type",
         "Funding": "funding",
         "Organising Institution/s": "organising_institution",
-        "Location (city, country)": parse_location,
+        "Location (city, country)": None,
         "EXCELERATE WP": None,
         "Target audience": "target_audience",
         "Additional ELIXIR Platforms involved": "additional_platforms",
@@ -159,11 +160,18 @@ def legacy_to_current_event_dict(data: dict) -> dict:
         "No. of participants": "number_participants",
         "No. of trainers/ facilitators": "number_trainers",
         "Url to event page/ agenda": "url",
-        "node_main": "node_main",
-        "duration": "duration",
-        "status": "status",
     }
-    return parse_with_mapping(data, mapping)
+    return {
+        **{
+            target_id: data[source_id]
+            for source_id, target_id in mapping.items()
+            if target_id is not None
+        },
+        **parse_location(data, key="Location (city, country)"),
+        "node_main": None,
+        "duration": 0,
+        "status": "Complete",
+    }
 
 
 def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
@@ -185,7 +193,11 @@ def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
         "What other topics would you like to see covered in the future?": None,
         "Any other comments?": None,
     }
-    return parse_with_mapping(data, mapping)
+    return {
+        target_id: data[source_id]
+        for source_id, target_id in mapping.items()
+        if target_id is not None
+    }
 
 
 def legacy_to_current_impact_dict(data: dict) -> dict:
@@ -210,50 +222,21 @@ def legacy_to_current_impact_dict(data: dict) -> dict:
         "Would you recommend the training to others?": "recommend_others",
         "Any other comments?": None,
     }
-    return parse_with_mapping(data, mapping)
-
-
-def parse_with_mapping(data: dict, mapping: dict) -> dict:
-    transforms = [
-        (
-            parse_entry(source_id, parse_value(target))
-            if type(target) == str
-            else parse_entry(source_id, target)
-        )
-        for source_id, target in mapping.items()
-        if target is not None
-    ]
-
-    result = dict()
-    for transform in transforms:
-        result.update(transform(data))
-    return result
-
-
-def parse_value(target_id, transform=None) -> dict:
-    def _parse_value(value):
-        result = {
-            target_id: (
-                value
-                if transform is None
-                else transform(value)
-            )
-        }
-        print(result)
-        return result
-    return _parse_value
-
-
-def parse_entry(source_id, value_parser):
-    def _parse_entry(data):
-        return value_parser(data[source_id])
-    return _parse_entry
-
-
-def parse_location(data: dict) -> dict:
-    location = data["location"]
-    [city, country] = [value.strip() for value in location.split(",")]
     return {
-        "location_city": city,
-        "location_country": country
+        target_id: data[source_id]
+        for source_id, target_id in mapping.items()
+        if target_id is not None
     }
+
+
+def parse_location(data: dict, key="location") -> dict:
+    location = data[key]
+    try:
+        [city, country] = [value.strip() for value in location.split(",")]
+        return {
+            "location_city": city,
+            "location_country": country
+        }
+    except ValueError as e:
+        raise ValidationError(f"Failed to parse location: {e}")
+

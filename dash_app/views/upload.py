@@ -5,7 +5,9 @@ from django.forms.widgets import FileInput, Select
 import re
 import csv
 import io
-from metrics import import_utils
+from metrics import import_utils, models
+import traceback
+from django.core.exceptions import ValidationError
 
 
 UPLOAD_TYPES = {
@@ -98,7 +100,8 @@ def upload_data(request):
                     "demographic_quality_metrics": _parse_legacy_quality_or_demographic_metrics,
                     "impact_metrics": _parse_legacy_impact_metrics,
                 }[upload_type]
-                node_main = f"ELIXIR-{request.user.username.upper()}"
+                node_main_id = f"ELIXIR-{request.user.username.upper()}"
+                node_main = models.Node.objects.get(name=node_main_id)
                 import_context = import_utils.ImportContext(
                     user=request.user,
                     node_main=node_main,
@@ -109,7 +112,8 @@ def upload_data(request):
                 for (index, row) in enumerate(reader):
                     try:
                         importer(import_context, row)
-                    except Exception as e:
+                    except ValidationError as e:
+                        traceback.print_exc()
                         form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
     return render(
