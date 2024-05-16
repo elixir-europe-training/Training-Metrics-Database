@@ -122,11 +122,17 @@ def csv_to_array(csv_string):
 
 
 def convert_to_timestamp(date_string):
-    return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').timestamp()
+    try:
+        return datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S').timestamp()
+    except ValueError as e:
+        raise ValidationError(f"Failed to parse timestamp: {e}")
 
 
 def convert_to_date(date_string):
-    return datetime.strptime(date_string, '%Y-%m-%d').date()
+    try:
+        return datetime.strptime(date_string, '%Y-%m-%d').date()
+    except ValueError as e:
+        raise ValidationError(f"Failed to parse date: {e}")
 
 
 def timestamps_from_dict(data: dict):
@@ -144,89 +150,98 @@ def timestamps_from_dict(data: dict):
 
 
 def legacy_to_current_event_dict(data: dict) -> dict:
-    mapping = {
-        "Title": "title",
-        "ELIXIR Node": "node",
-        "Start Date": "date_start",
-        "End Date": "date_end",
-        "Event type": "type",
-        "Funding": "funding",
-        "Organising Institution/s": "organising_institution",
-        "Location (city, country)": None,
-        "EXCELERATE WP": None,
-        "Target audience": "target_audience",
-        "Additional ELIXIR Platforms involved": "additional_platforms",
-        "ELIXIR Communities involved": "communities",
-        "No. of participants": "number_participants",
-        "No. of trainers/ facilitators": "number_trainers",
-        "Url to event page/ agenda": "url",
-    }
-    return {
-        **{
-            target_id: data[source_id]
-            for source_id, target_id in mapping.items()
-            if target_id is not None
-        },
-        **parse_location(data, key="Location (city, country)"),
-        "node_main": None,
-        "duration": 0,
-        "status": "Complete",
-    }
+    try:
+        mapping = {
+            "Title": "title",
+            "ELIXIR Node": "node",
+            "Start Date": "date_start",
+            "End Date": "date_end",
+            "Event type": "type",
+            "Funding": "funding",
+            "Organising Institution/s": "organising_institution",
+            "Location (city, country)": None,
+            "EXCELERATE WP": None,
+            "Target audience": "target_audience",
+            "Additional ELIXIR Platforms involved": "additional_platforms",
+            "ELIXIR Communities involved": "communities",
+            "No. of participants": "number_participants",
+            "No. of trainers/ facilitators": "number_trainers",
+            "Url to event page/ agenda": "url",
+        }
+        return {
+            **{
+                target_id: data[source_id]
+                for source_id, target_id in mapping.items()
+                if target_id is not None
+            },
+            **parse_location(data, key="Location (city, country)"),
+            "node_main": None,
+            "duration": 0,
+            "status": "Complete",
+        }
+    except KeyError as e:
+        raise ValidationError(f"Missing source data '{e}'")
 
 
 def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
-    mapping = {
-        "event_code": "event",
-        "Where did you see the course advertised?": None,
-        "What is your career stage?": "career_stage",
-        "What is your employment sector?": "employment_country",
-        "What is your country of employment?": "employment_country",
-        "What is your gender?": "gender",
-        "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
-        "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
-        "Would you recommend the course?": "recommend_course",
-        "Please tell us your overall rating for the entire course": "course_rating",
-        "May we contact you by email in the future for more feedback?": "email_contact",
-        "What part of the training did you enjoy the most?": None,
-        "What part of the training did you enjoy the least?": None,
-        "The balance of theoretical and practical content was": "balance",
-        "What other topics would you like to see covered in the future?": None,
-        "Any other comments?": None,
-    }
-    return {
-        target_id: data[source_id]
-        for source_id, target_id in mapping.items()
-        if target_id is not None
-    }
+    try:
+        mapping = {
+            "event_code": "event",
+            "Where did you see the course advertised?": None,
+            "What is your career stage?": "career_stage",
+            "What is your employment sector?": "employment_country",
+            "What is your country of employment?": "employment_country",
+            "What is your gender?": "gender",
+            "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
+            "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
+            "Would you recommend the course?": "recommend_course",
+            "Please tell us your overall rating for the entire course": "course_rating",
+            "May we contact you by email in the future for more feedback?": "email_contact",
+            "What part of the training did you enjoy the most?": None,
+            "What part of the training did you enjoy the least?": None,
+            "The balance of theoretical and practical content was": "balance",
+            "What other topics would you like to see covered in the future?": None,
+            "Any other comments?": None,
+        }
+        return {
+            target_id: data[source_id]
+            for source_id, target_id in mapping.items()
+            if target_id is not None
+        }
+    except KeyError as e:
+        raise ValidationError(f"Missing source data '{e}'")
 
 
 def legacy_to_current_impact_dict(data: dict) -> dict:
-    mapping = {
-        "event_code": "event",
-        "Which training event did you take part in?": None,
-        "How long ago did you attend the training?": "when_attend_training",
-        "What was your main reason for attending the training?": "main_attend_reason",
-        "What was your main reason for attending the training? (Other)": None,
-        "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
-        "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
-        "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
-        "Do you feel that you are able to explain to others what you learnt in the training? (Other)": None,
-        "Are you now able to use the tool(s)/ resource(s) covered in the training:": "able_use_now",
-        "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)": None,
-        "How did the training event help with your work? [select all that apply]": "help_work",
-        "How did the training event help with your work? (Other)": None,
-        "Attending the training event led to/ facilitated: [select all that apply]": "attending_led_to",
-        "Attending the training event led to/ facilitated: (Other)": None,
-        "Please elaborate on any impact": None,
-        "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
-        "Would you recommend the training to others?": "recommend_others",
-        "Any other comments?": None,
-    }
-    return {
-        target_id: data[source_id]
-        for source_id, target_id in mapping.items()
-        if target_id is not None
-    }
+    try:
+        mapping = {
+            "event_code": "event",
+            "Which training event did you take part in?": None,
+            "How long ago did you attend the training?": "when_attend_training",
+            "What was your main reason for attending the training?": "main_attend_reason",
+            "What was your main reason for attending the training? (Other)": None,
+            "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
+            "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
+            "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
+            "Do you feel that you are able to explain to others what you learnt in the training? (Other)": None,
+            "Are you now able to use the tool(s)/ resource(s) covered in the training:": "able_use_now",
+            "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)": None,
+            "How did the training event help with your work? [select all that apply]": "help_work",
+            "How did the training event help with your work? (Other)": None,
+            "Attending the training event led to/ facilitated: [select all that apply]": "attending_led_to",
+            "Attending the training event led to/ facilitated: (Other)": None,
+            "Please elaborate on any impact": None,
+            "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
+            "Would you recommend the training to others?": "recommend_others",
+            "Any other comments?": None,
+        }
+        return {
+            target_id: data[source_id]
+            for source_id, target_id in mapping.items()
+            if target_id is not None
+        }
+    except KeyError as e:
+        raise ValidationError(f"Missing source data '{e}'")
 
 
 def parse_location(data: dict, key="location") -> dict:
