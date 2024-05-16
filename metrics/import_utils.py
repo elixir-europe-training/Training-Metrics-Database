@@ -15,7 +15,7 @@ class ImportContext:
             user=self.user_from_data(data),
             created=created,
             modified=modified,
-            code=slugify(data['code']),
+            code=slugify(data.get('code')),
             title=data['title'],
             node_main=self.node_from_data(data),
             date_start=convert_to_date(data['date_start']),
@@ -131,12 +131,12 @@ def convert_to_date(date_string):
 def timestamps_from_dict(data: dict):
     created = (
         convert_to_timestamp(data['created'])
-        if data['created']
+        if data.get('created')
         else ''
     )
     modified = (
         convert_to_timestamp(data['modified'])
-        if data['modified']
+        if data.get('modified')
         else ''
     )
     return (created, modified)
@@ -232,19 +232,21 @@ def parse_with_mapping(data: dict, mapping: dict) -> dict:
 
 def parse_value(target_id, transform=None) -> dict:
     def _parse_value(value):
-        return {
+        result = {
             target_id: (
                 value
                 if transform is None
                 else transform(value)
             )
         }
+        print(result)
+        return result
     return _parse_value
 
 
-def parse_entry(source_id, parse_value):
+def parse_entry(source_id, value_parser):
     def _parse_entry(data):
-        return parse_value(data[source_id])
+        return value_parser(data[source_id])
     return _parse_entry
 
 

@@ -6,4 +6,16 @@
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
+    {% for form in forms %}
+    <h2>{{form.title}}</h2>
+    {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="input-group">
+            {% for field in form %}{{field}}{%endfor%}
+            <button type="submit" class="btn btn-success">Upload</button>
+        </div>
+    </form>
+    <hr/>
+    {% endfor %}
 {% endblock %}
