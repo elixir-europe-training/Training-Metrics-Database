@@ -1,7 +1,7 @@
 from datetime import datetime
 from metrics.models import Event, Demographic, Quality, Impact, User, Node
 from django.utils.text import slugify
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 
 
 class ImportContext:
@@ -47,11 +47,12 @@ class ImportContext:
 
     def demographic_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
+        (user, event) = self.get_user_and_event(data)
         demographic = Demographic.objects.create(
-            user=self.user_from_data(data),
+            user=user,
             created=created,
             modified=modified,
-            event=self.get_event(data['event']),
+            event=event,
             heard_from=csv_to_array(data['heard_from']),
             employment_sector=data['employment_sector'],
             employment_country=data['employment_country'],
@@ -62,11 +63,12 @@ class ImportContext:
 
     def quality_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
+        (user, event) = self.get_user_and_event(data)
         quality = Quality.objects.create(
-            user=self.user_from_data(data),
+            user=user,
             created=created,
             modified=modified,
-            event=self.get_event(data['event']),
+            event=event,
             used_resources_before=data['used_resources_before'],
             used_resources_future=data['used_resources_future'],
             recommend_course=data['recommend_course'],
@@ -78,11 +80,12 @@ class ImportContext:
 
     def impact_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
+        (user, event) = self.get_user_and_event(data)
         impact = Impact.objects.create(
-            user=self.user_from_data(data),
+            user=user,
             created=created,
             modified=modified,
-            event=self.get_event(data['event']),
+            event=event,
             when_attend_training=data['when_attend_training'],
             main_attend_reason=data['main_attend_reason'],
             how_often_use_before=data['how_often_use_before'],
@@ -95,6 +98,12 @@ class ImportContext:
             recommend_others=data['recommend_others'],
         )
         return impact
+    
+    def get_user_and_event(self, data: dict):
+        event = self.get_event(data['event'])
+        user = self.user_from_data(data)
+        self.assert_can_change_data(user, event)
+        return (user, event)
     
     def get_event(self, identifier):
         return Event.objects.get(code=identifier)
@@ -113,6 +122,9 @@ class ImportContext:
     
     def timestamps_from_data(self, data: dict):
         return timestamps_from_dict(data)
+    
+    def assert_can_change_data(self, user, event):
+        pass
 
 
 class LegacyImportContext(ImportContext):
@@ -138,6 +150,13 @@ class LegacyImportContext(ImportContext):
     
     def timestamps_from_data(self, data: dict):
         return self._timestamps
+    
+    def assert_can_change_data(self, user, event):
+        if event.user.id == event.user_id:
+            raise PermissionDenied(
+                "The metrics for the selected event can not be "
+                f"updated by the current user: {user.username}"
+            )
 
 
 def csv_to_array(csv_string):
