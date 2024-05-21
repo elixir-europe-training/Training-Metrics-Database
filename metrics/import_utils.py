@@ -5,10 +5,11 @@ from django.core.exceptions import ValidationError
 
 
 class ImportContext:
-    def __init__(self, user=None, node_main=None, timestamps=None):
+    def __init__(self, user=None, node_main=None, timestamps=None, event_identifier_key="code"):
         self._user = user
         self._node_main = node_main
         self._timestamps = timestamps
+        self._event_identifier_key = event_identifier_key
 
     def event_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
@@ -17,7 +18,11 @@ class ImportContext:
             user=self.user_from_data(data),
             created=created,
             modified=modified,
-            code=slugify(data.get('code')),
+            code=(
+                slugify(data['code'])
+                if 'code' in data
+                else None
+            ),
             title=data['title'],
             node_main=self.node_from_data(data),
             date_start=convert_to_date(data['date_start']),
@@ -52,7 +57,7 @@ class ImportContext:
             user=self.user_from_data(data),
             created=created,
             modified=modified,
-            event=Event.objects.get(code=int(data['event'])),
+            event=self.get_event(data['event']),
             heard_from=csv_to_array(data['heard_from']),
             employment_sector=data['employment_sector'],
             employment_country=data['employment_country'],
@@ -67,7 +72,7 @@ class ImportContext:
             user=self.user_from_data(data),
             created=created,
             modified=modified,
-            event=Event.objects.get(code=data['event']),
+            event=self.get_event(data['event']),
             used_resources_before=data['used_resources_before'],
             used_resources_future=data['used_resources_future'],
             recommend_course=data['recommend_course'],
@@ -83,7 +88,7 @@ class ImportContext:
             user=self.user_from_data(data),
             created=created,
             modified=modified,
-            event=Event.objects.get(code=data['event']),
+            event=self.get_event(data['event']),
             when_attend_training=data['when_attend_training'],
             main_attend_reason=data['main_attend_reason'],
             how_often_use_before=data['how_often_use_before'],
@@ -96,6 +101,10 @@ class ImportContext:
             recommend_others=data['recommend_others'],
         )
         return impact
+    
+    def get_event(self, identifier):
+        params = {self._event_identifier_key: identifier}
+        return Event.objects.get(**params)
 
     def user_from_data(self, data: dict):
         return (
@@ -182,7 +191,7 @@ def legacy_to_current_event_dict(data: dict) -> dict:
                 for source_id, target_id in mapping.items()
                 if target_id is not None
             },
-            **parse_location(data, key="Location (city, country)"),
+            **parse_location(data["Location (city, country)"]),
             "node_main": None,
             "duration": 0,
             "status": "Complete",
@@ -195,9 +204,9 @@ def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
     try:
         mapping = {
             "event_code": "event",
-            "Where did you see the course advertised?": None,
+            "Where did you see the course advertised?": "heard_from",
             "What is your career stage?": "career_stage",
-            "What is your employment sector?": "employment_country",
+            "What is your employment sector?": "employment_sector",
             "What is your country of employment?": "employment_country",
             "What is your gender?": "gender",
             "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
@@ -212,9 +221,12 @@ def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
             "Any other comments?": None,
         }
         return {
-            target_id: data[source_id]
-            for source_id, target_id in mapping.items()
-            if target_id is not None
+            **{
+                target_id: data[source_id]
+                for source_id, target_id in mapping.items()
+                if target_id is not None
+            },
+            "event": int(data["event_code"])
         }
     except KeyError as e:
         raise ValidationError(f"Missing source data '{e}'")
@@ -244,16 +256,18 @@ def legacy_to_current_impact_dict(data: dict) -> dict:
             "Any other comments?": None,
         }
         return {
-            target_id: data[source_id]
-            for source_id, target_id in mapping.items()
-            if target_id is not None
+            **{
+                target_id: data[source_id]
+                for source_id, target_id in mapping.items()
+                if target_id is not None
+            },
+            "event": int(data["event_code"])
         }
     except KeyError as e:
         raise ValidationError(f"Missing source data '{e}'")
 
 
-def parse_location(data: dict, key="location") -> dict:
-    location = data[key]
+def parse_location(location: str) -> dict:
     try:
         [city, country] = [value.strip() for value in location.split(",")]
         return {

@@ -63,6 +63,22 @@ class DataUploadForm(forms.Form):
         self.title = title
 
 
+def summary_output(items: list):
+    return f"Successfully uploaded {len(items)} objects."
+
+
+def table_output(columns: dict):
+    def _table_output(items: list):
+        return {
+            "headers": [value for value in columns.values()],
+            "content": [
+                [getattr(item, key, None) for key in columns.keys()]
+                for item in items
+            ]
+        }
+    return _table_output
+
+
 def upload_data(request):
     forms = [
         DataUploadForm(
@@ -92,21 +108,33 @@ def upload_data(request):
                     timestamps=(
                         current_time,
                         current_time
-                    )
+                    ),
+                    event_identifier_key="id"
                 )
 
-                (parser, importer) = {
+                (parser, importer, view_transforms) = {
                     "events": (
                         import_utils.legacy_to_current_event_dict,
-                        import_context.event_from_dict
+                        import_context.event_from_dict,
+                        {
+                            "summary": summary_output,
+                            "table": table_output({
+                                "id": "Event Code",
+                                "title": "Title",
+                                "date_start": "Start date",
+                                "date_end": "End date"
+                            })
+                        }
                     ),
                     "demographic_quality_metrics": (
                         import_utils.legacy_to_current_quality_or_demographic_dict,
-                        import_context.demographic_from_dict
+                        import_context.demographic_from_dict,
+                        {"summary": summary_output}
                     ),
                     "impact_metrics": (
                         import_utils.legacy_to_current_impact_dict,
-                        import_context.impact_from_dict
+                        import_context.impact_from_dict,
+                        {"summary": summary_output}
                     ),
                 }[upload_type]
 
@@ -120,14 +148,20 @@ def upload_data(request):
                         traceback.print_exc()
                         form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
-                if len(form.errors) == 0:
+                if len(form.errors) == 0 and len(entries) > 0:
+                    items = []
                     try:
                         with transaction.atomic():
-                            for entry in entries:
-                                importer(entry)
+                            items = [importer(entry) for entry in entries]
+
                     except Exception as e:
                         traceback.print_exc()
                         form.add_error(None, f"Failed to import '{upload_type}': {e}")
+
+                    form.outputs = {
+                        key: view_transform(items)
+                        for key, view_transform in view_transforms.items()
+                    }
 
     return render(
         request,

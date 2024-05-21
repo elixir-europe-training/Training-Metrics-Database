@@ -22,6 +22,34 @@
             <button type="submit" class="btn btn-success">Upload</button>
         </div>
     </form>
+    {% if form.outputs.table %}
+    {% with table=form.outputs.table %}
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <table class="table table-bordered">
+                <thead class="thead-light">
+                    <tr>
+                        {% for header in table.headers %}<th>{{header}}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table.content %}
+                    <tr>
+                        {% for column in row %}<td>{{column}}</td>{% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {%endwith%}
+    {% endif %}
+    {% if form.outputs.summary %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{form.outputs.summary}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
     <hr/>
     {% endfor %}
 {% endblock %}
