@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from .common import get_tabs
 from django import forms
-from django.forms.widgets import FileInput, Select
+from django.forms.widgets import FileInput, Select, CheckboxInput
 import re
 import csv
 import io
@@ -35,6 +35,13 @@ UPLOAD_TYPES = {
 
 
 class DataUploadForm(forms.Form):
+    replace = forms.ChoiceField(
+        choices=(
+            ("replace", "Replace"),
+            ("add", "Add")
+        ),
+        widget=Select(attrs={"class": "form-control"}),
+    )
     file = forms.FileField(
         label="File",
         widget=FileInput(attrs={"class": "form-control"}),
@@ -102,14 +109,13 @@ def upload_data(request):
                 node_main_id = f"ELIXIR-{request.user.username.upper()}"
                 node_main = models.Node.objects.get(name=node_main_id)
                 current_time = datetime.datetime.now()
-                import_context = import_utils.ImportContext(
+                import_context = import_utils.LegacyImportContext(
                     user=request.user,
                     node_main=node_main,
                     timestamps=(
                         current_time,
                         current_time
                     ),
-                    event_identifier_key="id"
                 )
 
                 (parser, importer, view_transforms) = {
@@ -128,7 +134,7 @@ def upload_data(request):
                     ),
                     "demographic_quality_metrics": (
                         import_utils.legacy_to_current_quality_or_demographic_dict,
-                        import_context.demographic_from_dict,
+                        import_context.quality_or_demographic_from_dict,
                         {"summary": summary_output}
                     ),
                     "impact_metrics": (
@@ -148,21 +154,19 @@ def upload_data(request):
                         traceback.print_exc()
                         form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
-                if len(form.errors) == 0 and len(entries) > 0:
+                if len(form.errors) == 0:
                     items = []
                     try:
                         with transaction.atomic():
                             items = [importer(entry) for entry in entries]
 
+                        form.outputs = {
+                            key: view_transform(items)
+                            for key, view_transform in view_transforms.items()
+                        }
                     except Exception as e:
                         traceback.print_exc()
                         form.add_error(None, f"Failed to import '{upload_type}': {e}")
-
-                    form.outputs = {
-                        key: view_transform(items)
-                        for key, view_transform in view_transforms.items()
-                    }
-
     return render(
         request,
         'dash_app/upload.html',

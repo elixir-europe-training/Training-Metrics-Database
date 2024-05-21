@@ -5,12 +5,6 @@ from django.core.exceptions import ValidationError
 
 
 class ImportContext:
-    def __init__(self, user=None, node_main=None, timestamps=None, event_identifier_key="code"):
-        self._user = user
-        self._node_main = node_main
-        self._timestamps = timestamps
-        self._event_identifier_key = event_identifier_key
-
     def event_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
 
@@ -103,35 +97,47 @@ class ImportContext:
         return impact
     
     def get_event(self, identifier):
-        params = {self._event_identifier_key: identifier}
-        return Event.objects.get(**params)
+        return Event.objects.get(code=identifier)
 
     def user_from_data(self, data: dict):
-        return (
-            User.objects.get(username=data['user'])
-            if self._user is None
-            else self._user
-        )
+        return User.objects.get(username=data['user'])
 
     def node_from_data(self, data: dict):
         node_main = data['node_main'] if data['node_main'] else ''
         return (
             Node.objects.get(
                 name=node_main
-            ) if node_main and self._node_main is None
-            else self._node_main
+            ) if node_main
+            else None
         )
     
     def timestamps_from_data(self, data: dict):
+        return timestamps_from_dict(data)
+
+
+class LegacyImportContext(ImportContext):
+    def __init__(self, user=None, node_main=None, timestamps=None):
+        self._user = user
+        self._node_main = node_main
+        self._timestamps = timestamps
+
+    def quality_or_demographic_from_dict(self, data: dict):
         return (
-            timestamps_from_dict(data)
-            if self._timestamps is None
-            else self._timestamps
+            self.quality_from_dict(data),
+            self.demographic_from_dict(data)
         )
 
-    @staticmethod
-    def from_request(request):
-        return ImportContext(user=request.user)
+    def get_event(self, identifier):
+        return Event.objects.get(id=int(identifier))
+
+    def user_from_data(self, data: dict):
+        return self._user
+
+    def node_from_data(self, data: dict):
+        return self._node_main
+    
+    def timestamps_from_data(self, data: dict):
+        return self._timestamps
 
 
 def csv_to_array(csv_string):
