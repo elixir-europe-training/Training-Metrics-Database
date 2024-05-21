@@ -15,41 +15,54 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     {% endfor %}{% endif %}
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="input-group">
-            {% for field in form %}{{field}}{%endfor%}
+    <div class="mb-3 row">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+            {% if not field.field.disabled %}
+            <div class="mb-3 row">
+                <label for="{{field.html_name}}" class="col-sm-2 col-form-label">{{field.label}}</label>
+                <div class="col-sm-10">
+                    {{field}}
+                </div>
+            </div>
+            {% else %}
+            {{field}}
+            {% endif %}
+            {%endfor%}
             <button type="submit" class="btn btn-success">Upload</button>
-        </div>
-    </form>
-    {% if form.outputs.table %}
-    {% with table=form.outputs.table %}
-    <div class="panel panel-primary">
-        <div class="panel-body">
-            <table class="table table-bordered">
-                <thead class="thead-light">
-                    <tr>
-                        {% for header in table.headers %}<th>{{header}}</th>{% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in table.content %}
-                    <tr>
-                        {% for column in row %}<td>{{column}}</td>{% endfor %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        </form>
     </div>
-    {%endwith%}
-    {% endif %}
-    {% if form.outputs.summary %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{form.outputs.summary}}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="mb-3 row">
+        {% if form.outputs.table %}
+        {% with table=form.outputs.table %}
+        <div class="panel panel-primary">
+            <div class="panel-body">
+                <table class="table table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            {% for header in table.headers %}<th>{{header}}</th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table.content %}
+                        <tr>
+                            {% for column in row %}<td>{{column}}</td>{% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {%endwith%}
+        {% endif %}
+        {% if form.outputs.summary %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{form.outputs.summary}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        <hr/>
+        {% endfor %}
     </div>
-    {% endif %}
-    <hr/>
-    {% endfor %}
 {% endblock %}
