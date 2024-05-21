@@ -10,6 +10,7 @@ import traceback
 from django.core.exceptions import ValidationError
 from django.db import transaction
 import datetime
+from django.contrib.auth.decorators import login_required
 
 
 UPLOAD_TYPES = {
@@ -85,7 +86,7 @@ def table_output(columns: dict):
         }
     return _table_output
 
-
+@login_required
 def upload_data(request):
     forms = [
         DataUploadForm(
