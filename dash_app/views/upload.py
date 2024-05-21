@@ -36,14 +36,6 @@ UPLOAD_TYPES = {
 
 
 class DataUploadForm(forms.Form):
-    replace = forms.ChoiceField(
-        label="Input action",
-        choices=(
-            ("replace", "Replace"),
-            ("add", "Add")
-        ),
-        widget=Select(attrs={"class": "form-control"}),
-    )
     file = forms.FileField(
         label="CSV batch file",
         widget=FileInput(attrs={"class": "form-control"}),
