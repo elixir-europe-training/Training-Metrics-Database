@@ -1,0 +1,16 @@
+{% extends "common/base.html" %}
+{% load plotly_dash %}
+{% block header %}
+    {% plotly_header %}
+{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    <div class="mb-3 row">
+        <form method="post">{% csrf_token %}
+            <p>{{ message }}</p>
+            {{ form }}
+            <a href="{{abort_url}}" class="btn btn-primary">Abort</a>
+            <input type="submit" class="btn btn-danger" value="Confirm">
+        </form>
+    </div>
+{% endblock %}

@@ -7,7 +7,7 @@ from .views.impact import impact_report
 from .views.quality import quality_report
 from .views.worldmap import world_map
 from .views.upload import upload_data
-from .views.model_views import EventView, EventListView
+from .views.model_views import EventView, EventListView, EventMetricsDeleteView
 
 
 urlpatterns = [
@@ -20,4 +20,5 @@ urlpatterns = [
     path('upload-data', upload_data, name='upload-data'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
+    path('event/delete-metrics/<int:pk>', EventMetricsDeleteView.as_view(), name="event-delete-metrics")
 ]

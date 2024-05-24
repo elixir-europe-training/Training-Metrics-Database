@@ -1,17 +1,25 @@
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import FormView, UpdateView, DeleteView
 from django.views.generic.list import ListView
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from metrics import forms
 from metrics import models
 from django.core import serializers
 from collections.abc import Iterable
 from .common import get_tabs
+from django.urls import reverse_lazy, reverse
 
 
 class GenericUpdateView(UpdateView):
     template_name = "dash_app/model-form.html"
     model = models.Quality
+
+    def get_actions(self):
+        return []
+    
+    def get_stats(self):
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -20,10 +28,21 @@ class GenericUpdateView(UpdateView):
             field.field.widget.attrs.update({
                 "class": "form-control",
             })
+        context["actions"] = self.get_actions()
+        context["stats"] = self.get_stats()
         return context
 
 
-class EventView(LoginRequiredMixin, UserPassesTestMixin, GenericUpdateView):
+class UserHasNodeMixin(UserPassesTestMixin):
+    def test_func(self):
+        try:
+            model_object = self.get_object()
+            return self.request.user.get_node() in list(model_object.node.all())
+        except self.model.DoesNotExist:
+            return True
+
+
+class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
     model = models.Event
     fields = [
         "user",
@@ -51,10 +70,19 @@ class EventView(LoginRequiredMixin, UserPassesTestMixin, GenericUpdateView):
     @property
     def title(self):
         return f"Event: {self.object}"
-
-    def test_func(self):
-        model_object = self.model.objects.get(pk=self.kwargs["pk"])
-        return self.request.user.get_node() in list(model_object.node.all())
+    
+    def get_actions(self):
+        return [(reverse("event-delete-metrics", kwargs={"pk": self.object.id}), "Delete metrics")]
+    
+    def get_stats(self):
+        return [
+            (name, model.objects.filter(event=self.object).count())
+            for name, model in [
+                ("Quality metrics", models.Quality),
+                ("Impact metrics", models.Impact),
+                ("Demographic metrics", models.Demographic)
+            ]
+        ]
 
 
 class GenericListView(ListView):
@@ -129,4 +157,27 @@ class EventListView(LoginRequiredMixin, GenericListView):
             if self.node_only
             else queryset
         )
+
+
+class EventMetricsDeleteView(LoginRequiredMixin, UserHasNodeMixin, DeleteView):
+    template_name = "dash_app/confirm.html"
+    model = models.Event
+    success_url = reverse_lazy("event-list")
+    related_models = [
+        models.Quality,
+        models.Impact,
+        models.Demographic,
+    ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = f"Delete metrics for: {self.object}"
+        context["abort_url"] = self.success_url
+        context["message"] = f"Do you want to metrics for the event '{self.object}'?"
+        return context
     
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        for related_model in self.related_models:
+            related_model.objects.filter(event=self.object).delete()
+        return HttpResponseRedirect(success_url)
