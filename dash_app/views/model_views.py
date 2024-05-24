@@ -30,6 +30,7 @@ class GenericUpdateView(UpdateView):
             })
         context["actions"] = self.get_actions()
         context["stats"] = self.get_stats()
+        context.update(get_tabs(self.request))
         return context
 
 
@@ -37,7 +38,7 @@ class UserHasNodeMixin(UserPassesTestMixin):
     def test_func(self):
         try:
             model_object = self.get_object()
-            return self.request.user.get_node() in list(model_object.node.all())
+            return self.request.user.get_node() == model_object.node_main
         except self.model.DoesNotExist:
             return True
 
@@ -168,7 +169,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
 
     def get_entry_extras(self, entry):
         user_node = self.request.user.get_node()
-        can_edit = user_node in entry.node.all()
+        can_edit = user_node == entry.node_main
         return [
             ("View", entry.get_absolute_url()) if can_edit else ("", None),
             (

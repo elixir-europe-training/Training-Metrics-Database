@@ -101,8 +101,7 @@ def upload_data(request):
                 upload_type = data["upload_type"]
                 file = data["file"]
 
-                node_main_id = f"ELIXIR-{request.user.username.upper()}"
-                node_main = models.Node.objects.get(name=node_main_id)
+                node_main = request.user.get_node()
                 current_time = datetime.datetime.now()
                 import_context = import_utils.LegacyImportContext(
                     user=request.user,
