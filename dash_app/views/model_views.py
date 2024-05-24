@@ -59,6 +59,9 @@ class EventView(LoginRequiredMixin, UserPassesTestMixin, GenericUpdateView):
 
 class GenericListView(ListView):
     template_name = "dash_app/model-list.html"
+    paginate_by = 10
+    max_paginate_by = 50
+    min_paginate_by = 10
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -85,12 +88,23 @@ class GenericListView(ListView):
             for entry in context["object_list"]
         ]
         context["node_only"] = self.node_only
+        context["page_size"] = self.get_paginate_by(None)
         context.update(get_tabs(self.request))
         return context
 
     @property
     def node_only(self):
         return "node_only" in self.request.GET
+    
+    def get_paginate_by(self, queryset):
+        try:
+            requested_paginate_by = int(self.request.GET.get("page_size", self.paginate_by))
+            return max(
+                min(self.max_paginate_by, requested_paginate_by),
+                self.min_paginate_by
+            )
+        except ValueError:
+            return self.paginate_by
 
 
 class EventListView(LoginRequiredMixin, GenericListView):
@@ -110,9 +124,10 @@ class EventListView(LoginRequiredMixin, GenericListView):
     title = "Event list"
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         return (
-            self.model.objects.filter(node=self.request.user.get_node())
+            queryset.filter(node=self.request.user.get_node())
             if self.node_only
-            else self.model.objects.all()
+            else queryset
         )
     
