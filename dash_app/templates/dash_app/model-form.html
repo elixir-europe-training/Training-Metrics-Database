@@ -1,0 +1,23 @@
+{% extends "common/base.html" %}
+{% load plotly_dash %}
+{% block header %}
+    {% plotly_header %}
+{% endblock %}
+{% block content %}
+    <h1>{{title}}</h1>
+    <div class="mb-3 row">
+        {{form.errors}}
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3 row">
+                <label for="{{field.html_name}}" class="col-sm-2 col-form-label">{{field.label}}</label>
+                <div class="col-sm-10">
+                    {{field}}
+                </div>
+            </div>
+            {%endfor%}
+            <button type="submit" class="btn btn-success">Update</button>
+        </form>
+    </div>
+{% endblock %}

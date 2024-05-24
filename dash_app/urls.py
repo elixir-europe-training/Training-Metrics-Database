@@ -7,6 +7,7 @@ from .views.impact import impact_report
 from .views.quality import quality_report
 from .views.worldmap import world_map
 from .views.upload import upload_data
+from .views.model_views import EventView, QualityView, QualityListView, EventListView
 
 
 urlpatterns = [
@@ -17,4 +18,8 @@ urlpatterns = [
     path('impact', impact_report, name='impact-report'),
     path('world-map', world_map, name='world-map'),
     path('upload-data', upload_data, name='upload-data'),
+    path('event/<int:pk>', EventView.as_view(), name='event-edit'),
+    path('quality/<int:pk>', QualityView.as_view(), name='quality-edit'),
+    path('quality/list', QualityListView.as_view(), name='quality-list'),
+    path('event/list', EventListView.as_view(), name='event-list'),
 ]

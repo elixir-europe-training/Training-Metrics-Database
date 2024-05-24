@@ -240,6 +240,7 @@ def get_metrics(request):
             },
             use_fields=[
                 "code",
+                "id",
                 "title",
                 "node",
                 "node_main",
