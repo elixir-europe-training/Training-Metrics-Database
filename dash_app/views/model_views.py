@@ -94,13 +94,18 @@ class GenericListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.title
+        extras_list = [
+            self.get_entry_extras(entry)
+            for entry in context["object_list"]
+        ]
+        max_extras = max(len(e) for e in extras_list)
         context["table_headings"] = [
-            "",
+            *["" for _i in range(max_extras)],
             *self.fields
         ]
         context["table_items"] = [
             [
-                ("View", entry.get_absolute_url()),
+                *extras,
                 *[
                     (
                         ", ".join([str(item) for item in value]) if type(value) in [list, tuple] else (
@@ -113,7 +118,7 @@ class GenericListView(ListView):
                     for value in [getattr(entry, fieldname) for fieldname in self.fields]
                 ]
             ]
-            for entry in context["object_list"]
+            for extras, entry in zip(extras_list, context["object_list"])
         ]
         context["node_only"] = self.node_only
         context["page_size"] = self.get_paginate_by(None)
@@ -123,7 +128,10 @@ class GenericListView(ListView):
     @property
     def node_only(self):
         return "node_only" in self.request.GET
-    
+
+    def get_entry_extras(self, entry):
+        return []
+
     def get_paginate_by(self, queryset):
         try:
             requested_paginate_by = int(self.request.GET.get("page_size", self.paginate_by))
@@ -157,6 +165,17 @@ class EventListView(LoginRequiredMixin, GenericListView):
             if self.node_only
             else queryset
         )
+
+    def get_entry_extras(self, entry):
+        user_node = self.request.user.get_node()
+        can_edit = user_node in entry.node.all()
+        return [
+            ("View", entry.get_absolute_url()) if can_edit else ("", None),
+            (
+                "Delete metrics",
+                reverse("event-delete-metrics", kwargs={"pk": entry.id})
+            ) if can_edit else ("", None)
+        ]
 
 
 class EventMetricsDeleteView(LoginRequiredMixin, UserHasNodeMixin, DeleteView):
