@@ -22,24 +22,6 @@ class GenericUpdateView(UpdateView):
         return context
 
 
-class QualityView(LoginRequiredMixin, GenericUpdateView):
-    model = models.Quality
-    fields = [
-        "user",
-        "event",
-        "used_resources_before",
-        "used_resources_future",
-        "recommend_course",
-        "course_rating",
-        "balance",
-        "email_contact",
-    ]
-
-    @property
-    def title(self):
-        return f"Quality: {self.object.event}"
-
-
 class EventView(LoginRequiredMixin, UserPassesTestMixin, GenericUpdateView):
     model = models.Event
     fields = [
@@ -102,22 +84,6 @@ class GenericListView(ListView):
             for entry in context["object_list"]
         ]
         return context
-
-
-class QualityListView(LoginRequiredMixin, GenericListView):
-    model = models.Quality
-    paginate_by = 100
-    fields = [
-        "user",
-        "event",
-        "used_resources_before",
-        "used_resources_future",
-        "recommend_course",
-        "course_rating",
-        "balance",
-        "email_contact",
-    ]
-    title = "Quality list"
 
 
 class EventListView(LoginRequiredMixin, GenericListView):
