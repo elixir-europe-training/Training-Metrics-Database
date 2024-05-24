@@ -83,12 +83,17 @@ class GenericListView(ListView):
             ]
             for entry in context["object_list"]
         ]
+        context["node_only"] = self.node_only
         return context
+
+    @property
+    def node_only(self):
+        return "node_only" in self.request.GET
 
 
 class EventListView(LoginRequiredMixin, GenericListView):
     model = models.Event
-    paginate_by = 100
+    paginate_by = 30
     fields = [
         "title",
         "date_period",
@@ -101,3 +106,11 @@ class EventListView(LoginRequiredMixin, GenericListView):
         "status",
     ]
     title = "Event list"
+
+    def get_queryset(self):
+        return (
+            self.model.objects.filter(node=self.request.user.get_node())
+            if self.node_only
+            else self.model.objects.all()
+        )
+    
