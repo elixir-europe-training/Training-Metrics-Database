@@ -29,8 +29,8 @@ class ImportContext:
             target_audience=csv_to_array(data['target_audience']),
             additional_platforms=csv_to_array(data['additional_platforms']),
             communities=csv_to_array(data['communities']),
-            number_participants=data['number_participants'],
-            number_trainers=data['number_trainers'],
+            number_participants=int(data['number_participants'] or 0),
+            number_trainers=int(data['number_trainers'] or 0),
             url=data['url'],
             status=data['status'],
         )

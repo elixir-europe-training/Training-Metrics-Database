@@ -7,8 +7,21 @@ from django.core import serializers
 from collections.abc import Iterable
 
 
-class QualityView(UpdateView):
+class GenericUpdateView(UpdateView):
     template_name = "dash_app/model-form.html"
+    model = models.Quality
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        for field in context["form"]:
+            field.field.widget.attrs.update({
+                "class": "form-control",
+            })
+        return context
+
+
+class QualityView(GenericUpdateView):
     model = models.Quality
     fields = [
         "user",
@@ -21,14 +34,12 @@ class QualityView(UpdateView):
         "email_contact",
     ]
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = "Quality"
-        return context
+    @property
+    def title(self):
+        return f"Quality: {self.object.event}"
 
 
-class EventView(UpdateView):
-    template_name = "dash_app/model-form.html"
+class EventView(GenericUpdateView):
     model = models.Event
     fields = [
         "user",
@@ -53,10 +64,9 @@ class EventView(UpdateView):
         "status",
     ]
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = f"Event: {self.object}"
-        return context
+    @property
+    def title(self):
+        return f"Event: {self.object}"
 
 
 class GenericListView(ListView):

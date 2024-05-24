@@ -28,8 +28,8 @@ class Event(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    code = models.TextField(unique=True, null=True, blank=True)
-    title = models.TextField()
+    code = models.CharField(max_length=128, unique=True, null=True, blank=True)
+    title = models.CharField(max_length=1024)
     node = models.ManyToManyField("Node")
     node_main = models.ForeignKey(
         "Node", on_delete=models.CASCADE, related_name='node_main')
@@ -46,8 +46,8 @@ class Event(models.Model):
         ])
     )
     organising_institution = models.ManyToManyField("OrganisingInstitution")
-    location_city = models.TextField()
-    location_country = models.TextField()
+    location_city = models.CharField(max_length=128)
+    location_country = models.CharField(max_length=128)
     funding = ChoiceArrayField(base_field=models.TextField(
         choices=string_choices([
             "ELIXIR Converge",
@@ -95,9 +95,9 @@ class Event(models.Model):
         ])
     ))
 
-    number_participants = models.TextField()
-    number_trainers = models.TextField()
-    url = models.URLField(max_length=255)
+    number_participants = models.PositiveIntegerField()
+    number_trainers = models.PositiveIntegerField()
+    url = models.URLField(max_length=4096)
     status = models.TextField(
         choices=string_choices([
             "Complete",
