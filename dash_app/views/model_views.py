@@ -111,15 +111,14 @@ class EventListView(LoginRequiredMixin, GenericListView):
     model = models.Event
     paginate_by = 30
     fields = [
+        "code",
+        "id",
         "title",
-        "date_period",
         "node",
+        "node_main",
+        "date_period",
         "type",
         "organising_institution",
-        "location",
-        "number_participants",
-        "number_trainers",
-        "status",
     ]
     title = "Event list"
 
