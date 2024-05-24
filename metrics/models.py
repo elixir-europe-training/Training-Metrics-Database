@@ -403,4 +403,9 @@ class OrganisingInstitution(models.Model):
 
 
 class User(AbstractUser):
-    pass
+    def get_node(self):
+        node_name = f"ELIXIR-{self.username.upper()}"
+        try:
+            return Node.objects.get(name=node_name)
+        except Node.DoesNotExist:
+            return None

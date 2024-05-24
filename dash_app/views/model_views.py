@@ -1,5 +1,6 @@
 from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
+from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from metrics import forms
 from metrics import models
@@ -21,7 +22,7 @@ class GenericUpdateView(UpdateView):
         return context
 
 
-class QualityView(GenericUpdateView):
+class QualityView(LoginRequiredMixin, GenericUpdateView):
     model = models.Quality
     fields = [
         "user",
@@ -39,7 +40,7 @@ class QualityView(GenericUpdateView):
         return f"Quality: {self.object.event}"
 
 
-class EventView(GenericUpdateView):
+class EventView(LoginRequiredMixin, UserPassesTestMixin, GenericUpdateView):
     model = models.Event
     fields = [
         "user",
@@ -67,6 +68,10 @@ class EventView(GenericUpdateView):
     @property
     def title(self):
         return f"Event: {self.object}"
+
+    def test_func(self):
+        model_object = self.model.objects.get(pk=self.kwargs["pk"])
+        return self.request.user.get_node() in list(model_object.node.all())
 
 
 class GenericListView(ListView):
@@ -99,7 +104,7 @@ class GenericListView(ListView):
         return context
 
 
-class QualityListView(GenericListView):
+class QualityListView(LoginRequiredMixin, GenericListView):
     model = models.Quality
     paginate_by = 100
     fields = [
@@ -115,23 +120,18 @@ class QualityListView(GenericListView):
     title = "Quality list"
 
 
-class EventListView(GenericListView):
+class EventListView(LoginRequiredMixin, GenericListView):
     model = models.Event
     paginate_by = 100
     fields = [
         "title",
         "date_period",
-        "duration",
+        "node",
         "type",
         "organising_institution",
         "location",
-        "funding",
-        "target_audience",
-        "additional_platforms",
-        "communities",
         "number_participants",
         "number_trainers",
-        "url",
         "status",
     ]
     title = "Event list"

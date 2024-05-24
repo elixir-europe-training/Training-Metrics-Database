@@ -76,9 +76,7 @@ class EventGroup():
         if date_from is not None and date_to is not None:
             query = query.filter(date_start__range=[date_from, date_to]).filter(date_end__range=[date_from, date_to])
         if params.get("node_only") and self.use_node:
-            node = Node.objects.filter(name=self.use_node).values_list("pk", flat=True).first()
-            if node:
-                query = query.filter(node=node)
+            query = query.filter(node=self.use_node)
         
         related_values = list(query.values_list("node__name", "node_main__name", "organising_institution"))
         values = list(query.values())
@@ -182,9 +180,7 @@ class Group():
         if date_from is not None and date_to is not None:
             query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
         if params.get("node_only") and self.use_node:
-            node = Node.objects.filter(name=self.use_node).values_list("pk", flat=True).first()
-            if node:
-                query = query.filter(event__node=node)
+            query = query.filter(event__node=self.use_node)
 
         result = list(query.values())
         return result
@@ -203,7 +199,7 @@ class Metrics():
 
 def get_metrics(request):
     node = (
-        f"ELIXIR-{request.user.username.upper()}"
+        request.user.get_node()
         if request.user.is_authenticated
         else None
     )
