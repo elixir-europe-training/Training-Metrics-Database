@@ -14,7 +14,10 @@ from django.urls import reverse
 def get_tabs(request):
     view_name = request.resolver_match.view_name
     user_input = (
-        [("Upload data", "upload-data")]
+        [
+            ("Upload data", "upload-data"),
+            ("Edit events", "event-list")
+        ]
         if request.user.is_authenticated
         else []
     )

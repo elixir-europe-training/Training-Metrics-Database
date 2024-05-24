@@ -6,6 +6,7 @@ from metrics import forms
 from metrics import models
 from django.core import serializers
 from collections.abc import Iterable
+from .common import get_tabs
 
 
 class GenericUpdateView(UpdateView):
@@ -84,6 +85,7 @@ class GenericListView(ListView):
             for entry in context["object_list"]
         ]
         context["node_only"] = self.node_only
+        context.update(get_tabs(self.request))
         return context
 
     @property
