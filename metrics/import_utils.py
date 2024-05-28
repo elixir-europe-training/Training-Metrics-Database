@@ -152,10 +152,10 @@ class LegacyImportContext(ImportContext):
         return self._timestamps
     
     def assert_can_change_data(self, user, event):
-        if event.user.id == event.user_id:
+        if user.get_node() != event.node_main:
             raise PermissionDenied(
-                "The metrics for the selected event can not be "
-                f"updated by the current user: {user.username}"
+                f"The metrics for the event {event.id}, {event.code} can not"
+                f" be updated by the current user: {user.username}"
             )
 
 
