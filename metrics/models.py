@@ -48,8 +48,8 @@ class Event(models.Model):
     funding = ChoiceArrayField(base_field=models.TextField(
         choices=string_choices([
             "ELIXIR Converge",
-            "EOSC Life", "EOSC Life",
-            "EXCELLERATE", "EXCELLERATE",
+            "EOSC Life",
+            "EXCELLERATE",
             "ELIXIR Implementation Study",
             "ELIXIR Community / Use case",
             "ELIXIR Node",
@@ -387,6 +387,9 @@ class OrganisingInstitution(models.Model):
             if self.country
             else str(self.name)
         )
+
+    def get_absolute_url(self):
+        return reverse("institution-edit", kwargs={"pk": self.id})
 
 
 class User(AbstractUser):
