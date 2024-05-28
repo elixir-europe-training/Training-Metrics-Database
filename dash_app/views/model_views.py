@@ -175,7 +175,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
     title = "Event list"
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by("-id")
         return (
             queryset.filter(node=self.request.user.get_node())
             if self.node_only
