@@ -43,6 +43,7 @@ class ImportContext:
         ]
         event.node.add(*nodes)
 
+        event.full_clean()
         return event
 
     def demographic_from_dict(self, data: dict):
@@ -59,6 +60,7 @@ class ImportContext:
             gender=data['gender'],
             career_stage=data['career_stage'],
         )
+        demographic.full_clean()
         return demographic
 
     def quality_from_dict(self, data: dict):
@@ -76,6 +78,7 @@ class ImportContext:
             balance=data['balance'],
             email_contact=data['email_contact'],
         )
+        quality.full_clean()
         return quality
 
     def impact_from_dict(self, data: dict):
@@ -97,6 +100,7 @@ class ImportContext:
             people_share_knowledge=data['people_share_knowledge'],
             recommend_others=data['recommend_others'],
         )
+        impact.full_clean()
         return impact
     
     def get_user_and_event(self, data: dict):
@@ -160,7 +164,7 @@ class LegacyImportContext(ImportContext):
 
 
 def csv_to_array(csv_string):
-    return [x for x in csv_string.split(",")] if csv_string else []
+    return [x.strip() for x in csv_string.split(",")] if csv_string else []
 
 
 def convert_to_timestamp(date_string):
