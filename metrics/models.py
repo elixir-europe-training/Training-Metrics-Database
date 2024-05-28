@@ -1,14 +1,32 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.urls import reverse
+from django import forms
 
+
+def string_choices(choices):
+    return [
+        (choice, choice)
+        for choice in choices
+    ]
+
+
+class ChoiceArrayField(ArrayField):
+    def formfield(self, **kwargs):
+        defaults = {
+            "form_class": forms.MultipleChoiceField,
+            "choices": self.base_field.choices,
+        }
+        defaults.update(kwargs)
+        return super(ArrayField, self).formfield(**defaults)
 
 class Event(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    code = models.TextField()
-    title = models.TextField()
+    code = models.CharField(max_length=128, unique=True, null=True, blank=True)
+    title = models.CharField(max_length=1024)
     node = models.ManyToManyField("Node")
     node_main = models.ForeignKey(
         "Node", on_delete=models.CASCADE, related_name='node_main')
@@ -16,77 +34,95 @@ class Event(models.Model):
     date_end = models.DateField()
     duration = models.DecimalField(max_digits=6, decimal_places=2)
     type = models.TextField(
-        choices=[
-            ("Training - face to face", "Training - face to face"),
-            ("Training - e-learning", "Training - e-learning"),
-            ("Training - blended", "Training - blended"),
-            ("Knowledge Exchange Workshop", "Knowledge Exchange Workshop"),
-            ("Hackathon", "Hackathon"),
-        ]
+        choices=string_choices([
+            "Training - face to face",
+            "Training - e-learning",
+            "Training - blended",
+            "Knowledge Exchange Workshop",
+            "Hackathon",
+        ])
     )
     organising_institution = models.ManyToManyField("OrganisingInstitution")
-    location_city = models.TextField()
-    location_country = models.TextField()
-    funding = ArrayField(base_field=models.TextField(),
-                         choices=[
-                         ("ELIXIR Converge", "ELIXIR Converge"),
-                         ("EOSC Life", "EOSC Life"),
-                         ("EXCELLERATE", "EXCELLERATE"),
-                         ("ELIXIR Implementation Study",
-                          "ELIXIR Implementation Study"),
-                         ("ELIXIR Community / Use case",
-                          "ELIXIR Community / Use case"),
-                         ("ELIXIR Node", "ELIXIR Node"),
-                         ("ELIXIR Hub", "ELIXIR Hub"),
-                         ("ELIXIR Platform", "ELIXIR Platform"),
-                         ("Non-ELIXIR / Non-EXCELLERATE Funds",
-                          "Non-ELIXIR / Non-EXCELLERATE Funds"),
-                         ]
-                         )
+    location_city = models.CharField(max_length=128)
+    location_country = models.CharField(max_length=128)
+    funding = ChoiceArrayField(base_field=models.TextField(
+        choices=string_choices([
+            "ELIXIR Converge",
+            "EOSC Life", "EOSC Life",
+            "EXCELLERATE", "EXCELLERATE",
+            "ELIXIR Implementation Study",
+            "ELIXIR Community / Use case",
+            "ELIXIR Node",
+            "ELIXIR Hub",
+            "ELIXIR Platform",
+            "Non-ELIXIR / Non-EXCELLERATE Funds",
+        ])
+    ))
 
-    target_audience = ArrayField(base_field=models.TextField(),
-                                 choices=[
-                                 ("Academia / Research Institution",
-                                  "Academia / Research Institution"),
-                                 ("Industry", "Industry"),
-                                 ("Non-profit Organisation",
-                                  "Non-profit Organisation"),
-                                 ("Healthcare", "Healthcare"),
-                                 ]
-                                 )
 
-    additional_platforms = ArrayField(base_field=models.TextField(),
-                                      choices=[
-                                      ("Compute", "Compute"),
-                                      ("Data", "Data"),
-                                      ("Interoperability", "Interoperability"),
-                                      ("Tools", "Tools"),
-                                      ("NA", "NA"),
-                                      ]
-                                      )
+    target_audience = ChoiceArrayField(base_field=models.TextField(
+        choices=string_choices([
+            "Academia / Research Institution",
+            "Industry",
+            "Non-profit Organisation",
+            "Healthcare",
+        ])
+    ))
 
-    communities = ArrayField(base_field=models.TextField(),
-                             choices=[
-                             ("Human Data", "Human Data"),
-                             ("Marine Metagenomics", "Marine Metagenomics"),
-                             ("Rare Diseases", "Rare Diseases"),
-                             ("Plant Sciences", "Plant Sciences"),
-                             ("Proteomics", "Proteomics"),
-                             ("Metabolomics", "Metabolomics"),
-                             ("Galaxy", "Galaxy"),
-                             ("NA", "NA"),
-                             ]
-                             )
+    additional_platforms = ChoiceArrayField(base_field=models.TextField(
+        choices=string_choices([
+            "Compute",
+            "Data",
+            "Interoperability",
+            "Tools",
+            "NA",
+        ])
+    ))
 
-    number_participants = models.TextField()
-    number_trainers = models.TextField()
-    url = models.URLField(max_length=255)
+    communities = ChoiceArrayField(base_field=models.TextField(
+        choices=string_choices([
+            "Human Data",
+            "Marine Metagenomics",
+            "Rare Diseases",
+            "Plant Sciences",
+            "Proteomics",
+            "Metabolomics",
+            "Galaxy",
+            "NA",
+        ])
+    ))
+
+    number_participants = models.PositiveIntegerField()
+    number_trainers = models.PositiveIntegerField()
+    url = models.URLField(max_length=4096)
     status = models.TextField(
-        choices=[
-            (1, "Complete"),
-            (2, "Incomplete"),
-        ]
+        choices=string_choices([
+            "Complete",
+            "Incomplete",
+        ])
     )
+
+    def __str__(self):
+        return f"{self.title} ({self.id}) ({self.code})"
+    
+
+    def get_absolute_url(self):
+        return reverse("event-edit", kwargs={"pk": self.id})
+    
+
+    @property
+    def location(self):
+        return (
+            self.location_city,
+            self.location_country
+        )
+    
+    @property
+    def date_period(self):
+        return (
+            self.date_start,
+            self.date_end
+        )
 
 
 class Demographic(models.Model):
@@ -333,11 +369,30 @@ class Node(models.Model):
     name = models.TextField()
     country = models.TextField()
 
+    def __str__(self):
+        return (
+            f"{self.name} ({self.country})"
+            if self.country
+            else self.name
+        )
+
 
 class OrganisingInstitution(models.Model):
     name = models.TextField()
     country = models.TextField()
 
+    def __str__(self):
+        return (
+            f"{self.name} ({self.country})"
+            if self.country
+            else str(self.name)
+        )
+
 
 class User(AbstractUser):
-    pass
+    def get_node(self):
+        node_name = f"ELIXIR-{self.username.upper()}"
+        try:
+            return Node.objects.get(name=node_name)
+        except Node.DoesNotExist:
+            return None
