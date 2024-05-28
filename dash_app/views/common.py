@@ -13,6 +13,14 @@ from django.urls import reverse
 
 def get_tabs(request):
     view_name = request.resolver_match.view_name
+    user_input = (
+        [
+            ("Upload data", "upload-data"),
+            ("Edit events", "event-list")
+        ]
+        if request.user.is_authenticated
+        else []
+    )
     return {
         "tabs": [
             {"title": title, "url": reverse(name), "active": view_name == name}
@@ -22,7 +30,8 @@ def get_tabs(request):
                 ("Quality metrics", "quality-report"),
                 ("Demographics metrics", "demographic-report"),
                 ("Impact metrics", "impact-report"),
-                ("All events", "all-events")
+                ("All events", "all-events"),
+                *user_input,
             ]
         ]
     }
