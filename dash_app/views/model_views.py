@@ -73,7 +73,11 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
         return f"Event: {self.object}"
     
     def get_actions(self):
-        return [(reverse("event-delete-metrics", kwargs={"pk": self.object.id}), "Delete metrics")]
+        return [
+            (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
+            (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
+            (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
+        ]
     
     def get_stats(self):
         return [
@@ -183,32 +187,50 @@ class EventListView(LoginRequiredMixin, GenericListView):
         can_edit = user_node == entry.node_main
         return [
             ("View", entry.get_absolute_url()) if can_edit else ("", None),
-            (
-                "Delete metrics",
-                reverse("event-delete-metrics", kwargs={"pk": entry.id})
-            ) if can_edit else ("", None)
         ]
 
 
-class EventMetricsDeleteView(LoginRequiredMixin, UserHasNodeMixin, DeleteView):
+class GenericEventMetricsDeleteView(DeleteView):
     template_name = "dash_app/confirm.html"
     model = models.Event
     success_url = reverse_lazy("event-list")
-    related_models = [
-        models.Quality,
-        models.Impact,
-        models.Demographic,
-    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = f"Delete metrics for: {self.object}"
+        name = self.metrics_model.__name__
+        context["title"] = f"Delete {name} metrics for: {self.object}"
         context["abort_url"] = self.success_url
-        context["message"] = f"Do you want to metrics for the event '{self.object}'?"
+        context["message"] = f"Do you want to delete {name} metrics for the event '{self.object}'?"
         return context
-    
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
     def form_valid(self, form):
         success_url = self.get_success_url()
-        for related_model in self.related_models:
-            related_model.objects.filter(event=self.object).delete()
+        self.metrics_model.objects.filter(event=self.object).delete()
         return HttpResponseRedirect(success_url)
+
+
+class QualityMetricsDeleteView(
+    LoginRequiredMixin,
+    UserHasNodeMixin,
+    GenericEventMetricsDeleteView
+):
+    metrics_model = models.Quality
+
+
+class ImpactMetricsDeleteView(
+    LoginRequiredMixin,
+    UserHasNodeMixin,
+    GenericEventMetricsDeleteView
+):
+    metrics_model = models.Impact
+
+
+class DemographicMetricsDeleteView(
+    LoginRequiredMixin,
+    UserHasNodeMixin,
+    GenericEventMetricsDeleteView
+):
+    metrics_model = models.Demographic
