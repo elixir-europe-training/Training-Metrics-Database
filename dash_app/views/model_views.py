@@ -109,14 +109,10 @@ class GenericListView(ListView):
                 *extras,
                 *[
                     (
-                        ", ".join([str(item) for item in value]) if type(value) in [list, tuple] else (
-                            ", ".join([str(item) for item in value.all()])
-                            if hasattr(value, "all")
-                            else str(value)
-                        ),
+                        self.parse_value(value),
                         value.get_absolute_url() if hasattr(value, "get_absolute_url") else None
                     )
-                    for value in [getattr(entry, fieldname) for fieldname in self.fields]
+                    for value in self.get_values(entry)
                 ]
             ]
             for extras, entry in zip(extras_list, context["object_list"])
@@ -142,6 +138,21 @@ class GenericListView(ListView):
             )
         except ValueError:
             return self.paginate_by
+
+    def get_values(self, entry):
+        return [getattr(entry, fieldname) for fieldname in self.fields]
+
+    def parse_value(self, value):
+        value_list = (
+            list(value.all())
+            if hasattr(value, "all")
+            else (
+                value
+                if type(value) in [list, tuple]
+                else [value]
+            )
+        )
+        return ", ".join([str(v) for v in value_list])
 
 
 class EventListView(LoginRequiredMixin, GenericListView):
