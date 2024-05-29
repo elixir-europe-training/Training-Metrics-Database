@@ -49,13 +49,13 @@ class Event(models.Model):
         choices=string_choices([
             "ELIXIR Converge",
             "EOSC Life",
-            "EXCELLERATE",
+            "EXCELERATE",
             "ELIXIR Implementation Study",
             "ELIXIR Community / Use case",
             "ELIXIR Node",
             "ELIXIR Hub",
             "ELIXIR Platform",
-            "Non-ELIXIR / Non-EXCELLERATE Funds",
+            "Non-ELIXIR / Non-EXCELERATE Funds",
         ])
     ))
 
@@ -130,19 +130,20 @@ class Demographic(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    employment_country = models.TextField()
-    heard_from = ArrayField(base_field=models.TextField(),
-                            verbose_name="Where did you hear about this course?",
-                            choices=[
-                            ("TeSS", "TeSS"),
-                            ("Host Institute Website", "Host Institute Website"),
-                            ("Email", "Email"),
-                            ("Newsletter", "Newsletter"),
-                            ("Colleague", "Colleague"),
-                            ("Internet search", "Internet search"),
-                            ("Other", "Other"),
-                            ],
-                            )
+    employment_country = models.TextField(blank=True)
+    heard_from = ChoiceArrayField(base_field=models.TextField(
+            choices=string_choices([
+                "TeSS",
+                "Host Institute Website",
+                "Email",
+                "Newsletter",
+                "Colleague",
+                "Internet search",
+                "Other",
+            ]),
+        ),
+        verbose_name="Where did you hear about this course?",
+    )
 
     employment_sector = models.TextField(
         verbose_name="Employment sector",
@@ -185,6 +186,7 @@ class Quality(models.Model):
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     used_resources_before = models.TextField(
+        blank=True,
         choices=[
             ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
             ("Occasionally (once in a while to monthly)",
@@ -197,6 +199,7 @@ class Quality(models.Model):
     )
 
     used_resources_future = models.TextField(
+        blank=True,
         choices=[
             ("Yes", "Yes"),
             ("No", "No"),
@@ -205,6 +208,7 @@ class Quality(models.Model):
     )
 
     recommend_course = models.TextField(
+        blank=True,
         choices=[
             ("Yes", "Yes"),
             ("No", "No"),
@@ -213,6 +217,7 @@ class Quality(models.Model):
     )
 
     course_rating = models.TextField(
+        blank=True,
         choices=[
             ("Poor (1)", "Poor (1)"),
             ("Satisfactory (2)", "Satisfactory (2)"),
@@ -229,6 +234,7 @@ class Quality(models.Model):
     ]
 
     balance = models.TextField(
+        blank=True,
         choices=[
             ("About right", "About right"),
             ("Too theoretical", "Too theoretical"),
@@ -345,20 +351,27 @@ class Impact(models.Model):
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     when_attend_training = models.TextField(
         choices=HOW_LONG_CHOICES)
-    main_attend_reason = models.TextField(choices=REASON_CHOICES)
+    main_attend_reason = models.TextField(blank=True, choices=REASON_CHOICES)
     how_often_use_before = models.TextField(
+        blank=True,
         choices=HOW_OFTEN_BEFORE_CHOICES)
     how_often_use_after = models.TextField(
+        blank=True,
         choices=HOW_OFTEN_AFTER_CHOICES)
     able_to_explain = models.TextField(choices=EXPLAIN_CHOICES)
     able_use_now = models.TextField(choices=ABLE_USE_NOW_CHOICES)
-    help_work = ArrayField(base_field=models.TextField(),
-                           choices=HELP_WORK_CHOICES)
-    attending_led_to = ArrayField(base_field=models.TextField(),
-                                  choices=ATTENDING_LED_TO_CHOICES)
+    help_work = ChoiceArrayField(
+        base_field=models.TextField(choices=HELP_WORK_CHOICES)
+    )
+    attending_led_to = ChoiceArrayField(
+        blank=True,
+        base_field=models.TextField(choices=ATTENDING_LED_TO_CHOICES)
+    )
     people_share_knowledge = models.TextField(
+        blank=True,
         choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
     recommend_others = models.TextField(
+        blank=True,
         choices=RECOMMEND_OTHERS_CHOICES)
 
     def __str__(self):

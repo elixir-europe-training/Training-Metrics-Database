@@ -22,17 +22,17 @@ class ImportContext:
             date_start=convert_to_date(data['date_start']),
             date_end=convert_to_date(data['date_end']),
             duration=float(data['duration']),
-            type=data['type'],
-            funding=csv_to_array(data['funding']),
-            location_city=data['location_city'],
+            type=use_alias(data['type']),
+            funding=csv_to_array(data['funding']) or ["ELIXIR Node"],
+            location_city=data['location_city'] or "NA",
             location_country=data['location_country'],
-            target_audience=csv_to_array(data['target_audience']),
-            additional_platforms=csv_to_array(data['additional_platforms']),
-            communities=csv_to_array(data['communities']),
+            target_audience=csv_to_array(data['target_audience']) or ["Academia / Research Institution"],
+            additional_platforms=csv_to_array(data['additional_platforms']) or ["NA"],
+            communities=csv_to_array(data['communities']) or ["NA"],
             number_participants=int(data['number_participants'] or 0),
             number_trainers=int(data['number_trainers'] or 0),
             url=data['url'],
-            status=data['status'],
+            status=use_alias(data['status']),
         )
         # event.organising_institution.set([data['organising_institution']])
         node_names = data['node'].split(",")
@@ -54,11 +54,11 @@ class ImportContext:
             created=created,
             modified=modified,
             event=event,
-            heard_from=csv_to_array(data['heard_from']),
-            employment_sector=data['employment_sector'],
+            heard_from=csv_to_array(data['heard_from']) or ["Other"],
+            employment_sector=data['employment_sector'] or "Other",
             employment_country=data['employment_country'],
-            gender=data['gender'],
-            career_stage=data['career_stage'],
+            gender=data['gender'] or "Other",
+            career_stage=data['career_stage'] or "Other",
         )
         demographic.full_clean()
         return demographic
@@ -76,7 +76,7 @@ class ImportContext:
             recommend_course=data['recommend_course'],
             course_rating=data['course_rating'],
             balance=data['balance'],
-            email_contact=data['email_contact'],
+            email_contact=data['email_contact'] or "No",
         )
         quality.full_clean()
         return quality
@@ -90,13 +90,13 @@ class ImportContext:
             modified=modified,
             event=event,
             when_attend_training=data['when_attend_training'],
-            main_attend_reason=data['main_attend_reason'],
+            main_attend_reason=use_alias(data['main_attend_reason']),
             how_often_use_before=data['how_often_use_before'],
             how_often_use_after=data['how_often_use_after'],
-            able_to_explain=data['able_to_explain'],
-            able_use_now=data['able_use_now'],
-            help_work=csv_to_array(data['help_work']),
-            attending_led_to=csv_to_array(data['attending_led_to']),
+            able_to_explain=data['able_to_explain'] or "Other",
+            able_use_now=use_alias(data['able_use_now']) or "Other",
+            help_work=csv_to_array(data['help_work']) or ["Other"],
+            attending_led_to=csv_to_array(data['attending_led_to']) or ["Other"],
             people_share_knowledge=data['people_share_knowledge'],
             recommend_others=data['recommend_others'],
         )
@@ -163,8 +163,33 @@ class LegacyImportContext(ImportContext):
             )
 
 
+def use_alias(value):
+    aliases = {
+        "academia/ research institution": "Academia / Research Institution",
+        "non-profit organisation": "Non-profit Organisation",
+        "complete": "Complete",
+        "non-elixir/ non-excelerate funds": "Non-ELIXIR / Non-EXCELERATE Funds",
+        "training - elearning": "Training - e-learning",
+        "converge": "ELIXIR Converge",
+        "eosc-life": "EOSC Life",
+        "knowledge exchange workshop": "Knowledge Exchange Workshop",
+        "elixir community/ use case": "ELIXIR Community / Use case",
+        "to learn something new to aid me in my current research/ work": "To learn something new to aid me in my current research/work",
+        "by using training materials/ notes from the training event": "By using training materials/notes from the training event",
+        "to build an existing knowledge to aid me in my current research/ work": "To build on existing knowledge to aid me in my current research/work",
+        "useful collaboration(s) with other participants/ trainers from the training event": "Useful collaboration(s) with other participants/trainers from the training event",
+        "it improved communication with the bioinformatician/ statistician analyzing my data": "It improved communication with the bioinformatician/statistician analyzing my data",
+        "it did not help as i do not use the tool(s)/ resource(s) covered in the training event": "It did not help as I do not use the tool(s)/resource(s) covered in the training event",
+        "submission of my dissertation/ thesis for degree purposes": "Submission of my dissertation/thesis for degree purposes",
+    }
+    return aliases.get(value.lower(), value)
+
+
 def csv_to_array(csv_string):
-    return [x.strip() for x in csv_string.split(",")] if csv_string else []
+    return [
+        use_alias(x.strip())
+        for x in csv_string.split(",")
+    ] if csv_string else []
 
 
 def convert_to_timestamp(date_string):

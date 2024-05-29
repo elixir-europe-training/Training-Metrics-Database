@@ -45,21 +45,24 @@ def load_demographics():
     with open(DATA_SOURCES[Demographic], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            import_context.demographic_from_dict(row)
+            if not is_empty(row):
+                import_context.demographic_from_dict(row)
 
 
 def load_qualities():
     with open(DATA_SOURCES[Quality], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            import_context.quality_from_dict(row)
+            if not is_empty(row):
+                import_context.quality_from_dict(row)
 
 
 def load_impacts():
     with open(DATA_SOURCES[Impact], newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            import_context.impact_from_dict(row)
+            if not is_empty(row):
+                import_context.impact_from_dict(row)
 
 
 def load_user():
@@ -88,6 +91,16 @@ def load_institutions():
             OrganisingInstitution.objects.create(
                 name=row['name'],
             )
+
+
+def is_empty(items):
+    for key, value in items.items():
+        if (
+            key not in ["user", "created", "updated", "event"]
+            and value
+        ):
+            return False
+    return True
 
 
 class Command(BaseCommand):
