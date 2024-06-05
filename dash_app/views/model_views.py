@@ -9,6 +9,8 @@ from django.core import serializers
 from collections.abc import Iterable
 from .common import get_tabs
 from django.urls import reverse_lazy, reverse
+import requests
+import re
 
 
 class GenericUpdateView(UpdateView):
@@ -90,7 +92,9 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
 
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
-    fields = []
+    fields = [
+        "ror_id",
+    ]
     
     def get_stats(self):
         stat_fields = [
@@ -105,12 +109,19 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
             *field_stats,
             ("Events", models.Event.objects.filter(organising_institution=self.object).count()),
         ]
-    
-    def get_actions(self):
-        return [
-            ("", "Update info"),
-        ]
+
+    def form_valid(self, form):
+        result = super().form_valid(form)
         
+        ror_id_base = re.match("^https://ror.org/(.+)$", self.object.ror_id)[1]
+        response = requests.get(f"https://api.ror.org/organizations/{ror_id_base}", allow_redirects=True)
+        if response.status_code == 200:
+            data = response.json()
+            self.object.name = data["name"]
+            self.object.country = data.get("country", {}).get("country_name", "")
+            self.object.save()
+        
+        return result
 
 
 class GenericListView(ListView):

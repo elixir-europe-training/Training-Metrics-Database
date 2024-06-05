@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 from django import forms
+import re
 
 
 def string_choices(choices):
@@ -411,9 +412,16 @@ class Node(models.Model):
         )
 
 
+def is_ror_id(value):
+    if re.match("^https://ror.org/[a-zA-Z0-9]+$", value):
+        return value
+    raise ValidationError("Not a valid ror id")
+
+
 class OrganisingInstitution(models.Model):
     name = models.TextField()
     country = models.TextField()
+    ror_id = models.URLField(max_length=512, unique=True, null=True, validators=[is_ror_id])
 
     def __str__(self):
         return (
