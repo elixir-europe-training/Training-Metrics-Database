@@ -90,15 +90,27 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
 
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
-    fields = [
-        "name",
-        "country"
-    ]
+    fields = []
     
     def get_stats(self):
-        return [
-            ("Events", models.Event.objects.filter(organising_institution=self.object).count())
+        stat_fields = [
+            "name",
+            "country",
         ]
+        field_stats = [
+            (field, getattr(self.object, field))
+            for field in stat_fields
+        ]
+        return [
+            *field_stats,
+            ("Events", models.Event.objects.filter(organising_institution=self.object).count()),
+        ]
+    
+    def get_actions(self):
+        return [
+            ("", "Update info"),
+        ]
+        
 
 
 class GenericListView(ListView):

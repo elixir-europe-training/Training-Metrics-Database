@@ -24,7 +24,8 @@
             </tbody>
         </table>
     </div>
-    <h2>Edit</h2>
+    {% if form.fields or actions %}
+    {% if form.fields %}<h2>Edit</h2>{% endif %}
     <div class="mb-3 row">
         {{form.errors}}
         <form method="POST" enctype="multipart/form-data">
@@ -38,9 +39,10 @@
             </div>
             {%endfor%}
             <hr />
-            <button type="submit" class="btn btn-success">Update</button>
+            {% if form.fields %}<button type="submit" class="btn btn-success">Update</button>{% endif %}
             {% for href, label in actions %}
             <a href="{{href}}" class="btn btn-danger">{{label}}</a>{% endfor %}
         </form>
     </div>
+    {% endif %}
 {% endblock %}
