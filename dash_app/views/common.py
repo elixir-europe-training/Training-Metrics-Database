@@ -16,7 +16,8 @@ def get_tabs(request):
     user_input = (
         [
             ("Upload data", "upload-data"),
-            ("Edit events", "event-list")
+            ("Edit events", "event-list"),
+            ("Edit institutions", "institution-list")
         ]
         if request.user.is_authenticated
         else []

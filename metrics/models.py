@@ -124,6 +124,27 @@ class Event(models.Model):
             self.date_end
         )
 
+    @property
+    def stats(self):
+        return [
+            (name, model.objects.filter(event=self).count())
+            for name, model in [
+                ("Quality metrics", Quality),
+                ("Impact metrics", Impact),
+                ("Demographic metrics", Demographic)
+            ]
+        ]
+
+    @property
+    def metrics_status(self):
+        count = sum([1 if v > 0 else 0 for _n, v in self.stats])
+        return {
+            0: "None",
+            1: "Partial",
+            2: "Partial",
+            3: "Full"
+        }[count]
+
 
 class Demographic(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)

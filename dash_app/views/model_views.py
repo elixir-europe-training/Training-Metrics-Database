@@ -15,6 +15,11 @@ class GenericUpdateView(UpdateView):
     template_name = "dash_app/model-form.html"
     model = models.Quality
 
+    @property
+    def title(self):
+        name = self.model.__name__
+        return f"{name}: {self.object}"
+
     def get_actions(self):
         return []
     
@@ -80,13 +85,19 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
         ]
     
     def get_stats(self):
+        return self.object.stats
+
+
+class InstitutionView(LoginRequiredMixin, GenericUpdateView):
+    model = models.OrganisingInstitution
+    fields = [
+        "name",
+        "country"
+    ]
+    
+    def get_stats(self):
         return [
-            (name, model.objects.filter(event=self.object).count())
-            for name, model in [
-                ("Quality metrics", models.Quality),
-                ("Impact metrics", models.Impact),
-                ("Demographic metrics", models.Demographic)
-            ]
+            ("Events", models.Event.objects.filter(organising_institution=self.object).count())
         ]
 
 
@@ -95,6 +106,11 @@ class GenericListView(ListView):
     paginate_by = 10
     max_paginate_by = 50
     min_paginate_by = 10
+
+    @property
+    def title(self):
+        name = self.model.__name__
+        return f"{name} list"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -171,8 +187,8 @@ class EventListView(LoginRequiredMixin, GenericListView):
         "date_period",
         "type",
         "organising_institution",
+        "metrics_status",
     ]
-    title = "Event list"
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by("-id")
@@ -187,6 +203,20 @@ class EventListView(LoginRequiredMixin, GenericListView):
         can_edit = user_node == entry.node_main
         return [
             ("View", entry.get_absolute_url()) if can_edit else ("", None),
+        ]
+
+
+class InstitutionListView(LoginRequiredMixin, GenericListView):
+    model = models.OrganisingInstitution
+    paginate_by = 30
+    fields = [
+        "name",
+        "country",
+    ]
+
+    def get_entry_extras(self, entry):
+        return [
+            ("View", entry.get_absolute_url()),
         ]
 
 
