@@ -38,7 +38,18 @@ class GenericUpdateView(UpdateView):
         context["actions"] = self.get_actions()
         context["stats"] = self.get_stats()
         context.update(get_tabs(self.request))
+        context["can_edit"] = self.can_edit()
         return context
+
+    def can_edit(self):
+        return True
+    
+    def get_form(self):
+        form = super().get_form()
+        if not self.can_edit():
+            for field in form.fields.values():
+                field.disabled = True
+        return form
 
 
 class UserHasNodeMixin(UserPassesTestMixin):
@@ -50,7 +61,7 @@ class UserHasNodeMixin(UserPassesTestMixin):
             return True
 
 
-class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
+class EventView(LoginRequiredMixin, GenericUpdateView):
     model = models.Event
     fields = [
         "user",
@@ -80,11 +91,21 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
         return f"Event: {self.object}"
     
     def get_actions(self):
-        return [
-            (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
-            (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
-            (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
-        ]
+        return (
+            [
+                (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
+                (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
+                (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
+            ] if self.can_edit()
+            else []
+        )
+    
+    def can_edit(self):
+        model_object = self.get_object()
+        return (
+            self.request.user.get_node() == model_object.node_main
+            and not self.object.is_locked
+        )
     
     def get_stats(self):
         return self.object.stats
@@ -92,14 +113,13 @@ class EventView(LoginRequiredMixin, UserHasNodeMixin, GenericUpdateView):
 
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
-    fields = [
-        "ror_id",
-    ]
+    fields = []
     
     def get_stats(self):
         stat_fields = [
             "name",
             "country",
+            "ror_id",
         ]
         field_stats = [
             (field, getattr(self.object, field))
@@ -223,9 +243,9 @@ class EventListView(LoginRequiredMixin, GenericListView):
 
     def get_entry_extras(self, entry):
         user_node = self.request.user.get_node()
-        can_edit = user_node == entry.node_main
+        can_edit = user_node == entry.node_main and not entry.is_locked
         return [
-            ("View", entry.get_absolute_url()) if can_edit else ("", None),
+            ("Edit" if can_edit else "View", entry.get_absolute_url()),
         ]
 
 
@@ -235,6 +255,7 @@ class InstitutionListView(LoginRequiredMixin, GenericListView):
     fields = [
         "name",
         "country",
+        "ror_id",
     ]
 
     def get_entry_extras(self, entry):
@@ -243,16 +264,24 @@ class InstitutionListView(LoginRequiredMixin, GenericListView):
         ]
 
 
-class GenericEventMetricsDeleteView(DeleteView):
+class GenericEventMetricsDeleteView(
+    LoginRequiredMixin,
+    UserHasNodeMixin,
+    DeleteView,
+):
     template_name = "dash_app/confirm.html"
     model = models.Event
-    success_url = reverse_lazy("event-list")
+
+    def test_func(self):
+        result = super().test_func()
+        model_object = self.get_object()
+        return result and not model_object.is_locked
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         name = self.metrics_model.__name__
         context["title"] = f"Delete {name} metrics for: {self.object}"
-        context["abort_url"] = self.success_url
+        context["abort_url"] = self.get_success_url()
         context["message"] = f"Do you want to delete {name} metrics for the event '{self.object}'?"
         return context
 
@@ -266,24 +295,18 @@ class GenericEventMetricsDeleteView(DeleteView):
 
 
 class QualityMetricsDeleteView(
-    LoginRequiredMixin,
-    UserHasNodeMixin,
     GenericEventMetricsDeleteView
 ):
     metrics_model = models.Quality
 
 
 class ImpactMetricsDeleteView(
-    LoginRequiredMixin,
-    UserHasNodeMixin,
     GenericEventMetricsDeleteView
 ):
     metrics_model = models.Impact
 
 
 class DemographicMetricsDeleteView(
-    LoginRequiredMixin,
-    UserHasNodeMixin,
     GenericEventMetricsDeleteView
 ):
     metrics_model = models.Demographic

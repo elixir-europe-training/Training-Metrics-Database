@@ -102,6 +102,7 @@ class Event(models.Model):
             "Incomplete",
         ])
     )
+    locked = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} ({self.id}) ({self.code})"
@@ -145,6 +146,13 @@ class Event(models.Model):
             2: "Partial",
             3: "Full"
         }[count]
+    
+    @property
+    def is_locked(self):
+        return (
+            self.code is not None
+            or self.locked
+        )
 
 
 class Demographic(models.Model):

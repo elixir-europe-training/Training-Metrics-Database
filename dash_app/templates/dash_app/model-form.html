@@ -39,7 +39,7 @@
             </div>
             {%endfor%}
             <hr />
-            {% if form.fields %}<button type="submit" class="btn btn-success">Update</button>{% endif %}
+            {% if form.fields and can_edit %}<button type="submit" class="btn btn-success">Update</button>{% endif %}
             {% for href, label in actions %}
             <a href="{{href}}" class="btn btn-danger">{{label}}</a>{% endfor %}
         </form>
