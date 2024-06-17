@@ -1,6 +1,15 @@
 from datetime import datetime
 from django.db.models import TextField
-from metrics.models import Event, Demographic, Quality, Impact, User, Node, ChoiceArrayField
+from metrics.models import (
+    Event,
+    Demographic,
+    Quality,
+    Impact,
+    User,
+    Node,
+    OrganisingInstitution,
+    ChoiceArrayField,
+)
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
 import random
@@ -8,6 +17,9 @@ from typing import Callable
 
 
 class ImportContext:
+    def __init__(self):
+        self._institutions = {}
+
     def event_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
 
@@ -37,7 +49,8 @@ class ImportContext:
             url=data['url'],
             status=use_alias(data['status']),
         )
-        # event.organising_institution.set([data['organising_institution']])
+        institution_ids = csv_to_array(data['organising_institution'])
+        event.organising_institution.set(self.get_institutions(institution_ids))
         node_names = data['node'].split(",")
         stripped_names = [name.strip() for name in node_names]
         nodes = [
@@ -48,6 +61,31 @@ class ImportContext:
 
         event.full_clean()
         return event
+
+    def get_institutions(self, ror_ids):
+        result = []
+        for ror_id in ror_ids:
+            try:
+                result.append(self.get_institution(ror_id))
+            except ValidationError:
+                pass
+        return result
+
+    def get_institution(self, ror_id):
+        institution = self._institutions.get(ror_id)
+        if institution is not None:
+            return institution
+        
+        existing_inst = OrganisingInstitution.objects.filter(ror_id=ror_id).first()
+        if existing_inst is not None:
+            self._institutions[ror_id] = existing_inst
+            return existing_inst
+        
+        new_inst = OrganisingInstitution(ror_id=ror_id)
+        new_inst.update_ror_data()
+        new_inst.save()
+        self._institutions[ror_id] = new_inst
+        return new_inst
 
     def demographic_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
@@ -136,6 +174,7 @@ class ImportContext:
 
 class LegacyImportContext(ImportContext):
     def __init__(self, user=None, node_main=None, timestamps=None):
+        super().__init__()
         self._user = user
         self._node_main = node_main
         self._timestamps = timestamps
@@ -145,6 +184,12 @@ class LegacyImportContext(ImportContext):
             self.quality_from_dict(data),
             self.demographic_from_dict(data)
         )
+
+    def get_institutions(self, ror_ids):
+        return [
+            self.get_institution(ror_id)
+            for ror_id in ror_ids
+        ]
 
     def get_event(self, identifier):
         return Event.objects.get(id=int(identifier))

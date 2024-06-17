@@ -132,14 +132,8 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
 
     def form_valid(self, form):
         result = super().form_valid(form)
-        
-        ror_id_base = re.match("^https://ror.org/(.+)$", self.object.ror_id)[1]
-        response = requests.get(f"https://api.ror.org/organizations/{ror_id_base}", allow_redirects=True)
-        if response.status_code == 200:
-            data = response.json()
-            self.object.name = data["name"]
-            self.object.country = data.get("country", {}).get("country_name", "")
-            self.object.save()
+        self.object.update_ror_data()
+        self.object.save()
         
         return result
 

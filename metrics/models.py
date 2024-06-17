@@ -3,7 +3,9 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 from django import forms
+from django.core.exceptions import ValidationError
 import re
+import requests
 
 
 def string_choices(choices):
@@ -423,7 +425,7 @@ class Node(models.Model):
 def is_ror_id(value):
     if re.match("^https://ror.org/[a-zA-Z0-9]+$", value):
         return value
-    raise ValidationError("Not a valid ror id")
+    raise ValidationError(f"Not a valid ror id: {value}")
 
 
 class OrganisingInstitution(models.Model):
@@ -440,6 +442,20 @@ class OrganisingInstitution(models.Model):
 
     def get_absolute_url(self):
         return reverse("institution-edit", kwargs={"pk": self.id})
+
+    def update_ror_data(self):
+        try:
+            ror_id_base = re.match("^https://ror.org/(.+)$", self.ror_id)[0]
+            ror_url = f"https://api.ror.org/organizations/{ror_id_base}"
+            response = requests.get(ror_url, allow_redirects=True)
+            if response.status_code == 200:
+                data = response.json()
+                self.name = data["name"]
+                self.country = data.get("country", {}).get("country_name", "")
+            else:
+                raise ValidationError(f"Could not fetch ROR data for: {self.ror_id}, {ror_url}, {response.status_code}")
+        except TypeError:
+            raise ValidationError(f"Not a valid ror id: {self.ror_id}")
 
 
 class User(AbstractUser):

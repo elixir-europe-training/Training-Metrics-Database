@@ -24,9 +24,14 @@ import_context = import_utils.ImportContext()
 def are_headers_in_model(csv_file_path, model):
     with open(csv_file_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
-        model_attributes = (list(field.name for field in model._meta.fields +
-                                 model._meta.many_to_many))
-        headers = (reader.fieldnames)
+        model_attributes = sorted(
+            [
+                field.name
+                for field in model._meta.fields + model._meta.many_to_many
+                if field.name not in {"locked"}
+            ]
+        )
+        headers = sorted(reader.fieldnames)
         uncommon_headers = set(
             model_attributes).symmetric_difference(set(headers))
         if len(uncommon_headers) > 1:
