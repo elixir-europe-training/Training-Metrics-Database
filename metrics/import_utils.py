@@ -1,7 +1,10 @@
 from datetime import datetime
-from metrics.models import Event, Demographic, Quality, Impact, User, Node
+from django.db.models import TextField
+from metrics.models import Event, Demographic, Quality, Impact, User, Node, ChoiceArrayField
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
+import random
+from typing import Callable
 
 
 class ImportContext:
@@ -102,13 +105,13 @@ class ImportContext:
         )
         impact.full_clean()
         return impact
-    
+
     def get_user_and_event(self, data: dict):
         event = self.get_event(data['event'])
         user = self.user_from_data(data)
         self.assert_can_change_data(user, event)
         return (user, event)
-    
+
     def get_event(self, identifier):
         return Event.objects.get(code=identifier)
 
@@ -123,10 +126,10 @@ class ImportContext:
             ) if node_main
             else None
         )
-    
+
     def timestamps_from_data(self, data: dict):
         return timestamps_from_dict(data)
-    
+
     def assert_can_change_data(self, user, event):
         pass
 
@@ -151,10 +154,10 @@ class LegacyImportContext(ImportContext):
 
     def node_from_data(self, data: dict):
         return self._node_main
-    
+
     def timestamps_from_data(self, data: dict):
         return self._timestamps
-    
+
     def assert_can_change_data(self, user, event):
         if user.get_node() != event.node_main:
             raise PermissionDenied(
@@ -330,3 +333,72 @@ def parse_location(location: str) -> dict:
         }
     except ValueError as e:
         raise ValidationError(f"Failed to parse location: {e}")
+
+
+def get_field_info(model, field_id):
+    field = model._meta.get_field(field_id)
+    text_choices = (
+        [
+            c[0]
+            for c in field.choices
+        ]
+        if type(field) == TextField and field.choices is not None
+        else None
+    )
+    array_choices = (
+        [
+            c[0]
+            for c in field.base_field.choices
+        ]
+        if type(field) == ChoiceArrayField
+        else None
+    )
+    return {
+        "id": field_id,
+        "type": str(type(field)),
+        "multichoice": type(field) == ChoiceArrayField,
+        "values": array_choices or text_choices,
+    }
+
+
+def get_test_data_from_model(model, fields: list[tuple[str, str]], number_of_samples: int) -> list[dict]:
+    field_info = {
+        field_id: {
+            "alias": alias,
+            **get_field_info(model, field_id)
+        }
+        for field_id, alias in fields
+    }
+
+    samples = [
+        {
+            info["alias"]: (
+                (
+                    ", ".join(
+                        random.choices(info["values"], k=random.randint(1, len(info["values"])))
+                    )
+                    if info["multichoice"]
+                    else random.choice(info["values"])
+                )
+                if info["values"] is not None
+                else ""
+            )
+            for info in field_info.values()
+        }
+        for i in range(number_of_samples)
+    ]
+    return samples
+
+
+def update_table_rows(
+    table: list[dict],
+    columns: dict[str, Callable[[], str] | None]
+) -> list[dict]:
+    new_data = []
+    for row in table:
+        new_row = row.copy()
+        for (alias, generator) in columns.items():
+            generator = (lambda: "") if generator is None else generator
+            new_row[alias] = generator()
+        new_data.append(new_row)
+    return new_data
