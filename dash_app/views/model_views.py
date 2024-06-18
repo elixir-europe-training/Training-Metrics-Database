@@ -65,7 +65,6 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     model = models.Event
     fields = [
         "user",
-        "code",
         "title",
         "node",
         "node_main",
@@ -108,7 +107,17 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         )
     
     def get_stats(self):
-        return self.object.stats
+        stat_fields = [
+            "code",
+        ]
+        field_stats = [
+            (field, getattr(self.object, field))
+            for field in stat_fields
+        ]
+        return [
+            *self.object.stats,
+            *field_stats
+        ]
 
 
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
@@ -230,7 +239,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
     def get_queryset(self):
         queryset = super().get_queryset().order_by("-id")
         return (
-            queryset.filter(node=self.request.user.get_node())
+            queryset.filter(node_main=self.request.user.get_node())
             if self.node_only
             else queryset
         )
