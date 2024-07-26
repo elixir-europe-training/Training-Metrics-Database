@@ -39,6 +39,8 @@ services:
         condition: service_healthy
     container_name: tmd-mb
     image: metabase/metabase:latest
+    profiles:
+      - metabase
     volumes:
       - mb:/metabase-data
     restart: on-failure
