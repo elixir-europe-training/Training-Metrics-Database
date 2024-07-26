@@ -22,10 +22,10 @@ The most up to date documentation is available in [Wiki](https://github.com/elix
 docker compose up
 ```
 
-In order to load thee example data:
+In order to load the example data:
 
 ```shell
-docker compose exec tmd python manage.py load_data
+docker compose exec tmd-dj python manage.py load_data
 ```
 
 ### Running local validation checks
