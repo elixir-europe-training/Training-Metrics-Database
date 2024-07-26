@@ -9,7 +9,7 @@ db.sqlite3
 .DS_Store
 
 test-data
-raw-tmd-data
+raw-tmd-data/real-data
 docker-compose.override.yml
 
-example-data
+/example-data
