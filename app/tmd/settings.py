@@ -154,3 +154,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Dash specific options
 X_FRAME_OPTIONS = "SAMEORIGIN"
+
+
+# Load field value aliases from CSV
+VALUE_ALIASES_PATH = "tmd/value-aliases-spec.csv"

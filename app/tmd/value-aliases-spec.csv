@@ -1,0 +1,139 @@
+field,value,alias,spec
+Event.type,Training - face to face,training - face to face,Training - face to face
+Event.type,Training - e-learning,training - e-learning,Training - elearning
+Event.type,Training - blended,training - blended,Training - blended
+Event.type,Knowledge Exchange Workshop,knowledge exchange workshop,Knowledge exchange workshop
+Event.type,Hackathon,hackathon,Hackathon
+Event.funding,ELIXIR Converge,elixir converge,
+Event.funding,EOSC Life,eosc life,
+Event.funding,EXCELERATE,excelerate,EXCELERATE
+Event.funding,ELIXIR Implementation Study,elixir implementation study,ELIXIR Implementation Study
+Event.funding,ELIXIR Community / Use case,elixir community / use case,ELIXIR Community/ Use Case
+Event.funding,ELIXIR Node,elixir node,ELIXIR Node
+Event.funding,ELIXIR Hub,elixir hub,ELIXIR Hub
+Event.funding,ELIXIR Platform,elixir platform,ELIXIR Platform
+Event.funding,Non-ELIXIR / Non-EXCELERATE Funds,non-elixir / non-excelerate funds,Non-ELIXIR/ Non-EXCELERATE funds
+Event.target_audience,Academia/ Research Institution,academia / research institution,Academia/ Research Institution
+Event.target_audience,Industry,industry,Industry
+Event.target_audience,Non-Profit Organisation,non-profit organisation,Non-Profit Organisation
+Event.target_audience,Healthcare,healthcare,Healthcare
+Event.additional_platforms,Compute,compute,Compute
+Event.additional_platforms,Data,data,Data
+Event.additional_platforms,Interoperability,interoperability,Interoperability
+Event.additional_platforms,Tools,tools,Tools
+Event.additional_platforms,NA,na,NA
+Event.communities,Human Data,human data,Human Data
+Event.communities,Marine Metagenomics,marine metagenomics,Marine Metagenomics
+Event.communities,Rare Diseases,rare diseases,Rare Diseases
+Event.communities,Plant Sciences,plant sciences,Plant Sciences
+Event.communities,Proteomics,proteomics,Proteomics
+Event.communities,Metabolomics,metabolomics,Metabolomics
+Event.communities,Galaxy,galaxy,Galaxy
+Event.communities,NA,na,NA
+Event.status,Complete,complete,Complete
+Event.status,Incomplete,incomplete,Incomplete
+Demographic.heard_from,TeSS,tess,TeSS
+Demographic.heard_from,Host Institute Website,host institute website,Host Institute Website
+Demographic.heard_from,Email,email,Email
+Demographic.heard_from,Newsletter,newsletter,Newsletter
+Demographic.heard_from,Colleague,colleague,Colleague
+Demographic.heard_from,Internet search,internet search,Internet search
+Demographic.heard_from,Other,other,Other
+Demographic.employment_sector,Academia/ Research Institution,academia/ research institution,Academia/ Research Institution
+Demographic.employment_sector,Industry,industry,Industry
+Demographic.employment_sector,Non-Profit Organisation,non-profit organisation,Non-Profit Organisation
+Demographic.employment_sector,Healthcare,healthcare,Healthcare
+Demographic.employment_sector,Other,other,Other
+Demographic.gender,Male,male,Male
+Demographic.gender,Female,female,Female
+Demographic.gender,Other,other,Other
+Demographic.gender,Prefer not to say,prefer not to say,Prefer not to say
+Demographic.career_stage,Undergraduate student,undergraduate student,Undergraduate student
+Demographic.career_stage,Masters student,masters student,Masters student
+Demographic.career_stage,PhD candidate,phd candidate,PhD candidate
+Demographic.career_stage,Postdoctoral researcher,postdoctoral researcher,Postdoctoral researcher
+Demographic.career_stage,Senior scientist/ Principal investigator,senior scientist/ principal investigator,Senior scientist/ Principal investigator
+Demographic.career_stage,Research assistant/ Technician,research assistant/ technician,Research assistant/ Technician
+Demographic.career_stage,Other,other,Other
+Quality.used_resources_before,Frequently (weekly to daily),frequently (weekly to daily),Frequently (weekly to daily)
+Quality.used_resources_before,Occasionally (once in a while to monthly),occasionally (once in a while to monthly),Occasionally (once in a while to monthly)
+Quality.used_resources_before,Never - used other service,never - used other service,Never - used other service
+Quality.used_resources_before,"Never - aware of them, but not used them","never - aware of them, but not used them","Never - aware of them, but not used them"
+Quality.used_resources_before,Never - unaware of them,never - unaware of them,Never - unaware of them
+Quality.used_resources_future,Yes,yes,Yes
+Quality.used_resources_future,No,no,No
+Quality.used_resources_future,Maybe,maybe,Maybe
+Quality.recommend_course,Yes,yes,Yes
+Quality.recommend_course,No,no,No
+Quality.recommend_course,Maybe,maybe,Maybe
+Quality.course_rating,Poor (1),poor (1),Poor (1)
+Quality.course_rating,Satisfactory (2),satisfactory (2),Satisfactory (2)
+Quality.course_rating,Good (3),good (3),Good (3)
+Quality.course_rating,Very Good (4),very good (4),Very Good (4)
+Quality.course_rating,Excellent (5),excellent (5),Excellent (5)
+Quality.balance,About right,about right,About right
+Quality.balance,Too theoretical,too theoretical,Too theoretical
+Quality.balance,Too practical,too practical,Too practical
+Quality.email_contact,Yes,yes,Yes
+Quality.email_contact,No,no,No
+Impact.when_attend_training,Less than 6 months,less than 6 months,Less than 6 months
+Impact.when_attend_training,6 months to a year,6 months to a year,6 months to a year
+Impact.when_attend_training,Over a year,over a year,Over a year
+Impact.main_attend_reason,To learn something new to aid me in my current research/work,to learn something new to aid me in my current research/work,To learn something new to aid me in my current research/ work
+Impact.main_attend_reason,To learn something new for my own interests,to learn something new for my own interests,To learn something new for my own interests
+Impact.main_attend_reason,To build on existing knowledge to aid me in my current research/work,to build on existing knowledge to aid me in my current research/work,To build on existing knowledge to aid me in my current research/ work
+Impact.main_attend_reason,To build on existing knowledge for my own interests,to build on existing knowledge for my own interests,To build on existing knowledge for my own interests
+Impact.main_attend_reason,Other,other,Other
+Impact.how_often_use_before,Never - unaware of them,never - unaware of them,Never - unaware of them
+Impact.how_often_use_before,"Never - aware of them, but had not used them","never - aware of them, but had not used them","Never - aware of them, but had not used them"
+Impact.how_often_use_before,Never - used other service,never - used other service,Never - used other service
+Impact.how_often_use_before,Occasionally (once in a while to monthly),occasionally (once in a while to monthly),Occasionally (once in a while to monthly)
+Impact.how_often_use_before,Frequently (weekly to daily),frequently (weekly to daily),Frequently (weekly to daily)
+Impact.how_often_use_after,Never - use other service,never - use other service,Never - use other service
+Impact.how_often_use_after,Occasionally (once in a while to monthly),occasionally (once in a while to monthly),Occasionally (once in a while to monthly)
+Impact.how_often_use_after,Frequently (weekly to daily),frequently (weekly to daily),Frequently (weekly to daily)
+Impact.able_to_explain,Yes,yes,Yes
+Impact.able_to_explain,No,no,No
+Impact.able_to_explain,Maybe,maybe,Maybe
+Impact.able_to_explain,Other,other,Other
+Impact.able_use_now,Independently,independently,Independently
+Impact.able_use_now,By using training materials/notes from the training event,by using training materials/notes from the training event,By using training materials/ notes from the training event
+Impact.able_use_now,With the help of an expert,with the help of an expert,With the help of an expert
+Impact.able_use_now,Other,other,Other
+Impact.help_work,It did not help as I do not use the tool(s)/resource(s) covered in the training event,it did not help as i do not use the tool(s)/resource(s) covered in the training event,It did not help as I do not use the tool(s)/ resource(s) covered in the training event
+Impact.help_work,It enabled me to complete certain tasks more quickly,it enabled me to complete certain tasks more quickly,It enabled me to complete certain tasks more quickly
+Impact.help_work,It has not helped yet but I anticipate a future impact,it has not helped yet but i anticipate a future impact,It has not helped yet but I anticipate a future impact
+Impact.help_work,It improved communication with the bioinformatician/statistician analyzing my data,it improved communication with the bioinformatician/statistician analyzing my data,It improved communication with the bioinformatician/ statistician analyzing my data
+Impact.help_work,It improved my ability to handle data,it improved my ability to handle data,It improved my ability to handle data
+Impact.help_work,Other,other,Other
+Impact.attending_led_to,Authoring of software,authoring of software,Authoring of software
+Impact.attending_led_to,Change in career,change in career,Change in career
+Impact.attending_led_to,Not applicable,not applicable,Not applicable
+Impact.attending_led_to,Other,other,Other
+Impact.attending_led_to,Publication of my work,publication of my work,Publication of my work
+Impact.attending_led_to,Submission of a grant application,submission of a grant application,Submission of a grant application
+Impact.attending_led_to,Submission of my dissertation/thesis for degree purposes,submission of my dissertation/thesis for degree purposes,Submission of my dissertation/ thesis for degree purposes
+Impact.attending_led_to,Useful collaboration(s) with other participants/trainers from the training event,useful collaboration(s) with other participants/trainers from the training event,Useful collaboration(s) with other participants/ trainers from the training event
+Impact.people_share_knowledge,None,none,None
+Impact.people_share_knowledge,"None yet, but intend to do so in the future","none yet, but intend to do so in the future","None yet, but intend to do so in the future"
+Impact.people_share_knowledge,1-5,1-5,1-5
+Impact.people_share_knowledge,6-15,6-15,6-15
+Impact.people_share_knowledge,16-24,16-24,16-24
+Impact.people_share_knowledge,25+,25+,25+
+Impact.recommend_others,"Yes, I already have","yes, i already have","Yes, I already have"
+Impact.recommend_others,"Yes, I would","yes, i would","Yes, I would"
+Impact.recommend_others,Maybe,maybe,Maybe
+Impact.recommend_others,No,no,No
+general.general,Non-ELIXIR / Non-EXCELERATE Funds,non-elixir/ non-excelerate funds,
+general.general,Training - e-learning,training - elearning,
+general.general,ELIXIR Converge,converge,
+general.general,EOSC Life,eosc-life,
+general.general,Knowledge Exchange Workshop,knowledge exchange workshop,
+general.general,ELIXIR Community / Use case,elixir community/ use case,
+general.general,To learn something new to aid me in my current research/work,to learn something new to aid me in my current research/ work,
+general.general,By using training materials/notes from the training event,by using training materials/ notes from the training event,
+general.general,To build on existing knowledge to aid me in my current research/work,to build an existing knowledge to aid me in my current research/ work,
+general.general,Useful collaboration(s) with other participants/trainers from the training event,useful collaboration(s) with other participants/ trainers from the training event,
+general.general,It improved communication with the bioinformatician/statistician analyzing my data,it improved communication with the bioinformatician/ statistician analyzing my data,
+general.general,It did not help as I do not use the tool(s)/resource(s) covered in the training event,it did not help as i do not use the tool(s)/ resource(s) covered in the training event,
+general.general,Submission of my dissertation/thesis for degree purposes,submission of my dissertation/ thesis for degree purposes,
