@@ -180,7 +180,7 @@ def upload_data(request, event_id=None):
         'metrics/upload.html',
         context={
             "title": title,
-            **get_tabs(request),
+            **get_tabs(request, view_name="event-list" if event else None),
             "forms": forms,
         }
     )
