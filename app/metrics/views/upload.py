@@ -2,6 +2,7 @@ from django.shortcuts import render
 from metrics.views.common import get_tabs
 from django import forms
 from django.forms.widgets import FileInput, Select, CheckboxInput
+from django.shortcuts import get_object_or_404
 import re
 import csv
 import io
@@ -81,7 +82,13 @@ def table_output(columns: dict):
     return _table_output
 
 @login_required
-def upload_data(request):
+def upload_data(request, event_id=None):
+    event = get_object_or_404(models.Event, id=event_id) if event_id else None
+    upload_types = {
+        key: value
+        for key, value in UPLOAD_TYPES.items()
+        if event is None or key != "events"
+    }
     forms = [
         DataUploadForm(
             request.POST if request.method == "POST" else None,
@@ -91,7 +98,7 @@ def upload_data(request):
             description=upload_type["description"],
             prefix=upload_type["id"],
         )
-        for upload_type in UPLOAD_TYPES.values()
+        for upload_type in upload_types.values()
     ]
 
     if request.method == "POST":
@@ -110,6 +117,7 @@ def upload_data(request):
                         current_time,
                         current_time
                     ),
+                    fixed_event=event
                 )
 
                 (parser, importer, view_transforms) = {
@@ -161,11 +169,17 @@ def upload_data(request):
                     except Exception as e:
                         traceback.print_exc()
                         form.add_error(None, f"Failed to import '{upload_type}': {e}")
+    
+    title = (
+        f"Upload data for event: {event.title}" 
+        if event
+        else "Upload data"
+    )
     return render(
         request,
         'metrics/upload.html',
         context={
-            "title": "Upload data",
+            "title": title,
             **get_tabs(request),
             "forms": forms,
         }

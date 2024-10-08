@@ -152,12 +152,13 @@ class ImportContext:
         return impact
 
     def get_user_and_event(self, data: dict):
-        event = self.get_event(data['event'])
+        event = self.get_event(data)
         user = self.user_from_data(data)
         self.assert_can_change_data(user, event)
         return (user, event)
 
-    def get_event(self, identifier):
+    def get_event(self, data):
+        identifier = data['event']
         return Event.objects.get(code=identifier)
 
     def user_from_data(self, data: dict):
@@ -180,11 +181,12 @@ class ImportContext:
 
 
 class LegacyImportContext(ImportContext):
-    def __init__(self, user=None, node_main=None, timestamps=None):
+    def __init__(self, user=None, node_main=None, timestamps=None, fixed_event=None):
         super().__init__()
         self._user = user
         self._node_main = node_main
         self._timestamps = timestamps
+        self._fixed_event = fixed_event
 
     def quality_or_demographic_from_dict(self, data: dict):
         return (
@@ -198,7 +200,11 @@ class LegacyImportContext(ImportContext):
             for ror_id in ror_ids
         ]
 
-    def get_event(self, identifier):
+    def get_event(self, data):
+        if self._fixed_event:
+            return self._fixed_event
+
+        identifier = data['event']
         return Event.objects.get(id=int(identifier))
 
     def user_from_data(self, data: dict):
