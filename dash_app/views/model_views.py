@@ -92,6 +92,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     def get_actions(self):
         return (
             [
+                (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics"),
                 (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
                 (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
                 (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
@@ -249,6 +250,10 @@ class EventListView(LoginRequiredMixin, GenericListView):
         can_edit = user_node == entry.node_main and not entry.is_locked
         return [
             ("Edit" if can_edit else "View", entry.get_absolute_url()),
+            (
+                "Upload metrics",
+                reverse("upload-data-event", kwargs={"event_id": entry.id})
+            ) if can_edit else ("", None),
         ]
 
 
