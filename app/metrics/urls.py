@@ -23,7 +23,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('upload-data', upload_data, name='upload-data'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
-    path('upload-data/event/<int:event_id>', upload_data, name='upload-data-event'),
+    path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
     path('institution/list', InstitutionListView.as_view(), name='institution-list'),

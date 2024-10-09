@@ -16,6 +16,7 @@ import re
 class GenericUpdateView(UpdateView):
     template_name = "metrics/model-form.html"
     model = models.Quality
+    view_name = None
 
     @property
     def title(self):
@@ -37,12 +38,16 @@ class GenericUpdateView(UpdateView):
             })
         context["actions"] = self.get_actions()
         context["stats"] = self.get_stats()
-        context.update(get_tabs(self.request))
+        view_name = self.get_view_name()
+        context.update(get_tabs(self.request, view_name))
         context["can_edit"] = self.can_edit()
         return context
 
     def can_edit(self):
         return True
+
+    def get_view_name(self):
+        return self.view_name
     
     def get_form(self):
         form = super().get_form()
@@ -84,6 +89,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         "url",
         "status",
     ]
+    view_name = "event-list"
 
     @property
     def title(self):
@@ -124,6 +130,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
     fields = []
+    view_name = "institution-list"
     
     def get_stats(self):
         stat_fields = [
