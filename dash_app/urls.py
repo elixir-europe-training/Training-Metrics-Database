@@ -26,6 +26,7 @@ urlpatterns = [
     path('impact', impact_report, name='impact-report'),
     path('world-map', world_map, name='world-map'),
     path('upload-data', upload_data, name='upload-data'),
+    path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),

@@ -1,3 +1,4 @@
+from django.conf import settings
 from datetime import datetime
 from django.db.models import TextField
 from metrics.models import (
@@ -14,6 +15,12 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
 import random
 from typing import Callable
+import functools
+import csv
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImportContext:
@@ -41,7 +48,7 @@ class ImportContext:
             funding=csv_to_array(data['funding']) or ["ELIXIR Node"],
             location_city=data['location_city'] or "NA",
             location_country=data['location_country'],
-            target_audience=csv_to_array(data['target_audience']) or ["Academia / Research Institution"],
+            target_audience=csv_to_array(data['target_audience']) or ["Academia/ Research Institution"],
             additional_platforms=csv_to_array(data['additional_platforms']) or ["NA"],
             communities=csv_to_array(data['communities']) or ["NA"],
             number_participants=int(data['number_participants'] or 0),
@@ -75,12 +82,12 @@ class ImportContext:
         institution = self._institutions.get(ror_id)
         if institution is not None:
             return institution
-        
+
         existing_inst = OrganisingInstitution.objects.filter(ror_id=ror_id).first()
         if existing_inst is not None:
             self._institutions[ror_id] = existing_inst
             return existing_inst
-        
+
         new_inst = OrganisingInstitution(ror_id=ror_id)
         new_inst.update_ror_data()
         new_inst.save()
@@ -96,10 +103,10 @@ class ImportContext:
             modified=modified,
             event=event,
             heard_from=csv_to_array(data['heard_from']) or ["Other"],
-            employment_sector=data['employment_sector'] or "Other",
+            employment_sector=use_alias(data['employment_sector']) or "Other",
             employment_country=data['employment_country'],
-            gender=data['gender'] or "Other",
-            career_stage=data['career_stage'] or "Other",
+            gender=use_alias(data['gender']) or "Other",
+            career_stage=use_alias(data['career_stage']) or "Other",
         )
         demographic.full_clean()
         return demographic
@@ -112,12 +119,12 @@ class ImportContext:
             created=created,
             modified=modified,
             event=event,
-            used_resources_before=data['used_resources_before'],
-            used_resources_future=data['used_resources_future'],
-            recommend_course=data['recommend_course'],
-            course_rating=data['course_rating'],
-            balance=data['balance'],
-            email_contact=data['email_contact'] or "No",
+            used_resources_before=use_alias(data['used_resources_before']),
+            used_resources_future=use_alias(data['used_resources_future']),
+            recommend_course=use_alias(data['recommend_course']),
+            course_rating=use_alias(data['course_rating']),
+            balance=use_alias(data['balance']),
+            email_contact=use_alias(data['email_contact']) or "No",
         )
         quality.full_clean()
         return quality
@@ -130,27 +137,28 @@ class ImportContext:
             created=created,
             modified=modified,
             event=event,
-            when_attend_training=data['when_attend_training'],
+            when_attend_training=use_alias(data['when_attend_training']),
             main_attend_reason=use_alias(data['main_attend_reason']),
-            how_often_use_before=data['how_often_use_before'],
-            how_often_use_after=data['how_often_use_after'],
-            able_to_explain=data['able_to_explain'] or "Other",
+            how_often_use_before=use_alias(data['how_often_use_before']),
+            how_often_use_after=use_alias(data['how_often_use_after']),
+            able_to_explain=use_alias(data['able_to_explain']) or "Other",
             able_use_now=use_alias(data['able_use_now']) or "Other",
             help_work=csv_to_array(data['help_work']) or ["Other"],
             attending_led_to=csv_to_array(data['attending_led_to']) or ["Other"],
-            people_share_knowledge=data['people_share_knowledge'],
-            recommend_others=data['recommend_others'],
+            people_share_knowledge=use_alias(data['people_share_knowledge']),
+            recommend_others=use_alias(data['recommend_others']),
         )
         impact.full_clean()
         return impact
 
     def get_user_and_event(self, data: dict):
-        event = self.get_event(data['event'])
+        event = self.get_event(data)
         user = self.user_from_data(data)
         self.assert_can_change_data(user, event)
         return (user, event)
 
-    def get_event(self, identifier):
+    def get_event(self, data):
+        identifier = data['event']
         return Event.objects.get(code=identifier)
 
     def user_from_data(self, data: dict):
@@ -173,11 +181,12 @@ class ImportContext:
 
 
 class LegacyImportContext(ImportContext):
-    def __init__(self, user=None, node_main=None, timestamps=None):
+    def __init__(self, user=None, node_main=None, timestamps=None, fixed_event=None):
         super().__init__()
         self._user = user
         self._node_main = node_main
         self._timestamps = timestamps
+        self._fixed_event = fixed_event
 
     def quality_or_demographic_from_dict(self, data: dict):
         return (
@@ -191,7 +200,11 @@ class LegacyImportContext(ImportContext):
             for ror_id in ror_ids
         ]
 
-    def get_event(self, identifier):
+    def get_event(self, data):
+        if self._fixed_event:
+            return self._fixed_event
+
+        identifier = data['event']
         return Event.objects.get(id=int(identifier))
 
     def user_from_data(self, data: dict):
@@ -211,10 +224,31 @@ class LegacyImportContext(ImportContext):
             )
 
 
-def use_alias(value):
+def read_aliases(path):
+    aliases = {}
+    ignore_columns = {"field", "value"}
+    with open(path) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            value = row["value"]
+            for (column, alias) in row.items():
+                if column not in ignore_columns and alias:
+                    simplified_alias = alias.lower().strip()
+                    existing_alias = aliases.get(simplified_alias)
+                    if existing_alias is None:
+                        aliases[simplified_alias] = value
+                    elif existing_alias != value:
+                        raise ValueError(
+                            f"Confliciting aliases for '{simplified_alias}': '{existing_alias}' <-> '{value}'"
+                        )
+    return aliases
+
+
+@functools.cache
+def get_aliases():
     aliases = {
-        "academia/ research institution": "Academia / Research Institution",
-        "non-profit organisation": "Non-profit Organisation",
+        "academia/ research institution": "Academia/ Research Institution",
+        "non-profit organisation": "Non-Profit Organisation",
         "complete": "Complete",
         "non-elixir/ non-excelerate funds": "Non-ELIXIR / Non-EXCELERATE Funds",
         "training - elearning": "Training - e-learning",
@@ -230,7 +264,28 @@ def use_alias(value):
         "it did not help as i do not use the tool(s)/ resource(s) covered in the training event": "It did not help as I do not use the tool(s)/resource(s) covered in the training event",
         "submission of my dissertation/ thesis for degree purposes": "Submission of my dissertation/thesis for degree purposes",
     }
-    return aliases.get(value.lower(), value)
+
+    aliases_path = getattr(settings, "VALUE_ALIASES_PATH", None)
+    if aliases_path is not None:
+        try:
+            aliases = read_aliases(aliases_path)
+            logger.info(f"Aliases loaded from: {aliases_path}")
+        except (FileNotFoundError, ValueError) as e:
+            logger.error(f"Failed to load aliases from: {aliases_path}: {str(e)}")
+
+    return aliases
+
+
+def use_alias(value):
+    aliases = get_aliases()
+    return (
+        [
+            aliases.get(value.lower(), v)
+            for v in value
+        ]
+        if type(value) is list
+        else aliases.get(value.lower(), value)
+    )
 
 
 def csv_to_array(csv_string):
@@ -387,7 +442,7 @@ def get_field_info(model, field_id):
             c[0]
             for c in field.choices
         ]
-        if type(field) == TextField and field.choices is not None
+        if type(field) is TextField and field.choices is not None
         else None
     )
     array_choices = (
@@ -395,13 +450,13 @@ def get_field_info(model, field_id):
             c[0]
             for c in field.base_field.choices
         ]
-        if type(field) == ChoiceArrayField
+        if type(field) is ChoiceArrayField
         else None
     )
     return {
         "id": field_id,
         "type": str(type(field)),
-        "multichoice": type(field) == ChoiceArrayField,
+        "multichoice": type(field) is ChoiceArrayField,
         "values": array_choices or text_choices,
     }
 
