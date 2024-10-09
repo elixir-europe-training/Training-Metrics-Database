@@ -8,7 +8,7 @@ import csv
 import io
 from metrics import import_utils, models
 import traceback
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 import datetime
 from django.contrib.auth.decorators import login_required
@@ -81,9 +81,14 @@ def table_output(columns: dict):
         }
     return _table_output
 
+
 @login_required
 def upload_data(request, event_id=None):
     event = get_object_or_404(models.Event, id=event_id) if event_id else None
+
+    if event and (event.is_locked or request.user.get_node() != event.node_main):
+        raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
+
     upload_types = {
         key: value
         for key, value in UPLOAD_TYPES.items()
