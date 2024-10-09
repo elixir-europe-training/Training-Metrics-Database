@@ -245,12 +245,19 @@ class EventListView(LoginRequiredMixin, GenericListView):
     ]
 
     def get_queryset(self):
+        id_list = self.request.GET.getlist("id", None)
         queryset = super().get_queryset().order_by("-id")
-        return (
+        queryset = (
             queryset.filter(node_main=self.request.user.get_node())
             if self.node_only
             else queryset
         )
+        queryset = (
+            queryset.filter(id__in=id_list)
+            if id_list
+            else queryset
+        )
+        return queryset
 
     def get_entry_extras(self, entry):
         user_node = self.request.user.get_node()
@@ -262,6 +269,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
                 reverse("upload-data-event", kwargs={"event_id": entry.id})
             ) if can_edit else ("", None),
         ]
+
 
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):

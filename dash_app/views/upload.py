@@ -12,6 +12,8 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 import datetime
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.utils.http import urlencode
 
 
 UPLOAD_TYPES = {
@@ -68,6 +70,16 @@ class DataUploadForm(forms.Form):
 
 def summary_output(items: list):
     return f"Successfully uploaded {len(items)} objects."
+
+
+def events_actions_output(items: list):
+    item_ids = [item.id for item in items]
+    base_url = reverse("event-list")
+    query_params = {"id": item_ids}
+    view_list_url = f"{base_url}?{urlencode(query_params, doseq=True)}"
+    return [
+        ("View events", view_list_url)
+    ]
 
 
 def table_output(columns: dict):
@@ -136,7 +148,8 @@ def upload_data(request, event_id=None):
                                 "title": "Title",
                                 "date_start": "Start date",
                                 "date_end": "End date"
-                            })
+                            }),
+                            "actions": events_actions_output
                         }
                     ),
                     "demographic_quality_metrics": (
