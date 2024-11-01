@@ -17,14 +17,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = Path(BASE_DIR, 'templates')
 LOGIN_URL="login"
 
+# Setup static files
+STATIC_ROOT=os.environ.get("TMD_STATIC_ROOT", "/opt/tmd/static")
+STATIC_URL="static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-if os.environ.get("DJANGO_PRODUCTION", None) is not None:
-    DEBUG = not bool(int(os.environ.get("DJANGO_PRODUCTION", 1)))
+DEBUG = not bool(int(os.environ.get("DJANGO_PRODUCTION", 1)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
@@ -38,6 +42,7 @@ CSRF_TRUSTED_ORIGINS = ["https://tango.elixir-hpc.si", "https://tmd.elixir-europ
 # Application definition
 
 INSTALLED_APPS = [
+    "django.contrib.staticfiles",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -56,6 +61,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -97,17 +103,13 @@ WSGI_APPLICATION = "tmd.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["DJANGO_POSTGRESQL_DBNAME"],
-        "USER": os.environ["DJANGO_POSTGRESQL_USER"],
-        "PASSWORD": os.environ["DJANGO_POSTGRESQL_PASSWORD"],
-        "HOST": os.environ["DJANGO_POSTGRESQL_HOST"],
-        "PORT": os.environ["DJANGO_POSTGRESQL_PORT"],
+        "NAME": os.environ.get("DJANGO_POSTGRESQL_DBNAME"),
+        "USER": os.environ.get("DJANGO_POSTGRESQL_USER"),
+        "PASSWORD": os.environ.get("DJANGO_POSTGRESQL_PASSWORD"),
+        "HOST": os.environ.get("DJANGO_POSTGRESQL_HOST"),
+        "PORT": os.environ.get("DJANGO_POSTGRESQL_PORT"),
     }
 }
-
-
-# User Model
-AUTH_USER_MODEL = "metrics.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

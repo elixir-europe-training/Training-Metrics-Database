@@ -255,6 +255,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
 class InstitutionListView(LoginRequiredMixin, GenericListView):
     model = models.OrganisingInstitution
     paginate_by = 30
+    ordering = ['name']
     fields = [
         "name",
         "country",

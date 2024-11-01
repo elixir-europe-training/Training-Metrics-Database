@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
@@ -6,6 +5,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 import re
 import requests
+from django.contrib.auth.models import User 
 
 
 def string_choices(choices):
@@ -25,7 +25,7 @@ class ChoiceArrayField(ArrayField):
         return super(ArrayField, self).formfield(**defaults)
 
 class Event(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     code = models.CharField(max_length=128, unique=True, null=True, blank=True)
@@ -158,7 +158,7 @@ class Event(models.Model):
 
 
 class Demographic(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
@@ -213,7 +213,7 @@ class Demographic(models.Model):
 
 
 class Quality(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
@@ -377,7 +377,7 @@ class Impact(models.Model):
         ("Other", "Other"),
     ]
 
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
@@ -458,10 +458,11 @@ class OrganisingInstitution(models.Model):
             raise ValidationError(f"Not a valid ror id: {self.ror_id}")
 
 
-class User(AbstractUser):
-    def get_node(self):
-        node_name = f"ELIXIR-{self.username.upper()}"
-        try:
-            return Node.objects.get(name=node_name)
-        except Node.DoesNotExist:
-            return None
+def get_node(self):
+    node_name = f"ELIXIR-{self.username.upper()}"
+    try:
+        return Node.objects.get(name=node_name)
+    except Node.DoesNotExist:
+        return None
+
+User.add_to_class("get_node", get_node)

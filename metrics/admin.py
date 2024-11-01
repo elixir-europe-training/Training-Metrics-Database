@@ -2,10 +2,9 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
-from metrics.models import User
+from metrics.models import Event
 
 
-# Register your models here.
-@admin.register(User)
-class UserAdmin(ModelAdmin):
+@admin.register(Event)
+class EventAdmin(ModelAdmin):
     pass
