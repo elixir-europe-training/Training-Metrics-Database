@@ -34,6 +34,10 @@ SECRET_KEY = os.environ.get(
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 CSRF_TRUSTED_ORIGINS = ["https://tango.elixir-hpc.si", "https://tmd.elixir-europe.org"]
+if "GITPOD_WORKSPACE_URL" in os.environ:
+    # Gitpod provides the workspace URL as an environment variable.
+    gitpod_url = os.environ["GITPOD_WORKSPACE_URL"].replace("https://", "https://8000-")  # 8000 is the default port, adjust if needed
+    CSRF_TRUSTED_ORIGINS += [gitpod_url]
 
 # Application definition
 
