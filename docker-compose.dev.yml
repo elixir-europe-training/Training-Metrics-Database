@@ -8,3 +8,4 @@ services:
     env_file: env/django.env
     volumes:
       - ./app:/opt/tmd/app
+      - ./raw-tmd-data:/opt/tmd/app/raw-tmd-data
