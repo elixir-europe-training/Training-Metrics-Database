@@ -6,7 +6,7 @@ tasks:
       cp -n env/django.env.default env/django.env
       cp -n env/postgres.env.default env/postgres.env
       cp -n env/metabase.env.default env/metabase.env
-    command: docker compose up -d
+    command: docker compose --profile metabase -f docker-compose.yml -f docker-compose.dev.yml up --build -d
   - name: Populate database
     init: |
       gp ports await 8000
