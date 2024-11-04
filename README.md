@@ -19,7 +19,11 @@ The most up to date documentation is available in [Wiki](https://github.com/elix
 ### Running with Docker
 
 ```shell
-docker compose up
+# Run in a production like environment without automatically updated code
+docker compose up --build
+
+# Run in dev environment
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 In order to load thee example data:
