@@ -1,5 +1,6 @@
 #!/bin/bash
 
+python manage.py makemigrations
 python manage.py migrate
 
 gunicorn tmd.wsgi:application -b "0.0.0.0:${APP_PORT:-8000}"
