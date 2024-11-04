@@ -118,7 +118,26 @@ class Command(BaseCommand):
             required=False,
         )
 
+        parser.add_argument(
+            "--resetdata",
+            type=str,
+            required=False,
+        )
+
     def handle(self, *args, **options):
+        if options["resetdata"]:
+            all_models = [
+                Event,
+                Demographic,
+                Quality,
+                Impact,
+                Node,
+                OrganisingInstitution,
+                User
+            ]
+            for model in all_models:
+                model.objects.all().delete()
+
         global DATA_SOURCES
         if options["targetdir"]:
             DATA_SOURCES = get_data_sources(options["targetdir"])
