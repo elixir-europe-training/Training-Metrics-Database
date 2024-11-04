@@ -29,6 +29,12 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 In order to load thee example data:
 
 ```shell
+# Seed data for production
+docker compose up --build
+# We do it this way in order to avoid having the seed data mounted in the production environment
+docker compose run --volume "/$(pwd)/raw-tmd-data:/opt/tmd/app/raw-tmd-data:ro" --entrypoint "python manage.py load_data" tmd-dj
+
+# Seed data for development
 docker compose exec tmd python manage.py load_data
 ```
 
