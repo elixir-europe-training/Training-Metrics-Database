@@ -14,7 +14,7 @@ import re
 
 
 class GenericUpdateView(UpdateView):
-    template_name = "dash_app/model-form.html"
+    template_name = "metrics/model-form.html"
     model = models.Quality
 
     @property
@@ -148,7 +148,7 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
 
 
 class GenericListView(ListView):
-    template_name = "dash_app/model-list.html"
+    template_name = "metrics/model-list.html"
     paginate_by = 10
     max_paginate_by = 50
     min_paginate_by = 10

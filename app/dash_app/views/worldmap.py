@@ -1,4 +1,4 @@
-from .common import get_tabs
+from metrics.views.common import get_tabs
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
 import plotly.express as px

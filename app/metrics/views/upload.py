@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .common import get_tabs
+from metrics.views.common import get_tabs
 from django import forms
 from django.forms.widgets import FileInput, Select, CheckboxInput
 import re
@@ -163,7 +163,7 @@ def upload_data(request):
                         form.add_error(None, f"Failed to import '{upload_type}': {e}")
     return render(
         request,
-        'dash_app/upload.html',
+        'metrics/upload.html',
         context={
             "title": "Upload data",
             **get_tabs(request),

@@ -1,4 +1,4 @@
-from .common import get_layout, use_table_callback, get_table_layout, get_tabs
+from metrics.views.common import get_layout, use_table_callback, get_table_layout, get_tabs
 
 from django_plotly_dash import DjangoDash
 from django.shortcuts import render
