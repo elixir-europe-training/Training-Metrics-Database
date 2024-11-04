@@ -1,12 +1,13 @@
-mainConfiguration: https://github.com/elixir-europe-training/Training-Metrics-Database
-
 tasks:
   - name: Setup and startup
     init: |
       cp -n env/django.env.default env/django.env
+      printf "\n" >> env/django.env
+      echo DJANGO_CSRF_TRUSTED_ORIGINS="$(echo \"${GITPOD_WORKSPACE_URL}\" | sed 's|https://|https://8000-|g')" >> env/django.env
+      printf "\nDJANGO_PRODUCTION=0\nDJANGO_ALLOWED_HOSTS=.gitpod.io" >> env/django.env
       cp -n env/postgres.env.default env/postgres.env
       cp -n env/metabase.env.default env/metabase.env
-    command: docker compose --profile metabase -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+    command: docker compose --profile metabase -f docker-compose.yml -f docker-compose.dev.yml up -d
   - name: Populate database
     init: |
       gp ports await 8000
