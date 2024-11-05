@@ -1,8 +1,20 @@
 import csv
-from metrics.models import Event, Demographic, Quality, Impact, Node, OrganisingInstitution, User
+from metrics.models import (
+    Event,
+    Demographic,
+    Quality,
+    Impact,
+    Node,
+    OrganisingInstitution,
+    User,
+    Question,
+    QuestionSet,
+    Answer
+)
 from metrics import import_utils
 from django.core.management.base import BaseCommand
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from django.template.defaultfilters import slugify
 
 
 def get_data_sources(targetdir="example-data"):
@@ -13,7 +25,9 @@ def get_data_sources(targetdir="example-data"):
         Impact: f'raw-tmd-data/{targetdir}/tango_impacts.csv',
         User: f'raw-tmd-data/{targetdir}/users.csv',
         OrganisingInstitution: f'raw-tmd-data/{targetdir}/institutions.csv',
-        Node: f'raw-tmd-data/{targetdir}/nodes.csv'
+        Node: f'raw-tmd-data/{targetdir}/nodes.csv',
+        Question: f'raw-tmd-data/{targetdir}/base_questions.csv',
+        Answer: f'raw-tmd-data/{targetdir}/base_answers.csv',
     }
 
 
@@ -98,6 +112,34 @@ def load_institutions():
             )
 
 
+def load_questions():
+    with open(DATA_SOURCES[Question]) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            question_slug = slugify(row["slug"])
+            Question.objects.create(
+                slug=question_slug,
+                text=row["text"],
+                user=User.objects.get(username=row["user"])
+            )
+
+
+def load_answers():
+    with open(DATA_SOURCES[Answer]) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for i, row in enumerate(reader):
+            slug = slugify(row["slug"]) if row["slug"] else slugify(f"Answer {i}")
+            question_slug = slugify(row["question"])
+            question = Question.objects.get(slug=question_slug)
+            full_slug = f"{question_slug}.{slug}"
+            Answer.objects.create(
+                slug=full_slug,
+                text=row["text"],
+                user=User.objects.get(username=row["user"]),
+                question=question
+            )
+
+
 def is_empty(items):
     for key, value in items.items():
         if (
@@ -161,13 +203,22 @@ class Command(BaseCommand):
         print("LOADING EVENTS")
         print("------------------------")
         load_events()
+        print("LOADING QUESTIONS")
+        print("------------------------")
+        load_questions()
+        print("LOADING ANSWERS")
+        print("------------------------")
+        load_answers()
         print("LOADING METRICS")
         print("------------------------")
 
         num_workers = 3
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             functions_to_execute = [
-                load_demographics, load_qualities, load_impacts]
+                load_demographics,
+                load_qualities,
+                load_impacts,
+            ]
 
             futures = [executor.submit(func) for func in functions_to_execute]
 
