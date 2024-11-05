@@ -6,6 +6,7 @@ from metrics.models import (
     Event,
     Question,
     QuestionSet,
+    QuestionSuperSet,
     Answer,
     Response,
     ResponseSet
@@ -30,6 +31,11 @@ class ResponseSetAdmin(ModelAdmin):
 
 @admin.register(QuestionSet)
 class QuestionSetAdmin(ModelAdmin):
+    pass
+
+
+@admin.register(QuestionSuperSet)
+class QuestionSuperSetAdmin(ModelAdmin):
     pass
 
 
