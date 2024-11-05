@@ -1,0 +1,70 @@
+{% load static %}
+
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/bootstrap-icons.css' %}"
+/>
+<link
+  href="{% static 'vendor/bootstrap.min.css' %}"
+  rel="stylesheet"
+/>
+<script
+  src="{% static 'vendor/bootstrap.bundle.min.js' %}"
+></script>
+
+<style>
+  /* css file for TMD */
+  body {
+    color: #353535;
+    font-family: arial, sans-serif;
+    font-size: 14px;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+  }
+
+  body,
+  [data-bs-theme="dark"],
+  [data-bs-theme="light"] {
+    --bs-link-color-rgb: 229, 131, 58;
+    --bs-link-hover-color-rgb: 160, 79, 18;
+    --bs-link-active-color-rgb: 160, 79, 18;
+    --bs-link-visited-color-rgb: 229, 131, 58;
+    --bs-link-opacity: 1;
+    --bs-bg-opacity: 1;
+  }
+
+  h1 {
+    font-size: 35px;
+    font-weight: normal;
+    color: #e5833a;
+    margin-top: 5px;
+  }
+
+  .divider {
+    border-bottom: solid 1px var(--bs-navbar-color);
+  }
+
+  nav {
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+  }
+
+  footer {
+    flex-grow: 0;
+    flex-shrink: 0;
+    color: var(--bs-body-color);
+    background-color: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity));
+  }
+
+  .DateInput_input {
+    font-size: 14px;
+  }
+</style>

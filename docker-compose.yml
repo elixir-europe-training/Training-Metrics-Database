@@ -1,16 +1,12 @@
-version: "3"
 services:
   tmd-dj:
     depends_on:
       tmd-pg:
         condition: service_healthy
-    container_name: tmd-dj
     build:
       context: .
       dockerfile: ./Dockerfile
-    entrypoint: /code/entrypoint
-    volumes:
-      - ./:/code/
+      target: prod
     restart: on-failure
     env_file: env/django.env
     ports:
@@ -19,7 +15,6 @@ services:
       - tmd-network
 
   tmd-pg:
-    container_name: tmd-pg
     image: postgres:15.3-alpine
     volumes:
       - pg:/var/lib/postgresql/data
@@ -52,6 +47,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    profiles: ["metabase"]
 
 volumes:
   pg:

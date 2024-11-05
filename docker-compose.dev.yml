@@ -1,0 +1,11 @@
+services:
+  tmd-dj:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: dev
+    restart: on-failure
+    env_file: env/django.env
+    volumes:
+      - ./app:/opt/tmd/app
+      - ./raw-tmd-data:/opt/tmd/app/raw-tmd-data
