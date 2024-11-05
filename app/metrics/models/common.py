@@ -137,7 +137,14 @@ class Event(EditTracking):
 
     @property
     def stats(self):
-        return []
+        return [
+            (name, related.count())
+            for name, related in [
+                ("Quality metrics", self.quality),
+                ("Impact metrics", self.impact),
+                ("Demographic metrics", self.demographic)
+            ]
+        ]
 
     @property
     def metrics_status(self):
