@@ -15,27 +15,38 @@ In an effort to achieve the above aims, the subtask, in collaboration with the [
 The most up to date documentation is available in [Wiki](https://github.com/elixir-europe-training/Training-Metrics-Database/wiki).
 
 ## Getting started
+Make sure to create instances of the following files:
+- `env/django.env`
+- `env/metabase.env`
+- `env/postgres.env`
 
-### Running with Docker
+The necessary parameters are covered in the respective `env/*.default` files.
+
+### Running with development Docker
+Make sure to set `DJANGO_PRODUCTION=0` in `env/django.env`.
 
 ```shell
-# Run in a production like environment without automatically updated code
-docker compose up --build
-
-# Run in dev environment
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-In order to load thee example data:
+Seed the database with test data:
 
 ```shell
-# Seed data for production
+docker compose exec tmd-dj python manage.py load_data
+```
+
+### Running with production Docker 
+
+```shell
+docker compose up --build
+```
+
+Seed the database with production data:
+
+```shell
 docker compose up --build
 # We do it this way in order to avoid having the seed data mounted in the production environment
 docker compose run --volume "/$(pwd)/raw-tmd-data:/opt/tmd/app/raw-tmd-data:ro" --entrypoint "python manage.py load_data" tmd-dj
-
-# Seed data for development
-docker compose exec tmd python manage.py load_data
 ```
 
 ### Running local validation checks

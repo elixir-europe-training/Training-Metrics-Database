@@ -149,9 +149,6 @@ class Command(BaseCommand):
                 raise Exception(
                     f'Some headers are not present for model {model.__name__} in {csv_file_path}')
 
-        for model in DATA_SOURCES.keys():
-            model.objects.all().delete()
-
         print("LOADING NODES")
         print("------------------------")
         load_nodes()
