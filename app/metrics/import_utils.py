@@ -86,8 +86,18 @@ class ImportContext:
         new_inst.save()
         self._institutions[ror_id] = new_inst
         return new_inst
+    
+    def responses_from_dict(self, question_set_id, data: dict):
+        if question_set_id == "demographic":
+            return self._demographic_from_dict(data)
+        elif question_set_id == "impact":
+            return self._impact_from_dict(data)
+        elif question_set_id == "quality":
+            return self._quality_from_dict(data)
+        else:
+            raise ValidationError(f"Missing question set '{question_set_id}'")
 
-    def demographic_from_dict(self, data: dict):
+    def _demographic_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         demographic = Demographic.objects.create(
@@ -104,7 +114,7 @@ class ImportContext:
         demographic.full_clean()
         return demographic
 
-    def quality_from_dict(self, data: dict):
+    def _quality_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         quality = Quality.objects.create(
@@ -122,7 +132,7 @@ class ImportContext:
         quality.full_clean()
         return quality
 
-    def impact_from_dict(self, data: dict):
+    def _impact_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         impact = Impact.objects.create(
@@ -181,9 +191,12 @@ class LegacyImportContext(ImportContext):
 
     def quality_or_demographic_from_dict(self, data: dict):
         return (
-            self.quality_from_dict(data),
-            self.demographic_from_dict(data)
+            self.responses_from_dict("quality", data),
+            self.responses_from_dict("demographic", data)
         )
+
+    def impact_from_dict(self, data: dict):
+        return self.responses_from_dict("impact", data)
 
     def get_institutions(self, ror_ids):
         return [

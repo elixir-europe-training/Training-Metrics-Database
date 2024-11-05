@@ -51,7 +51,7 @@ def load_demographics():
         reader = csv.DictReader(csvfile)
         for row in reader:
             if not is_empty(row):
-                import_context.demographic_from_dict(row)
+                import_context.responses_from_dict("demographic", row)
 
 
 def load_qualities():
@@ -59,7 +59,7 @@ def load_qualities():
         reader = csv.DictReader(csvfile)
         for row in reader:
             if not is_empty(row):
-                import_context.quality_from_dict(row)
+                import_context.responses_from_dict("quality", row)
 
 
 def load_impacts():
@@ -67,7 +67,7 @@ def load_impacts():
         reader = csv.DictReader(csvfile)
         for row in reader:
             if not is_empty(row):
-                import_context.impact_from_dict(row)
+                import_context.responses_from_dict("impact", row)
 
 
 def load_user():
@@ -120,7 +120,7 @@ class Command(BaseCommand):
 
         parser.add_argument(
             "--resetdata",
-            type=str,
+            action="store_true",
             required=False,
         )
 

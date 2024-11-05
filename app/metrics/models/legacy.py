@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 
 class Demographic(EditTracking):
-    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="demographic")
     employment_country = models.TextField(blank=True)
     heard_from = ChoiceArrayField(base_field=models.TextField(
             choices=string_choices([
@@ -57,7 +57,7 @@ class Demographic(EditTracking):
 
 
 class Quality(EditTracking):
-    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="quality")
     used_resources_before = models.TextField(
         blank=True,
         choices=[
@@ -218,7 +218,7 @@ class Impact(EditTracking):
         ("Other", "Other"),
     ]
 
-    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="impact")
     when_attend_training = models.TextField(
         choices=HOW_LONG_CHOICES)
     main_attend_reason = models.TextField(blank=True, choices=REASON_CHOICES)
