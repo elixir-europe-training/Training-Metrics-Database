@@ -42,9 +42,13 @@ class QuestionSuperSetAdmin(ModelAdmin):
 class AnswerAdmin(admin.TabularInline):
     model = Answer
 
+    def get_prepopulated_fields(self, request, obj=None):
+        return {"slug": ["text"]}
+
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
+    prepopulated_fields = {"slug": ["text"]}
     list_display = (
         "text",
     )
