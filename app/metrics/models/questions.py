@@ -4,10 +4,12 @@ from .common import EditTracking, Event, Node
 
 class Question(EditTracking):
     text = models.CharField(max_length=1024)
-    friendly_id = models.CharField(max_length=128)
+    description = models.CharField(max_length=2048, blank=True, null=True)
+    slug = models.SlugField(default="", null=False)
+    is_multichoice = models.BooleanField()
 
     def __str__(self):
-        return f"{self.text} ({self.friendly_id})"
+        return f"{self.text} ({self.slug})"
 
 
 class QuestionSet(EditTracking):
@@ -30,7 +32,7 @@ class QuestionSuperSet(EditTracking):
 
 class Answer(EditTracking):
     text = models.CharField(max_length=1024)
-    friendly_id = models.CharField(max_length=128)
+    slug = models.SlugField(default="", null=False)
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="answers"
     )
@@ -47,6 +49,17 @@ class ResponseSet(EditTracking):
         QuestionSet, on_delete=models.PROTECT
     )
 
+    def clean(self, *args, **kwargs):
+        # TODO: Verify that the response set includes responses for all questions
+        # TODO: Verify that the responses fulfill the individual question requirements
+        #         - Answer are part of the questions answer set
+        #         - Allow / disallow multiple answers depending on Question.is_multichoice
+        super().clean(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class Response(models.Model):
     response_set = models.ForeignKey(
@@ -55,10 +68,3 @@ class Response(models.Model):
     question = models.ForeignKey(Question, on_delete=models.PROTECT)
     answer = models.ForeignKey(Answer, on_delete=models.PROTECT)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["response_set", "question"],
-                name="only one answer per question in a response set",
-            )
-        ]
