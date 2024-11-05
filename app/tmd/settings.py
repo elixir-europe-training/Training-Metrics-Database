@@ -39,7 +39,7 @@ SECRET_KEY = os.environ.get(
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 CSRF_TRUSTED_ORIGINS = [
     origin
-    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "localhost").split(",")
+    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin
 ]
 
