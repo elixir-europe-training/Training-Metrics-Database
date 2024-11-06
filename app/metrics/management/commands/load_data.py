@@ -9,6 +9,7 @@ from metrics.models import (
     User,
     Question,
     QuestionSet,
+    QuestionSuperSet,
     Answer
 )
 from metrics import import_utils
@@ -126,10 +127,19 @@ def load_questions():
             }
             for row in reader
         ]
+        core_set_name = "TMD Core Questions"
+        core_set = QuestionSuperSet.objects.create(
+            name=core_set_name,
+            slug=slugify(core_set_name),
+            user=User.objects.get(username=rows[0]["user"])
+        )
         question_sets = {
-            set_id: QuestionSet.objects.create(name=set_id, user=User.objects.get(username=username))
+            set_id: QuestionSet.objects.create(name=set_id, slug=slugify(set_id), user=User.objects.get(username=username))
             for set_id, username in set([(row["question_set"], row["user"]) for row in rows])
         }
+        for qs in question_sets.values():
+            core_set.question_sets.add(qs)
+
         for row in rows:
             question_slug = _parse_question_id(row["slug"])
             question_set = question_sets[row["question_set"]]

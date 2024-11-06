@@ -50,6 +50,7 @@ class ResponseSetAdmin(ModelAdmin):
 @admin.register(QuestionSet)
 class QuestionSetAdmin(ModelAdmin):
     exclude = EDIT_TRACKING_FIELDS
+    prepopulated_fields = {"slug": ["name"]}
 
     list_display = (
         "name",
@@ -64,6 +65,7 @@ class QuestionSetAdmin(ModelAdmin):
 @admin.register(QuestionSuperSet)
 class QuestionSuperSetAdmin(ModelAdmin):
     exclude = EDIT_TRACKING_FIELDS
+    prepopulated_fields = {"slug": ["name"]}
 
     list_display = (
         "name",
