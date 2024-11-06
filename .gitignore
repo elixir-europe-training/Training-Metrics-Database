@@ -3,8 +3,6 @@ __pycache__
 db.sqlite3
 *.env
 
-app/*/migrations/**
-!app/*/migrations/__init__.py
 
 .DS_Store
 
