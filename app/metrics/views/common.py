@@ -87,33 +87,6 @@ def generate_pie(metrics, title, xaxis, yaxis):
     }
 
 
-def generate_tables_and_figures(group, values):
-    for field_id in group.get_fields():
-        metrics = calculate_metrics(values, field_id)
-        metrics = {
-            group.get_field_option_name(field_id, option_id): count
-            for option_id, count in metrics.items()
-        }
-        if group.get_graph_type() == "bar":
-            yield generate_bar(
-                metrics,
-                group.get_field_title(field_id),
-                group.get_field_title(field_id),
-                f'No. of {group.get_name()}'
-            )
-        else:
-            yield generate_pie(
-                metrics,
-                group.get_field_title(field_id),
-                group.get_field_title(field_id),
-                f'No. of {group.get_name()}'
-            )
-        yield [
-            {"name": name, "value": value}
-            for name, value in metrics.items()
-        ]
-
-
 def get_callback(group):
     def update_graph_and_table(*filter_values):
         filters = list(zip([*group.get_filter_fields(), "date_from", "date_to", "node_only"], filter_values[:-len(group.get_fields())]))
