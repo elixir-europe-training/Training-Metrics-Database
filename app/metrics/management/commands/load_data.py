@@ -119,13 +119,26 @@ def _parse_question_id(value):
 def load_questions():
     with open(DATA_SOURCES[Question]) as csvfile:
         reader = csv.DictReader(csvfile)
-        for row in reader:
+        rows = [
+            {
+                "question_set": row["slug"].split(".")[0],
+                **row,
+            }
+            for row in reader
+        ]
+        question_sets = {
+            set_id: QuestionSet.objects.create(name=set_id, user=User.objects.get(username=username))
+            for set_id, username in set([(row["question_set"], row["user"]) for row in rows])
+        }
+        for row in rows:
             question_slug = _parse_question_id(row["slug"])
-            Question.objects.create(
+            question_set = question_sets[row["question_set"]]
+            question = Question.objects.create(
                 slug=question_slug,
                 text=row["text"],
                 user=User.objects.get(username=row["user"])
             )
+            question_set.questions.add(question)
 
 
 def load_answers():
