@@ -47,8 +47,7 @@ class TestResponseSet(TestCase):
 
         for entry in entries:
             for response in entry:
-                self.assertTrue(response.question in questions)
-                self.assertTrue(response.answer in response.question.answers.all())
+                self.assertTrue(response.answer.question in questions)
 
     def test_parse_response(self):
         questions = [
@@ -68,7 +67,7 @@ class TestResponseSet(TestCase):
             ]
             self.assertEqual(answers, parsed_answers)
             for r in responses:
-                self.assertEqual(r.question, question)
+                self.assertEqual(r.answer.question, question)
         
 
 

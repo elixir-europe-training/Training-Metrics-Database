@@ -33,10 +33,18 @@ class QuestionSuperSet(EditTracking):
 
 class Answer(EditTracking):
     text = models.CharField(max_length=1024)
-    slug = models.SlugField(default="", null=False, unique=True)
+    slug = models.SlugField(default="", null=False)
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="answers"
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slug", "question"],
+                name="slug is unique per question",
+            )
+        ]
 
     def __str__(self):
         return self.text
@@ -67,7 +75,7 @@ class ResponseSetManager(models.Manager):
 
         required_responses = set(questions)
         for i, entry in enumerate(entries):
-            current_responses = set([response.question for response in entry])
+            current_responses = set([response.answer.question for response in entry])
             if required_responses != current_responses:
                 raise ValidationError(f"Not all questions have been answered on row {i}")
 
@@ -107,7 +115,7 @@ class ResponseManager(models.Manager):
         for v in filtered_values:
             try:
                 answer = question.answers.get(slug=v)
-                yield Response(question=question, answer=answer)
+                yield Response(answer=answer)
             except Answer.DoesNotExist:
                 raise ValidationError(f"The answer '{value}' does not exist for question '{question.slug}'")
 
@@ -116,7 +124,6 @@ class Response(models.Model):
     response_set = models.ForeignKey(
         ResponseSet, on_delete=models.CASCADE, related_name="entries"
     )
-    question = models.ForeignKey(Question, on_delete=models.PROTECT)
     answer = models.ForeignKey(Answer, on_delete=models.PROTECT)
 
     objects = ResponseManager()
