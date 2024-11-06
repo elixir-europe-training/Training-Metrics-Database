@@ -6,7 +6,7 @@ from .common import EditTracking, Event, Node
 class Question(EditTracking):
     text = models.CharField(max_length=1024)
     description = models.CharField(max_length=2048, blank=True, null=True)
-    slug = models.SlugField(default="", null=False, unique=True)
+    slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     is_multichoice = models.BooleanField(default=False)
 
     def __str__(self):
@@ -33,7 +33,7 @@ class QuestionSuperSet(EditTracking):
 
 class Answer(EditTracking):
     text = models.CharField(max_length=1024)
-    slug = models.SlugField(default="", null=False)
+    slug = models.SlugField(default="", null=False, max_length=1024)
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="answers"
     )

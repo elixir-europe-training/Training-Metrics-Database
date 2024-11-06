@@ -112,11 +112,15 @@ def load_institutions():
             )
 
 
+def _parse_question_id(value):
+    return slugify(value.replace(".", " "))
+
+
 def load_questions():
     with open(DATA_SOURCES[Question]) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            question_slug = slugify(row["slug"])
+            question_slug = _parse_question_id(row["slug"])
             Question.objects.create(
                 slug=question_slug,
                 text=row["text"],
@@ -128,12 +132,11 @@ def load_answers():
     with open(DATA_SOURCES[Answer]) as csvfile:
         reader = csv.DictReader(csvfile)
         for i, row in enumerate(reader):
-            slug = slugify(row["slug"]) if row["slug"] else slugify(f"Answer {i}")
-            question_slug = slugify(row["question"])
+            slug = slugify(row["slug"] if row["slug"] else row["text"])
+            question_slug = _parse_question_id(row["question"])
             question = Question.objects.get(slug=question_slug)
-            full_slug = f"{question_slug}.{slug}"
             Answer.objects.create(
-                slug=full_slug,
+                slug=slug,
                 text=row["text"],
                 user=User.objects.get(username=row["user"]),
                 question=question
