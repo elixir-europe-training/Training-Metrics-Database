@@ -11,13 +11,17 @@ from itertools import groupby
 
 from django.urls import reverse
 
-def get_tabs(request):
-    view_name = request.resolver_match.view_name
+def get_tabs(request, view_name=None):
+    view_name = (
+        request.resolver_match.view_name
+        if view_name is None
+        else view_name
+    )
     user_input = (
         [
             ("Upload data", "upload-data"),
-            ("Edit events", "event-list"),
-            ("Edit institutions", "institution-list")
+            ("Browse events", "event-list"),
+            ("All institutions", "institution-list")
         ]
         if request.user.is_authenticated
         else []

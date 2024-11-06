@@ -16,6 +16,7 @@ import re
 class GenericUpdateView(UpdateView):
     template_name = "metrics/model-form.html"
     model = models.Quality
+    view_name = None
 
     @property
     def title(self):
@@ -37,12 +38,16 @@ class GenericUpdateView(UpdateView):
             })
         context["actions"] = self.get_actions()
         context["stats"] = self.get_stats()
-        context.update(get_tabs(self.request))
+        view_name = self.get_view_name()
+        context.update(get_tabs(self.request, view_name))
         context["can_edit"] = self.can_edit()
         return context
 
     def can_edit(self):
         return True
+
+    def get_view_name(self):
+        return self.view_name
     
     def get_form(self):
         form = super().get_form()
@@ -84,6 +89,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         "url",
         "status",
     ]
+    view_name = "event-list"
 
     @property
     def title(self):
@@ -92,6 +98,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     def get_actions(self):
         return (
             [
+                (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics"),
                 (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
                 (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
                 (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
@@ -123,6 +130,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
     fields = []
+    view_name = "institution-list"
     
     def get_stats(self):
         stat_fields = [
@@ -237,19 +245,31 @@ class EventListView(LoginRequiredMixin, GenericListView):
     ]
 
     def get_queryset(self):
+        id_list = self.request.GET.getlist("id", None)
         queryset = super().get_queryset().order_by("-id")
-        return (
+        queryset = (
             queryset.filter(node_main=self.request.user.get_node())
             if self.node_only
             else queryset
         )
+        queryset = (
+            queryset.filter(id__in=id_list)
+            if id_list
+            else queryset
+        )
+        return queryset
 
     def get_entry_extras(self, entry):
         user_node = self.request.user.get_node()
         can_edit = user_node == entry.node_main and not entry.is_locked
         return [
             ("Edit" if can_edit else "View", entry.get_absolute_url()),
+            (
+                "Upload metrics",
+                reverse("upload-data-event", kwargs={"event_id": entry.id})
+            ) if can_edit else ("", None),
         ]
+
 
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):

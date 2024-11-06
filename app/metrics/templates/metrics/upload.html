@@ -53,13 +53,20 @@
         </div>
         {%endwith%}
         {% endif %}
-        {% if form.outputs.summary %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{form.outputs.summary}}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        {% if form.outputs.actions %}
+        <div class="panel panel-primary">
+            <div class="panel-body">
+                {% for label, href in form.outputs.actions %}<a href="{{href}}" class="btn btn-primary">{{label}}</a>{% endfor %}
+            </div>
         </div>
         {% endif %}
-        <hr/>
-        {% endfor %}
     </div>
+    {% if form.outputs.summary %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{form.outputs.summary}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    <hr/>
+    {% endfor %}
 {% endblock %}
