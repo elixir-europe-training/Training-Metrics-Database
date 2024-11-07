@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact, Demographic, Node
+from .models import Event, Quality, Impact, Demographic, Node, SystemSettings
 
 
 class EventGroup():
@@ -18,8 +18,10 @@ class EventGroup():
         ],
         graph_type="bar",
         field_options_mapping={},
-        use_node=None
+        use_node=None,
+        is_tab=False
     ):
+        self.is_tab = is_tab
         self.use_node = use_node
         self.field_mapping = field_mapping
         self.name = name
@@ -110,8 +112,10 @@ class Group():
         ],
         graph_type="bar",
         field_options_mapping={},
-        use_node=None
+        use_node=None,
+        is_tab=False
     ):
+        self.is_tab = is_tab
         self.use_node = use_node
         self.field_mapping = field_mapping
         self.name = name
@@ -197,18 +201,90 @@ class Metrics():
         return self.groups.get(name, None)
 
 
-def get_metrics(request):
-    node = (
-        request.user.get_node()
-        if request.user.is_authenticated
-        else None
-    )
+def get_legacy_event_metrics(node):
     shared_field_mapping = {
         "Type": "event_type",
         "Event funding": "event_funding",
         "Target audience": "event_target_audience",
         "Additional platforms": "event_additional_platforms"
     }
+    return {
+        "impact": Group(
+            "Impact metrics",
+            {
+               **shared_field_mapping,
+            },
+            Impact,
+            use_fields=[
+                "when_attend_training",
+                "main_attend_reason",
+                "how_often_use_before",
+                "how_often_use_after",
+                "able_to_explain",
+                "able_use_now",
+                "attending_led_to",
+                "people_share_knowledge",
+                "recommend_others",
+            ],
+            graph_type="pie",
+            use_node=node,
+            is_tab=True,
+        ),
+        "quality": Group(
+            "Quality metrics",
+            {
+               **shared_field_mapping,
+            },
+            Quality,
+            use_fields=[
+                "used_resources_before",
+                "used_resources_future",
+                "recommend_course",
+                "course_rating",
+                "balance",
+                "email_contact",
+            ],
+            graph_type="pie",
+            use_node=node,
+            is_tab=True,
+        ),
+        "demographic": Group(
+            "Demographic metrics",
+            {
+               **shared_field_mapping,
+            },
+            Demographic,
+            use_fields=[
+                "employment_country",
+                "heard_from",
+                "employment_sector",
+                "gender",
+                "career_stage",
+            ],
+            graph_type="pie",
+            use_node=node,
+            is_tab=True,
+        ),
+    }
+
+
+def get_event_metrics(node, super_set):
+    return {}
+
+
+def get_metrics(request):
+    settings = SystemSettings.get_settings()
+    node = (
+        request.user.get_node()
+        if request.user.is_authenticated
+        else None
+    )
+    
+    event_metrics = (
+        get_event_metrics(node, settings.get_current_super_set())
+        if settings.has_flag("use_new_model_stats")
+        else get_legacy_event_metrics(node)
+    )
     groups = {
         "event": EventGroup(
             "Number of events",
@@ -247,59 +323,7 @@ def get_metrics(request):
             ],
             use_node=node
         ),
-        "impact": Group(
-            "Number of answers",
-            {
-               **shared_field_mapping,
-            },
-            Impact,
-            use_fields=[
-                "when_attend_training",
-                "main_attend_reason",
-                "how_often_use_before",
-                "how_often_use_after",
-                "able_to_explain",
-                "able_use_now",
-                "attending_led_to",
-                "people_share_knowledge",
-                "recommend_others",
-            ],
-            graph_type="pie",
-            use_node=node
-        ),
-        "quality": Group(
-            "Number of answers",
-            {
-               **shared_field_mapping,
-            },
-            Quality,
-            use_fields=[
-                "used_resources_before",
-                "used_resources_future",
-                "recommend_course",
-                "course_rating",
-                "balance",
-                "email_contact",
-            ],
-            graph_type="pie",
-            use_node=node
-        ),
-        "demographic": Group(
-            "Number of answers",
-            {
-               **shared_field_mapping,
-            },
-            Demographic,
-            use_fields=[
-                "employment_country",
-                "heard_from",
-                "employment_sector",
-                "gender",
-                "career_stage",
-            ],
-            graph_type="pie",
-            use_node=node
-        ),
+        **event_metrics
     }
     return Metrics(groups)
 
