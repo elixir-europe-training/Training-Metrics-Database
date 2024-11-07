@@ -1,5 +1,6 @@
 from django.views.generic.edit import FormView, UpdateView, DeleteView
 from django.views.generic.list import ListView
+from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -166,6 +167,12 @@ class GenericListView(ListView):
         name = self.model.__name__
         return f"{name} list"
 
+    def get_field_label(self, field):
+        try:
+            return self.model._meta.get_field(field).verbose_name.title()
+        except FieldDoesNotExist:
+            return field
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.title
@@ -176,7 +183,10 @@ class GenericListView(ListView):
         max_extras = max(len(e) for e in extras_list)
         context["table_headings"] = [
             *["" for _i in range(max_extras)],
-            *self.fields
+            *[
+                self.get_field_label(field)
+                for field in self.fields
+            ]
         ]
         context["table_items"] = [
             [
@@ -244,6 +254,15 @@ class EventListView(LoginRequiredMixin, GenericListView):
         "metrics_status",
     ]
 
+    def get_field_label(self, field):
+        try:
+            return {
+                "date_period": "Date Period",
+                "metrics_status": "Metrics Status",
+            }[field]
+        except KeyError:
+            return super().get_field_label(field)
+
     def get_queryset(self):
         id_list = self.request.GET.getlist("id", None)
         queryset = super().get_queryset().order_by("-id")
@@ -269,7 +288,6 @@ class EventListView(LoginRequiredMixin, GenericListView):
                 reverse("upload-data-event", kwargs={"event_id": entry.id})
             ) if can_edit else ("", None),
         ]
-
 
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):
