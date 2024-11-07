@@ -35,7 +35,7 @@ class Event(models.Model):
         "Node", on_delete=models.CASCADE, related_name='node_main')
     date_start = models.DateField()
     date_end = models.DateField()
-    duration = models.DecimalField(max_digits=6, decimal_places=2)
+    duration = models.DecimalField(verbose_name="Duration (days)", max_digits=6, decimal_places=2)
     type = models.TextField(
         choices=string_choices([
             "Training - face to face",
