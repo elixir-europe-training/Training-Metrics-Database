@@ -23,7 +23,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('upload-data', upload_data, name='upload-data'),
     path('download-event-template/', download_event_template, name='download_event_template'),
-    path('download-questionsuperset-template/<int:questionsuperset_id>/', download_questionsuperset_template, name='download_questionsuperset_template'),
+    path('download-questionsuperset-template/<int:questionsuperset_id>/<str:type>', download_questionsuperset_template, name='download_questionsuperset_template'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
     path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),

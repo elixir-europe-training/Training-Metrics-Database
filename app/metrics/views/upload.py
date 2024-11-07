@@ -6,19 +6,18 @@ from django.shortcuts import get_object_or_404
 import re
 import csv
 import io
+import json
 from metrics import import_utils, models
 import traceback
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 import datetime
 from django.contrib.auth.decorators import login_required
-<<<<<<< HEAD
 from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet
-=======
+from metrics.models.common import Event
 from django.urls import reverse
 from django.utils.http import urlencode
->>>>>>> origin/feat/remodel-questions
 
 
 UPLOAD_TYPES = {
@@ -222,34 +221,63 @@ def download_event_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="event_template.csv"'
 
-    # Write CSV data to the response
-    writer = csv.writer(response)
-    writer.writerow(['Question Text', 'Description', 'Slug', 'Is Multi-choice'])  # Define headers
-    for upload_type in UPLOAD_TYPES.values():
-        print(upload_type)
-    # Fetch questions from the database and write each to the CSV
- #   questions = Question.objects.all()
- #   for question in questions:
- #       writer.writerow([question.text, question.description, question.slug, question.is_multichoice])
+    event_metrics = ['Title',
+                     'ELIXIR Node',
+                     'Start Date',
+                     'End Date',
+                     'Event type',
+                     'Funding',
+                     'Organising Institution/s',
+                     'Location (city, country)',
+                     'EXCELERATE WP',
+                     'Target audience',
+                     'Additional ELIXIR Platforms involved',
+                     'ELIXIR Communities involved',
+                     'No. of participants',
+                     'No. of trainers/ facilitators',
+                     'Url to event page/ agenda'
+                    ]
 
+    writer = csv.writer(response)
+    writer.writerow(event_metrics)
     return response
 
-def download_questionsuperset_template(request, questionsuperset_id):
-    # Get the specific QuestionSuperSet instance
-    questionsuperset = get_object_or_404(QuestionSuperSet, id=questionsuperset_id)
-    
-    # Set up the CSV response
+def download_questionsuperset_template(request, questionsuperset_id, type):
+    # Here we also need to filter out on what type/category....
+    questionsuperset = get_object_or_404(QuestionSuperSet, id = questionsuperset_id)
+    print(questionsuperset)
+    print(type)
+
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{questionsuperset.name}_template.csv"'
-    
-    # Create a CSV writer
+    response['Content-Disposition'] = f'attachment; filename="{questionsuperset.name}_{type}_template.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Question Text', 'Description', 'Slug', 'Is Multi-choice'])  # Define CSV headers
-    
+
     # Write each question in the QuestionSuperSet to the CSV
-    for set in questionsuperset.question_sets.all():
+    question_texts = []
+    question_slugs = []
+    question_answers = []
+
+    # Filter based on the type parameter
+    if type == 'Demographic and quality metrics':
+        filtered_sets = questionsuperset.question_sets.all()
+       # filtered_sets = questionsuperset.question_sets.filter(type__in=['demo', 'qual']) update this!!
+    elif type == 'Impact metrics':
+        filtered_sets = questionsuperset.question_sets.all()
+       # filtered_sets = questionsuperset.question_sets.filter(type='impact')
+    else:
+        # Node has to be here too
+        filtered_sets = questionsuperset.question_sets.all()
+
+
+    for set in filtered_sets:
         for question in set.questions.all():
-            print(question)
-       # writer.writerow([question.text, question.description, question.slug, question.is_multichoice])
+            question_texts.append(question.text)
+            question_slugs.append(question.slug)
+
+      #      answers_list = [answer.text for answer in question.answers.all()]
+      #      answers_dict = {f"{i+1}": answer.text for i, answer in enumerate(question.answers.all())}
+
+    writer.writerow(question_texts)
+    writer.writerow(question_slugs)
     
     return response
