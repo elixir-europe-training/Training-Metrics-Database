@@ -72,7 +72,6 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         "user",
         "title",
         "node",
-        "node_main",
         "date_start",
         "date_end",
         "duration",
@@ -116,9 +115,10 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     def get_stats(self):
         stat_fields = [
             "code",
+            "node_main",
         ]
         field_stats = [
-            (field, getattr(self.object, field))
+            (self.model._meta.get_field(field).verbose_name.title(), getattr(self.object, field))
             for field in stat_fields
         ]
         return [
@@ -139,7 +139,7 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
             "ror_id",
         ]
         field_stats = [
-            (field, getattr(self.object, field))
+            (self.model._meta.get_field(field).verbose_name.title(), getattr(self.object, field))
             for field in stat_fields
         ]
         return [
@@ -293,7 +293,7 @@ class GenericEventMetricsDeleteView(
     UserHasNodeMixin,
     DeleteView,
 ):
-    template_name = "dash_app/confirm.html"
+    template_name = "metrics/confirm.html"
     model = models.Event
 
     def test_func(self):
