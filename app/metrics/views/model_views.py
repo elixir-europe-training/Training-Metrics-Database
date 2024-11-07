@@ -1,4 +1,4 @@
-from django.views.generic.edit import FormView, UpdateView, DeleteView
+from django.views.generic.edit import FormView, UpdateView, DeleteView, CreateView
 from django.views.generic.list import ListView
 from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
@@ -12,6 +12,7 @@ from .common import get_tabs
 from django.urls import reverse_lazy, reverse
 import requests
 import re
+from django.core.exceptions import ValidationError
 
 
 class GenericUpdateView(UpdateView):
@@ -126,6 +127,97 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
             *self.object.stats,
             *field_stats
         ]
+
+class TessImportEventView(LoginRequiredMixin, CreateView):
+    # Figure out how to avoid duplicating this from EventView
+    model = models.Event
+    fields = [
+        "user",
+        "title",
+        "node",
+        "node_main",
+        "date_start",
+        "date_end",
+        "duration",
+        "type",
+        "organising_institution",
+        "location_city",
+        "location_country",
+        "funding",
+        "target_audience",
+        "additional_platforms",
+        "communities",
+        "number_participants",
+        "number_trainers",
+        "url",
+        "status",
+    ]
+    template_name = "metrics/tess-import-form.html"
+    tess_id = None
+    title = "Import from TeSS"
+    tess_metadata = {}
+    tess_url = None
+
+    def get_actions(self):
+        return []
+
+    def get_stats(self):
+        return None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        for field in context["form"]:
+            field.field.widget.attrs.update({
+                "class": "form-control",
+            })
+        context["actions"] = self.get_actions()
+        context["stats"] = self.get_stats()
+        context.update(get_tabs(self.request))
+        context["can_edit"] = self.can_edit()
+        context["tess_metadata"] = self.tess_metadata
+        context["tess_url"] = self.tess_url
+        return context
+
+    def can_edit(self):
+        return True
+
+    def get_form(self):
+        tmd_metadata = {}
+        if self.tess_id:
+            tess_metadata = self.import_from_tess(self.tess_id)
+            tmd_metadata = self.convert_tess_metadata(tess_metadata)
+            self.tess_metadata = tess_metadata["data"]["attributes"]
+            self.tess_url = "https://tess.elixir-europe.org" + tess_metadata["data"]["links"]["self"]
+            print(self.tess_url)
+        form = super().get_form()
+        tmd_metadata['user'] = self.request.user
+        tmd_metadata['node_main'] = self.request.user.get_node()
+        for key in form.fields:
+            field = form.fields[key]
+            field.initial = tmd_metadata.get(key, "")
+            field.disabled = not self.can_edit()
+        return form
+
+    def import_from_tess(self, tess_id):
+        tess_url = f"https://tess.elixir-europe.org/events/{tess_id}.json_api"
+        response = requests.get(tess_url, allow_redirects=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise ValidationError(f"Could not fetch TeSS entry for: {tess_id}, {tess_url}, {response.status_code}")
+
+    def convert_tess_metadata(self, tess_metadata):
+        converted = {
+            "title": tess_metadata["data"]["attributes"]["title"],
+            "url": tess_metadata["data"]["attributes"]["url"],
+            "date_start": tess_metadata["data"]["attributes"]["start"],
+            "date_end": tess_metadata["data"]["attributes"]["end"],
+            "location_city": tess_metadata["data"]["attributes"]["city"],
+            "location_country": tess_metadata["data"]["attributes"]["country"],
+            "duration": tess_metadata["data"]["attributes"]["duration"]
+        }
+        return converted
 
 
 class InstitutionView(LoginRequiredMixin, GenericUpdateView):

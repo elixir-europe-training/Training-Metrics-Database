@@ -1,0 +1,44 @@
+{% extends "common/base.html" %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% include 'common/tabs.html' %}
+    {% include 'metrics/data-warning.html' %}
+    <link rel="stylesheet" property="stylesheet" href="https://elixirtess.github.io/TeSS_widgets/css/tess-widget.css"/>
+    <div id="tess-event-list" class="tess-widget"></div>
+    <script>
+    function initTeSSWidgets() {
+        const urlBase = "{% url 'tess-import' %}"
+        class TMDEventImportRenderer {
+            constructor (widget, element, options) {
+                this.widget = widget;
+                this.element = element;
+            }
+
+            initialize () {
+                const title = document.createElement('h1');
+                title.innerText = "TeSS Events:"
+                this.element.appendChild(title);
+                this.list = document.createElement('ul');
+                this.element.appendChild(this.list);
+            }
+
+            render (errors, data, response) {
+                this.list.innerHTML = ''; // Clear out old events.
+                data.data.forEach((event) => {
+                    const eventElement = document.createElement('li');
+                    eventElement.appendChild(document.createTextNode(event.attributes['title']));
+                    const importButton = document.createElement('a');
+                    importButton.className = 'btn btn-default';
+                    importButton.href = urlBase + '/' + event.id;
+                    importButton.appendChild(document.createTextNode('Import'));
+                    eventElement.appendChild(importButton);
+                    this.list.appendChild(eventElement);
+                });
+            }
+        }
+
+        TessWidget.Events(document.getElementById('tess-event-list'), TMDEventImportRenderer, {});
+    }
+    </script>
+    <script async="" defer="" src="https://elixirtess.github.io/TeSS_widgets/js/tess-widget-standalone.js" onload="initTeSSWidgets()"></script>
+{% endblock %}
