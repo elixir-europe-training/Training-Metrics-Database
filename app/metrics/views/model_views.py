@@ -208,15 +208,21 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
             raise ValidationError(f"Could not fetch TeSS entry for: {tess_id}, {tess_url}, {response.status_code}")
 
     def convert_tess_metadata(self, tess_metadata):
+        # Take just the date part from the full date/time string
+        def convert_date(date):
+            if date:
+                return date[:10]
+
         converted = {
             "title": tess_metadata["data"]["attributes"]["title"],
             "url": tess_metadata["data"]["attributes"]["url"],
-            "date_start": tess_metadata["data"]["attributes"]["start"],
-            "date_end": tess_metadata["data"]["attributes"]["end"],
+            "date_start": convert_date(tess_metadata["data"]["attributes"]["start"]),
+            "date_end": convert_date(tess_metadata["data"]["attributes"]["end"]),
             "location_city": tess_metadata["data"]["attributes"]["city"],
             "location_country": tess_metadata["data"]["attributes"]["country"],
             "duration": tess_metadata["data"]["attributes"]["duration"]
         }
+
         return converted
 
 
