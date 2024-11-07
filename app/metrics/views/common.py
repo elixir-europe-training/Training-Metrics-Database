@@ -12,6 +12,11 @@ from itertools import groupby
 from django.urls import reverse
 
 def get_tabs(request, view_name=None):
+    metrics_groups = {
+        group_id: group
+        for group_id, group in request.metrics.groups.items()
+        if group.is_tab
+    }
     view_name = (
         request.resolver_match.view_name
         if view_name is None
@@ -19,26 +24,30 @@ def get_tabs(request, view_name=None):
     )
     user_input = (
         [
-            ("Upload data", "upload-data"),
-            ("Import from TeSS", "tess-import"),
-            ("Browse events", "event-list"),
-            ("All institutions", "institution-list")
+            ("Upload data", "upload-data", {}),
+            ("Import from TeSS", "tess-import", {}),
+            ("Browse events", "event-list", {}),
+            ("All institutions", "institution-list", {})
         ]
         if request.user.is_authenticated
         else []
     )
+    tabs = [
+        {"title": title, "url": reverse(name, kwargs=kwargs)}
+        for title, name, kwargs in [
+            ("World map", "world-map", {}),
+            *[
+                (group.get_name(), "metrics-group-report", {"group_id": group_id})
+                for group_id, group in metrics_groups.items()
+            ],
+            ("All events", "all-events", {}),
+            *user_input,
+        ]
+    ]
     return {
         "tabs": [
-            {"title": title, "url": reverse(name), "active": view_name == name}
-            for title, name in [
-                ("World map", "world-map"),
-                ("Event metrics", "event-report"),
-                ("Quality metrics", "quality-report"),
-                ("Demographics metrics", "demographic-report"),
-                ("Impact metrics", "impact-report"),
-                ("All events", "all-events"),
-                *user_input,
-            ]
+            {**tab, "active": tab["url"] == request.path_info}
+            for tab in tabs
         ]
     }
 
