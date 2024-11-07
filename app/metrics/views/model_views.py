@@ -132,10 +132,8 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
     # Figure out how to avoid duplicating this from EventView
     model = models.Event
     fields = [
-        "user",
         "title",
         "node",
-        "node_main",
         "date_start",
         "date_end",
         "duration",
@@ -181,6 +179,12 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
 
     def can_edit(self):
         return True
+
+    def form_valid(self, form):
+        obj = form.save(commit = False)
+        obj.user = self.request.user
+        obj.node_main = self.request.user.get_node()
+        return super().form_valid(form)
 
     def get_form(self):
         tmd_metadata = {}
