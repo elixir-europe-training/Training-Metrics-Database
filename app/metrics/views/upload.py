@@ -245,8 +245,6 @@ def download_event_template(request):
 def download_questionsuperset_template(request, questionsuperset_id, type):
     # Here we also need to filter out on what type/category....
     questionsuperset = get_object_or_404(QuestionSuperSet, id = questionsuperset_id)
-    print(questionsuperset)
-    print(type)
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{questionsuperset.name}_{type}_template.csv"'
@@ -255,7 +253,6 @@ def download_questionsuperset_template(request, questionsuperset_id, type):
     # Write each question in the QuestionSuperSet to the CSV
     question_texts = []
     question_slugs = []
-    question_answers = []
 
     # Filter based on the type parameter
     if type == 'Demographic and quality metrics':
@@ -273,9 +270,6 @@ def download_questionsuperset_template(request, questionsuperset_id, type):
         for question in set.questions.all():
             question_texts.append(question.text)
             question_slugs.append(question.slug)
-
-      #      answers_list = [answer.text for answer in question.answers.all()]
-      #      answers_dict = {f"{i+1}": answer.text for i, answer in enumerate(question.answers.all())}
 
     writer.writerow(question_texts)
     writer.writerow(question_slugs)
