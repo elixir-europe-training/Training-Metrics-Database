@@ -37,7 +37,7 @@
               <ul class="dropdown-menu">
                 {% for questionsuperset in question_supersets %}
                     <li>
-                        <a class="dropdown-item" href="{% url 'download_questionsuperset_template' questionsuperset.id %}">
+                        <a class="dropdown-item" href="{% url 'download_questionsuperset_template' questionsuperset.id form.title %}">
                             {{ questionsuperset.name }}
                         </a>
                     </li>
