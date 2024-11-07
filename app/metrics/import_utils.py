@@ -29,7 +29,8 @@ class ImportContext:
 
     def event_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
-
+        start_date = convert_to_date(data['date_start'])
+        end_date = convert_to_date(data['date_end'])
         event = Event.objects.create(
             user=self.user_from_data(data),
             created=created,
@@ -41,9 +42,9 @@ class ImportContext:
             ),
             title=data['title'],
             node_main=self.node_from_data(data),
-            date_start=convert_to_date(data['date_start']),
-            date_end=convert_to_date(data['date_end']),
-            duration=float(data['duration']),
+            date_start=start_date,
+            date_end=end_date,
+            duration=float(data['duration']) if data['duration'] else (end_date - start_date).days + 1,
             type=use_alias(data['type']),
             funding=csv_to_array(data['funding']) or ["ELIXIR Node"],
             location_city=data['location_city'] or "NA",
@@ -350,7 +351,7 @@ def legacy_to_current_event_dict(data: dict) -> dict:
             },
             **parse_location(data["Location (city, country)"]),
             "node_main": None,
-            "duration": 0,
+            "duration": None,
             "status": "Complete",
         }
     except KeyError as e:
