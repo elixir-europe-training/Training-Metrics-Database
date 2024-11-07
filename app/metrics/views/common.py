@@ -11,13 +11,17 @@ from itertools import groupby
 
 from django.urls import reverse
 
-def get_tabs(request):
-    view_name = request.resolver_match.view_name
+def get_tabs(request, view_name=None):
+    view_name = (
+        request.resolver_match.view_name
+        if view_name is None
+        else view_name
+    )
     user_input = (
         [
             ("Upload data", "upload-data"),
-            ("Edit events", "event-list"),
-            ("Edit institutions", "institution-list")
+            ("Browse events", "event-list"),
+            ("All institutions", "institution-list")
         ]
         if request.user.is_authenticated
         else []
@@ -75,52 +79,51 @@ def generate_pie(metrics, title, xaxis, yaxis):
             title=title,
             xaxis={'title': xaxis, 'tickfont': {'size': 10}},
             yaxis={'title': yaxis},
+            width=900,
+            height=600,
             legend={
                 "xanchor": "left",
                 "yanchor": "top",
-                "y": -1,
-                "x": 0  
+                "y": 0.5,
+                "x": 1.05  
             }
         )
     }
 
 
-def generate_tables_and_figures(group, values):
-    for field_id in group.get_fields():
-        metrics = calculate_metrics(values, field_id)
-        metrics = {
-            group.get_field_option_name(field_id, option_id): count
-            for option_id, count in metrics.items()
-        }
-        if group.get_graph_type() == "bar":
-            yield generate_bar(
-                metrics,
-                group.get_field_title(field_id),
-                group.get_field_title(field_id),
-                f'No. of {group.get_name()}'
-            )
-        else:
-            yield generate_pie(
-                metrics,
-                group.get_field_title(field_id),
-                group.get_field_title(field_id),
-                f'No. of {group.get_name()}'
-            )
-        yield [
-            {"name": name, "value": value}
-            for name, value in metrics.items()
-        ]
-
-
 def get_callback(group):
     def update_graph_and_table(*filter_values):
-        filters = list(zip([*group.get_filter_fields(), "date_from", "date_to", "node_only"], filter_values))
+        filters = list(zip([*group.get_filter_fields(), "date_from", "date_to", "node_only"], filter_values[:-len(group.get_fields())]))
+        chart_types = filter_values[-len(group.get_fields()):]  # Last inputs are the chart types
         values = group.get_values(**{
             name: value
             for name, value in filters
         })
+        outputs = []
+        for field_id, chart_type in zip(group.get_fields(), chart_types):
+            metrics = calculate_metrics(values, field_id)
+            metrics = {
+                group.get_field_option_name(field_id, option_id): count
+                for option_id, count in metrics.items()
+            }
+            if chart_type == 'bar':
+                outputs.append(generate_bar(
+                    metrics,
+                    group.get_field_title(field_id),
+                    group.get_field_title(field_id),
+                    f'No. of {group.get_name()}'
+                ))
+            else:
+                outputs.append(generate_pie(
+                    metrics,
+                    group.get_field_title(field_id),
+                    group.get_field_title(field_id),
+                    f'No. of {group.get_name()}'
+                ))
+            # Append table data for DataTable component
+            outputs.append([{"name": name, "value": value} for name, value in metrics.items()])
         
-        return list(generate_tables_and_figures(group, values))
+        return outputs
     
     return update_graph_and_table
 
@@ -157,13 +160,11 @@ def use_callback(app, group):
     app.callback(
         list(get_outputs(group)),
         [
-            *[
-                Input(field_id, 'value')
-                for field_id in group.get_filter_fields()
-            ],
+            *[Input(field_id, 'value') for field_id in group.get_filter_fields()],
             Input('date-picker-range', 'start_date'),
             Input('date-picker-range', 'end_date'),
             Input('node-only-toggle', 'value'),
+            *[Input(f"{field_id}-chart-type", "value") for field_id in group.get_fields()]
         ]
     )(get_callback(group))
 
@@ -262,7 +263,16 @@ def get_layout(app, group):
                         ],
                         export_format='csv'
                     ),
-                    dcc.Graph(id=f'{field_id}-graph')
+                    dcc.Graph(id=f'{field_id}-graph'),
+                    dcc.RadioItems(
+                        id=f'{field_id}-chart-type',
+                        options=[
+                            {'label': 'Pie Chart', 'value': 'pie'},
+                            {'label': 'Bar Chart', 'value': 'bar'}
+                        ],
+                        value='pie',
+                        labelStyle={'display': 'inline-block', 'margin-right': '10px'}
+                    )
                 ], className='pt-4 pb-4')
                 for field_id in group.get_fields()
             ]

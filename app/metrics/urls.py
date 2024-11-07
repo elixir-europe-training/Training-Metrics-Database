@@ -25,6 +25,7 @@ urlpatterns = [
     path('download-event-template/', download_event_template, name='download_event_template'),
     path('download-questionsuperset-template/<int:questionsuperset_id>/', download_questionsuperset_template, name='download_questionsuperset_template'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
+    path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
     path('institution/list', InstitutionListView.as_view(), name='institution-list'),
@@ -39,5 +40,5 @@ urlpatterns = [
     path('event/delete-metrics/quality/<int:pk>',
         QualityMetricsDeleteView.as_view(),
         name="quality-delete-metrics"
-    )
+    ),
 ]

@@ -2,17 +2,23 @@ from django.shortcuts import render, get_object_or_404
 from metrics.views.common import get_tabs
 from django import forms
 from django.forms.widgets import FileInput, Select, CheckboxInput
+from django.shortcuts import get_object_or_404
 import re
 import csv
 import io
 from metrics import import_utils, models
 import traceback
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 import datetime
 from django.contrib.auth.decorators import login_required
+<<<<<<< HEAD
 from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet
+=======
+from django.urls import reverse
+from django.utils.http import urlencode
+>>>>>>> origin/feat/remodel-questions
 
 
 UPLOAD_TYPES = {
@@ -71,6 +77,16 @@ def summary_output(items: list):
     return f"Successfully uploaded {len(items)} objects."
 
 
+def events_actions_output(items: list):
+    item_ids = [item.id for item in items]
+    base_url = reverse("event-list")
+    query_params = {"id": item_ids}
+    view_list_url = f"{base_url}?{urlencode(query_params, doseq=True)}"
+    return [
+        ("View events", view_list_url)
+    ]
+
+
 def table_output(columns: dict):
     def _table_output(items: list):
         return {
@@ -82,10 +98,23 @@ def table_output(columns: dict):
         }
     return _table_output
 
+
 @login_required
-def upload_data(request):
+def upload_data(request, event_id=None):
     node = request.user.get_node()
     question_supersets = QuestionSuperSet.objects.filter(node = node)
+
+    event = get_object_or_404(models.Event, id=event_id) if event_id else None
+    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
+
+    if event and (event.is_locked or request.user.get_node() != event.node_main):
+        raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
+
+    upload_types = {
+        key: value
+        for key, value in UPLOAD_TYPES.items()
+        if event is None or key != "events"
+    }
     forms = [
         DataUploadForm(
             request.POST if request.method == "POST" else None,
@@ -95,7 +124,7 @@ def upload_data(request):
             description=upload_type["description"],
             prefix=upload_type["id"],
         )
-        for upload_type in UPLOAD_TYPES.values()
+        for upload_type in upload_types.values()
     ]
 
     if request.method == "POST":
@@ -105,73 +134,84 @@ def upload_data(request):
                 upload_type = data["upload_type"]
                 file = data["file"]
 
-                node_main = request.user.get_node()
-                current_time = datetime.datetime.now()
-                import_context = import_utils.LegacyImportContext(
-                    user=request.user,
-                    node_main=node_main,
-                    timestamps=(
-                        current_time,
-                        current_time
-                    ),
-                )
+                if not re.match(file_match, file.name):
+                    form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
+                else:
+                    node_main = request.user.get_node()
+                    current_time = datetime.datetime.now()
+                    import_context = import_utils.LegacyImportContext(
+                        user=request.user,
+                        node_main=node_main,
+                        timestamps=(
+                            current_time,
+                            current_time
+                        ),
+                        fixed_event=event
+                    )
 
-                (parser, importer, view_transforms) = {
-                    "events": (
-                        import_utils.legacy_to_current_event_dict,
-                        import_context.event_from_dict,
-                        {
-                            "summary": summary_output,
-                            "table": table_output({
-                                "id": "Event Code",
-                                "title": "Title",
-                                "date_start": "Start date",
-                                "date_end": "End date"
-                            })
-                        }
-                    ),
-                    "demographic_quality_metrics": (
-                        import_utils.legacy_to_current_quality_or_demographic_dict,
-                        import_context.quality_or_demographic_from_dict,
-                        {"summary": summary_output}
-                    ),
-                    "impact_metrics": (
-                        import_utils.legacy_to_current_impact_dict,
-                        import_context.impact_from_dict,
-                        {"summary": summary_output}
-                    ),
-                }[upload_type]
+                    (parser, importer, view_transforms) = {
+                        "events": (
+                            import_utils.legacy_to_current_event_dict,
+                            import_context.event_from_dict,
+                            {
+                                "summary": summary_output,
+                                "table": table_output({
+                                    "id": "Event Code",
+                                    "title": "Title",
+                                    "date_start": "Start date",
+                                    "date_end": "End date"
+                                }),
+                                "actions": events_actions_output
+                            }
+                        ),
+                        "demographic_quality_metrics": (
+                            import_utils.legacy_to_current_quality_or_demographic_dict,
+                            import_context.quality_or_demographic_from_dict,
+                            {"summary": summary_output}
+                        ),
+                        "impact_metrics": (
+                            import_utils.legacy_to_current_impact_dict,
+                            import_context.impact_from_dict,
+                            {"summary": summary_output}
+                        ),
+                    }[upload_type]
 
-                csv_stream = io.StringIO(file.read().decode())
-                reader = csv.DictReader(csv_stream, delimiter=',')
-                entries = []
-                for (index, row) in enumerate(reader):
-                    try:
-                        entries.append(parser(row))
-                    except ValidationError as e:
-                        traceback.print_exc()
-                        form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+                    csv_stream = io.StringIO(file.read().decode())
+                    reader = csv.DictReader(csv_stream, delimiter=',')
+                    entries = []
+                    for (index, row) in enumerate(reader):
+                        try:
+                            entries.append(parser(row))
+                        except ValidationError as e:
+                            traceback.print_exc()
+                            form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
-                if len(form.errors) == 0:
-                    items = []
-                    try:
-                        with transaction.atomic():
-                            items = [importer(entry) for entry in entries]
+                    if len(form.errors) == 0:
+                        items = []
+                        try:
+                            with transaction.atomic():
+                                items = [importer(entry) for entry in entries]
 
-                        form.outputs = {
-                            key: view_transform(items)
-                            for key, view_transform in view_transforms.items()
-                        }
-                    except Exception as e:
-                        traceback.print_exc()
-                        form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                            form.outputs = {
+                                key: view_transform(items)
+                                for key, view_transform in view_transforms.items()
+                            }
+                        except Exception as e:
+                            traceback.print_exc()
+                            form.add_error(None, f"Failed to import '{upload_type}': {e}")
+    
+    title = (
+        f"Upload data for event: {event.title}" 
+        if event
+        else "Upload data"
+    )
     return render(
         request,
         'metrics/upload.html',
         context={
-            "title": "Upload data",
+            "title": title,
             "question_supersets": question_supersets,
-            **get_tabs(request),
+            **get_tabs(request, view_name="event-list" if event else None),
             "forms": forms,
         }
     )

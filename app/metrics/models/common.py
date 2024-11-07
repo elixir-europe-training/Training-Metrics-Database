@@ -72,9 +72,9 @@ class Event(EditTracking):
 
     target_audience = ChoiceArrayField(base_field=models.TextField(
         choices=string_choices([
-            "Academia / Research Institution",
+            "Academia/ Research Institution",
             "Industry",
-            "Non-profit Organisation",
+            "Non-Profit Organisation",
             "Healthcare",
         ])
     ))
