@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact, Demographic, Node, SystemSettings
+from .models import Event, Quality, Impact, Demographic, Node, SystemSettings, ResponseSet
 
 
 class EventGroup():
@@ -97,7 +97,7 @@ class EventGroup():
         return self.name
 
 
-class Group():
+class LegacyGroup():
     def __init__(
         self,
         name,
@@ -193,6 +193,124 @@ class Group():
         return self.name
 
 
+class MetricsGroup:
+    def __init__(
+        self,
+        name,
+        question_set,
+        graph_type="bar",
+        field_options_mapping={},
+        use_node=None,
+        is_tab=False
+    ):
+        self.question_set = question_set
+        self._questions = None
+        self._answers = None
+        self.event_field_mapping = {
+            "event_type": "Type",
+            "event_funding": "Event funding",
+            "event_target_audience": "Target audience",
+            "event_additional_platforms": "Additional platforms",
+            "event_communities": "Communities",
+        }
+        
+        event_fields = [
+            field_id.replace("event_", "")
+            for field_id in self.event_field_mapping.keys()
+        ]
+        self.is_tab = is_tab
+        self.use_node = use_node
+        self.name = name
+        self.filter_fields = list(self.event_field_mapping.keys())
+        self.graph_type = graph_type
+        self.field_options_mapping = field_options_mapping
+        self.fields = {
+            **{
+                f"event_{field_id}": Event.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
+                for field_id in event_fields
+            }
+        }
+
+    @property
+    def questions(self):
+        if not self._questions:
+            self._questions = {
+                q.slug: q
+                for q in self.question_set.questions.all()
+            }
+        return self._questions
+    
+    @property
+    def answers(self):
+        if not self._answers:
+            self._answers = {
+                f"{q.slug}:{a.slug}": a
+                for q in self.questions.values()
+                for a in q.answers.all()
+            }
+        return self._answers
+    
+    def get_graph_type(self):
+        return self.graph_type
+
+    def get_fields(self):
+        return list(self.questions.keys())
+    
+    def get_filter_fields(self):
+        return self.filter_fields
+    
+    def get_field_placeholder(self, field_id):
+        return f"Select {self.get_field_title(field_id)}"
+    
+    def get_field_options(self, field_id):
+        try:
+            return [
+                answer.slug
+                for answer in self.questions[field_id].answers.all()
+            ]
+        except KeyError:
+            return self.fields.get(field_id, [])
+    
+    def get_field_option_name(self, field_id, option_id):
+        field_option_id = f"{field_id}:{option_id}"
+        try:
+            return self.answers[field_option_id].text
+        except KeyError:
+            return field_option_id
+    
+    def get_field_title(self, lookup_id):
+        try:
+            return self.questions[lookup_id].text
+        except KeyError:
+            return self.event_field_mapping.get(lookup_id, lookup_id)
+    
+    def get_values(self, **params):
+        query = ResponseSet.objects.all()
+        if params.get("event_type"):
+            query = query.filter(event__type=params.get("event_type"))
+        if params.get("event_funding"):
+            query = query.filter(event__funding=params.get("event_funding"))
+        if params.get("event_target_audience"):
+            query = query.filter(event__target_audience=params.get("event_target_audience"))
+        if params.get("event_additional_platforms"):
+            query = query.filter(event__additional_platforms=params.get("event_additional_platforms"))
+        if params.get("node_only") and self.use_node:
+            query = query.filter(event__node=self.use_node)
+
+        values = query.prefetch_related("entries", "entries__answer", "entries__answer__question").filter(question_set=self.question_set)
+        result = [
+            {
+                e.answer.question.slug: e.answer.slug
+                for e in v.entries.all()
+            }
+            for v in values
+        ]
+        return result
+    
+    def get_name(self):
+        return self.name
+
+
 class Metrics():
     def __init__(self, groups):
         self.groups = groups
@@ -209,7 +327,7 @@ def get_legacy_event_metrics(node):
         "Additional platforms": "event_additional_platforms"
     }
     return {
-        "impact": Group(
+        "impact": LegacyGroup(
             "Impact metrics",
             {
                **shared_field_mapping,
@@ -230,7 +348,7 @@ def get_legacy_event_metrics(node):
             use_node=node,
             is_tab=True,
         ),
-        "quality": Group(
+        "quality": LegacyGroup(
             "Quality metrics",
             {
                **shared_field_mapping,
@@ -248,7 +366,7 @@ def get_legacy_event_metrics(node):
             use_node=node,
             is_tab=True,
         ),
-        "demographic": Group(
+        "demographic": LegacyGroup(
             "Demographic metrics",
             {
                **shared_field_mapping,
@@ -269,7 +387,19 @@ def get_legacy_event_metrics(node):
 
 
 def get_event_metrics(node, super_set):
-    return {}
+    if not super_set:
+        return {}
+    question_sets = list(super_set.question_sets.all())
+    return {
+        question_set.slug: MetricsGroup(
+            question_set.name,
+            question_set,
+            graph_type="pie",
+            use_node=node,
+            is_tab=True,
+        )
+        for question_set in question_sets
+    }
 
 
 def get_metrics(request):
@@ -287,7 +417,7 @@ def get_metrics(request):
     )
     groups = {
         "event": EventGroup(
-            "Number of events",
+            "Event metrics",
             {
                 "Type": "type",
                 "Event funding": "funding",
@@ -300,7 +430,8 @@ def get_metrics(request):
                 "target_audience",
                 "additional_platforms"
             ],
-            use_node=node
+            use_node=node,
+            is_tab=True
         ),
         "event_full": EventGroup(
             "Events",
@@ -321,7 +452,7 @@ def get_metrics(request):
                 "type",
                 "organising_institution",
             ],
-            use_node=node
+            use_node=node,
         ),
         **event_metrics
     }

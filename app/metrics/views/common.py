@@ -52,7 +52,7 @@ def get_tabs(request, view_name=None):
     }
 
 def calculate_metrics(data, column):
-    column_values = [d[column] for d in data]
+    column_values = [d.get(column) for d in data]
     count = {}
     for value in column_values:
         values = value if type(value) == list else [value]
