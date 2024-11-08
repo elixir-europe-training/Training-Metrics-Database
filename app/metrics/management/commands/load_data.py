@@ -120,7 +120,7 @@ class Command(BaseCommand):
 
         parser.add_argument(
             "--resetdata",
-            type=str,
+            action="store_true",
             required=False,
         )
 
