@@ -47,9 +47,9 @@ class ResponseSetAdmin(ModelAdmin):
         return super().save_model(request, obj, form, change)
 
 
+
 @admin.register(QuestionSet)
 class QuestionSetAdmin(ModelAdmin):
-    exclude = EDIT_TRACKING_FIELDS
     prepopulated_fields = {"slug": ["name"]}
 
     list_display = (
@@ -57,14 +57,33 @@ class QuestionSetAdmin(ModelAdmin):
         "user",
     )
 
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            qs = super().get_queryset(request)
+            return qs
+        qs = super().get_queryset(request)
+        # Filter QuestionSets based on the node of associated QuestionSuperSets
+        exclude = EDIT_TRACKING_FIELDS  # needs to be included if we want to be able to change user for a set
+        return qs.filter(
+            user = request.user  # also add admin user
+        ).distinct()
+
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
+        if 'user' in form.cleaned_data:
+            obj.user = form.cleaned_data['user']
+        else:
+            obj.user = request.user
         return super().save_model(request, obj, form, change)
+
+    def get_fields(self, request, obj = None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser:
+            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+        return fields
 
 
 @admin.register(QuestionSuperSet)
 class QuestionSuperSetAdmin(ModelAdmin):
-    exclude = EDIT_TRACKING_FIELDS
     prepopulated_fields = {"slug": ["name"]}
 
     list_display = (
@@ -73,23 +92,54 @@ class QuestionSuperSetAdmin(ModelAdmin):
         "user",
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets (node=None)
+        return qs.filter(
+            user = request.user
+        ).distinct()
+
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
+        if 'user' in form.cleaned_data:
+            obj.user = form.cleaned_data['user']
+        else:
+            obj.user = request.user
         return super().save_model(request, obj, form, change)
+
+    def get_fields(self, request, obj = None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser:
+            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+        return fields
 
 
 class AnswerAdmin(admin.TabularInline):
     model = Answer
-    exclude = EDIT_TRACKING_FIELDS
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets (node=None)
+        return qs.filter(
+            user = request.user
+        ).distinct()
 
     def get_prepopulated_fields(self, request, obj=None):
         return {"slug": ["text"]}
+
+    def get_fields(self, request, obj = None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser:
+            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+        return fields
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ["text"]}
-    exclude = EDIT_TRACKING_FIELDS
     list_display = (
         "text",
         "user",
@@ -98,11 +148,29 @@ class QuestionAdmin(admin.ModelAdmin):
         AnswerAdmin,
     ]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Filter Questions through QuestionSets linked to QuestionSuperSets that match the user's node
+        return qs.filter(
+            user = request.user
+        ).distinct()
+
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
+        if 'user' in form.cleaned_data:
+            obj.user = form.cleaned_data['user']
+        else:
+            obj.user = request.user
         return super().save_model(request, obj, form, change)
     
     def save_formset(self, request, form, formset, change):
         for instance in formset.save(commit=False):
             instance.user = request.user
         return super().save_formset(request, form, formset, change)
+
+    def get_fields(self, request, obj = None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser:
+            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+        return fields
