@@ -65,8 +65,8 @@ class QuestionSetAdmin(ModelAdmin):
         # Filter QuestionSets based on the node of associated QuestionSuperSets
         exclude = EDIT_TRACKING_FIELDS  # needs to be included if we want to be able to change user for a set
         return qs.filter(
-            user = request.user  # also add admin user
-        ).distinct()
+                user = request.user
+        ).distinct() | qs.filter(user__is_superuser = True).distinct()
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -74,6 +74,18 @@ class QuestionSetAdmin(ModelAdmin):
         else:
             obj.user = request.user
         return super().save_model(request, obj, form, change)
+    
+    def has_change_permission(self, request, obj = None):
+        # Node users can only change their own objects, not those of the superuser
+        if obj and obj.user != request.user and not request.user.is_superuser:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj = None):
+        # Node users cannot delete superuser objects
+        if obj and obj.user != request.user and not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
 
     def get_fields(self, request, obj = None):
         fields = super().get_fields(request, obj)
@@ -96,10 +108,10 @@ class QuestionSuperSetAdmin(ModelAdmin):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets (node=None)
+        # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets
         return qs.filter(
-            user = request.user
-        ).distinct()
+                user = request.user
+        ).distinct() | qs.filter(user__is_superuser = True).distinct()
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -107,6 +119,18 @@ class QuestionSuperSetAdmin(ModelAdmin):
         else:
             obj.user = request.user
         return super().save_model(request, obj, form, change)
+
+    def has_change_permission(self, request, obj = None):
+        # Node users can only change their own objects, not those of the superuser
+        if obj and obj.user != request.user and not request.user.is_superuser:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj = None):
+        # Node users cannot delete superuser objects
+        if obj and obj.user != request.user and not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
 
     def get_fields(self, request, obj = None):
         fields = super().get_fields(request, obj)
