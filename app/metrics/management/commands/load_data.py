@@ -195,6 +195,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["resetdata"]:
             all_models = [
+                QuestionSuperSet,
+                QuestionSet,
+                Question,
+                Answer,
                 Event,
                 Demographic,
                 Quality,
