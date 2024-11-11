@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact, Demographic, Node, SystemSettings, ResponseSet
+from .models import Event, Quality, Impact, Demographic, Node, SystemSettings, Response
 
 
 class EventGroup():
@@ -285,25 +285,32 @@ class MetricsGroup:
             return self.event_field_mapping.get(lookup_id, lookup_id)
     
     def get_values(self, **params):
-        query = ResponseSet.objects.all()
+        query = Response.objects.filter(answer__question__in=self.questions.values())
         if params.get("event_type"):
-            query = query.filter(event__type=params.get("event_type"))
+            query = query.filter(response_set__event__type=params.get("event_type"))
         if params.get("event_funding"):
-            query = query.filter(event__funding=params.get("event_funding"))
+            query = query.filter(response_set__event__funding=params.get("event_funding"))
         if params.get("event_target_audience"):
-            query = query.filter(event__target_audience=params.get("event_target_audience"))
+            query = query.filter(response_set__event__target_audience=params.get("event_target_audience"))
         if params.get("event_additional_platforms"):
-            query = query.filter(event__additional_platforms=params.get("event_additional_platforms"))
+            query = query.filter(response_set__event__additional_platforms=params.get("event_additional_platforms"))
         if params.get("node_only") and self.use_node:
-            query = query.filter(event__node=self.use_node)
+            query = query.filter(response_set__event__node=self.use_node)
 
-        values = query.prefetch_related("entries", "entries__answer", "entries__answer__question").filter(question_set=self.question_set)
+        values = query.prefetch_related("answer", "answer__question", "response_set")
+        grouped_values = {}
+        for value in values:
+            group_id = value.response_set.id
+            value_group = grouped_values.get(group_id, [])
+            value_group.append(value)
+            grouped_values[group_id] = value_group
+
         result = [
             {
-                e.answer.question.slug: e.answer.slug
-                for e in v.entries.all()
+                r.answer.question.slug: r.answer.slug
+                for r in value_group
             }
-            for v in values
+            for value_group in grouped_values.values()
         ]
         return result
     

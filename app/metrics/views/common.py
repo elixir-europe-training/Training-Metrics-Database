@@ -55,9 +55,10 @@ def calculate_metrics(data, column):
     column_values = [d.get(column) for d in data]
     count = {}
     for value in column_values:
-        values = value if type(value) == list else [value]
-        for v in values:
-            count[v] = count.get(v, 0) + 1
+        if value is not None:
+            values = value if type(value) == list else [value]
+            for v in values:
+                count[v] = count.get(v, 0) + 1
     return count
 
 
