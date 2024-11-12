@@ -210,27 +210,37 @@ def legacy_upload(request, event):
 
 def response_upload(request, event):
     node = request.user.get_node()
-    upload_types = {
-        key: value
-        for key, value in UPLOAD_TYPES.items()
-        if event is None or key != "events"
-    }
     question_supersets = QuestionSuperSet.objects.filter(
         use_for_upload=True
     )
-    forms = [
-        DataUploadForm(
+    event_upload_form = None
+    if event is None:
+        upload_type = UPLOAD_TYPES["events"]
+        event_upload_form = DataUploadForm(
             request.POST if request.method == "POST" else None,
             request.FILES if request.method == "POST" else None,
-            data_type=super_set.slug,
-            title=super_set.name,
-            prefix=super_set.slug,
-            associated_templates=[(
-                super_set.name,
-                reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
-            )]
+            data_type=upload_type["id"],
+            title=upload_type["title"],
+            description=upload_type["description"],
+            prefix=upload_type["id"],
+            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
         )
-        for super_set in question_supersets
+    forms = [
+        *([event_upload_form] if event_upload_form else []),
+        *[
+            DataUploadForm(
+                request.POST if request.method == "POST" else None,
+                request.FILES if request.method == "POST" else None,
+                data_type=super_set.slug,
+                title=super_set.name,
+                prefix=super_set.slug,
+                associated_templates=[(
+                    super_set.name,
+                    reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
+                )]
+            )
+            for super_set in question_supersets
+        ]
     ]
     file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
 
