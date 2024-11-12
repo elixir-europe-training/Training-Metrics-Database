@@ -1,7 +1,17 @@
 from datetime import datetime
 from functools import lru_cache
 from contextlib import suppress
-from .models import Event, Quality, Impact, Demographic, Node, SystemSettings, Response
+from .models import (
+    Event,
+    Quality,
+    Impact,
+    Demographic,
+    Node,
+    SystemSettings,
+    Response,
+    QuestionSet,
+    QuestionSuperSet
+)
 
 
 class EventGroup():
@@ -230,13 +240,22 @@ class MetricsGroup:
                 for field_id in event_fields
             }
         }
+    
+    @property
+    def question_sets(self):
+        if isinstance(self.question_set, QuestionSet):
+            return [self.question_set]
+        elif isinstance(self.question_set, QuestionSuperSet):
+            return list(self.question_set.question_sets.all())
+        return []
 
     @property
     def questions(self):
         if not self._questions:
             self._questions = {
                 q.slug: q
-                for q in self.question_set.questions.all()
+                for qs in self.question_sets
+                for q in qs.questions.all()
             }
         return self._questions
     
@@ -393,19 +412,18 @@ def get_legacy_event_metrics(node):
     }
 
 
-def get_event_metrics(node, super_set):
-    if not super_set:
+def get_event_metrics(node, super_sets):
+    if not super_sets:
         return {}
-    question_sets = list(super_set.question_sets.all())
     return {
-        question_set.slug: MetricsGroup(
-            question_set.name,
-            question_set,
+        super_set.slug: MetricsGroup(
+            super_set.name,
+            super_set,
             graph_type="pie",
             use_node=node,
             is_tab=True,
         )
-        for question_set in question_sets
+        for super_set in super_sets
     }
 
 
@@ -418,7 +436,7 @@ def get_metrics(request):
     )
     
     event_metrics = (
-        get_event_metrics(node, settings.get_current_super_set())
+        get_event_metrics(node, settings.get_metrics_sets())
         if settings.has_flag("use_new_model_stats")
         else get_legacy_event_metrics(node)
     )

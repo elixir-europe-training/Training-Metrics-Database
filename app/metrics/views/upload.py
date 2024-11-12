@@ -215,7 +215,9 @@ def response_upload(request, event):
         for key, value in UPLOAD_TYPES.items()
         if event is None or key != "events"
     }
-    question_supersets = QuestionSuperSet.objects.all()
+    question_supersets = QuestionSuperSet.objects.filter(
+        use_for_upload=True
+    )
     forms = [
         DataUploadForm(
             request.POST if request.method == "POST" else None,
