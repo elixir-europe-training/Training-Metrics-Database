@@ -28,21 +28,19 @@
             {% endif %}
             {%endfor%}
             <button type="submit" class="btn btn-success">Upload</button>
-            {% if form.title == 'Events' %}
-            <a href="{% url 'download_event_template' %}" class="btn btn-success ms-2" style="background-color:#87c265;">Download template</a>
-            {% else %}
-            <button type="button" class="btn btn-primary dropdown-toggle ms-2" style="background-color:#87c265;" data-bs-toggle="dropdown">
-                Download question template
-              </button>
-              <ul class="dropdown-menu">
-                {% for questionsuperset in question_supersets %}
+            {% if form.associated_templates %}
+                <button type="button" class="btn btn-primary dropdown-toggle ms-2" style="background-color:#87c265;" data-bs-toggle="dropdown">
+                Download template
+                </button>
+                <ul class="dropdown-menu">
+                    {% for label, url in form.associated_templates %}
                     <li>
-                        <a class="dropdown-item" href="{% url 'download_questionsuperset_template' questionsuperset.id form.title %}">
-                            {{ questionsuperset.name }}
+                        <a class="dropdown-item" href="{{ url }}">
+                            {{ label }}
                         </a>
                     </li>
                 {% endfor %}
-              </ul>
+                </ul>
             {% endif %}
         </form>
     </div>

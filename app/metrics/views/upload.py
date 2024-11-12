@@ -13,10 +13,11 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 import datetime
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.http import urlencode
 from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet
+from django.http import HttpResponseNotFound
 
 
 UPLOAD_TYPES = {
@@ -25,17 +26,20 @@ UPLOAD_TYPES = {
         {
             "id": "events",
             "title": "Events",
-            "description": ""
+            "description": "",
+            "template_url": reverse_lazy("download_template", kwargs={"data_type": "event", "slug": "base"})
         },
         {
             "id": "demographic_quality_metrics",
             "title": "Demographic and quality metrics",
-            "description": ""
+            "description": "",
+            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "demographic_quality"})
         },
         {
             "id": "impact_metrics",
             "title": "Impact metrics",
-            "description": ""
+            "description": "",
+            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "impact"})
         },
     ]
 }
@@ -55,13 +59,10 @@ class DataUploadForm(forms.Form):
         widget=Select(attrs={"class": "form-control d-none"}),
     )
 
-    def __init__(self, *args, title=None, description=None, fixed_type=None, **kwargs):
+    def __init__(self, *args, title=None, description=None, associated_templates=None, data_type=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fixed_type = fixed_type
-        if self.fixed_type is not None:
-            upload_type = self.fields["upload_type"]
-            upload_type.initial = self.fixed_type
-            upload_type.disabled = True
+        self.data_type = data_type
+        self.associated_templates=associated_templates
 
         self.description = (
             None
@@ -97,39 +98,32 @@ def table_output(columns: dict):
     return _table_output
 
 
-@login_required
-def upload_data(request, event_id=None):
+def legacy_upload(request, event):
     node = request.user.get_node()
-    event = get_object_or_404(models.Event, id=event_id) if event_id else None
-    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
-
-    if event and (event.is_locked or node != event.node_main):
-        raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
-
     upload_types = {
         key: value
         for key, value in UPLOAD_TYPES.items()
         if event is None or key != "events"
     }
-
-    question_supersets = QuestionSuperSet.objects.filter(node = node)
     forms = [
         DataUploadForm(
             request.POST if request.method == "POST" else None,
             request.FILES if request.method == "POST" else None,
-            fixed_type=upload_type["id"],
+            data_type=upload_type["id"],
             title=upload_type["title"],
             description=upload_type["description"],
             prefix=upload_type["id"],
+            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
         )
         for upload_type in upload_types.values()
     ]
+    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
 
     if request.method == "POST":
         for form in forms:
             if form.has_changed() and form.is_valid():
                 data = form.cleaned_data
-                upload_type = data["upload_type"]
+                upload_type = form.data_type
                 file = data["file"]
 
                 if not re.match(file_match, file.name):
@@ -208,7 +202,46 @@ def upload_data(request, event_id=None):
         'metrics/upload.html',
         context={
             "title": title,
-            "question_supersets": question_supersets,
+            **get_tabs(request, view_name="event-list" if event else None),
+            "forms": forms,
+        }
+    )
+
+
+def response_upload(request, event):
+    node = request.user.get_node()
+    upload_types = {
+        key: value
+        for key, value in UPLOAD_TYPES.items()
+        if event is None or key != "events"
+    }
+    question_supersets = QuestionSuperSet.objects.all()
+    forms = [
+        DataUploadForm(
+            request.POST if request.method == "POST" else None,
+            request.FILES if request.method == "POST" else None,
+            data_type=super_set.slug,
+            title=super_set.name,
+            prefix=super_set.slug,
+            associated_templates=[(
+                super_set.name,
+                reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
+            )]
+        )
+        for super_set in question_supersets
+    ]
+    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
+
+    title = (
+        f"Upload data for event: {event.title}" 
+        if event
+        else "Upload data"
+    )
+    return render(
+        request,
+        'metrics/upload.html',
+        context={
+            "title": title,
             **get_tabs(request, view_name="event-list" if event else None),
             "forms": forms,
         }
@@ -216,62 +249,113 @@ def upload_data(request, event_id=None):
 
 
 @login_required
-def download_event_template(request):
+def upload_data(request, event_id=None):
+    settings = models.SystemSettings.get_settings()
+    node = request.user.get_node()
+    event = get_object_or_404(models.Event, id=event_id) if event_id else None
+
+    if not node:
+        raise PermissionDenied(f"You have to be associated with a node to upload data.")
+
+    if event and (event.is_locked or node != event.node_main):
+        raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
+    
+    if settings.has_flag("use_new_model_upload"):
+        return response_upload(request, event)
+    else:
+        return legacy_upload(request, event)
+
+
+def download_csv(lines):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="event_template.csv"'
-
-    event_metrics = [
-        'Title',
-        'ELIXIR Node',
-        'Start Date',
-        'End Date',
-        'Event type',
-        'Funding',
-        'Organising Institution/s',
-        'Location (city, country)',
-        'EXCELERATE WP',
-        'Target audience',
-        'Additional ELIXIR Platforms involved',
-        'ELIXIR Communities involved',
-        'No. of participants',
-        'No. of trainers/ facilitators',
-        'Url to event page/ agenda'
-    ]
-
     writer = csv.writer(response)
-    writer.writerow(event_metrics)
+
+    for line in lines:
+        writer.writerow(line)
     return response
 
-def download_questionsuperset_template(request, questionsuperset_id, type):
-    # Here we also need to filter out on what type/category....
-    questionsuperset = get_object_or_404(QuestionSuperSet, id = questionsuperset_id)
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{questionsuperset.name}_{type}_template.csv"'
-    writer = csv.writer(response)
-
-    # Write each question in the QuestionSuperSet to the CSV
-    question_texts = []
-    question_slugs = []
-
-    # Filter based on the type parameter
-    if type == 'Demographic and quality metrics':
-        filtered_sets = questionsuperset.question_sets.all()
-       # filtered_sets = questionsuperset.question_sets.filter(type__in=['demo', 'qual']) update this!!
-    elif type == 'Impact metrics':
-        filtered_sets = questionsuperset.question_sets.all()
-       # filtered_sets = questionsuperset.question_sets.filter(type='impact')
-    else:
-        # Node has to be here too
-        filtered_sets = questionsuperset.question_sets.all()
-
-
-    for set in filtered_sets:
-        for question in set.questions.all():
-            question_texts.append(question.text)
-            question_slugs.append(question.slug)
-
-    writer.writerow(question_texts)
-    writer.writerow(question_slugs)
+@login_required
+def download_template(request, data_type, slug):
+    if data_type == "event" and slug == "base":
+        event_metrics = [
+            'Title',
+            'ELIXIR Node',
+            'Start Date',
+            'End Date',
+            'Event type',
+            'Funding',
+            'Organising Institution/s',
+            'Location (city, country)',
+            'EXCELERATE WP',
+            'Target audience',
+            'Additional ELIXIR Platforms involved',
+            'ELIXIR Communities involved',
+            'No. of participants',
+            'No. of trainers/ facilitators',
+            'Url to event page/ agenda'
+        ]
+        return download_csv([event_metrics])
     
-    return response
+    elif data_type == "metrics":
+        settings = models.SystemSettings.get_settings()
+        if settings.has_flag("use_new_model_upload"):
+            questionsuperset = get_object_or_404(QuestionSuperSet, slug=slug)
+
+            # Write each question in the QuestionSuperSet to the CSV
+            question_texts = []
+            question_slugs = []
+
+            filtered_sets = questionsuperset.question_sets.all()
+
+            for question_set in filtered_sets:
+                for question in question_set.questions.all():
+                    question_texts.append(question.text)
+                    question_slugs.append(question.slug)
+
+            return download_csv([question_texts, question_slugs])
+        else:
+            fields = []
+            if slug == "impact":
+                fields = [
+                    "Where did you see the course advertised?",
+                    "What is your career stage?",
+                    "What is your employment sector?",
+                    "What is your country of employment?",
+                    "What is your gender?",
+                    "Have you used the tool(s)/resource(s) covered in the course before?",
+                    "Will you use the tool(s)/resource(s) covered in the course again?",
+                    "Would you recommend the course?",
+                    "Please tell us your overall rating for the entire course",
+                    "May we contact you by email in the future for more feedback?",
+                    "What part of the training did you enjoy the most?",
+                    "What part of the training did you enjoy the least?",
+                    "The balance of theoretical and practical content was",
+                    "What other topics would you like to see covered in the future?",
+                    "Any other comments?",
+                ]
+                
+            elif slug == "demographic_quality":
+                fields = [
+                    "Which training event did you take part in?",
+                    "How long ago did you attend the training?",
+                    "What was your main reason for attending the training?",
+                    "What was your main reason for attending the training? (Other)",
+                    "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?",
+                    "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?",
+                    "Do you feel that you are able to explain to others what you learnt in the training?",
+                    "Do you feel that you are able to explain to others what you learnt in the training? (Other)",
+                    "Are you now able to use the tool(s)/ resource(s) covered in the training:",
+                    "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)",
+                    "How did the training event help with your work? [select all that apply]",
+                    "How did the training event help with your work? (Other)",
+                    "Attending the training event led to/ facilitated: [select all that apply]",
+                    "Attending the training event led to/ facilitated: (Other),Please elaborate on any impact",
+                    "How many people have you shared the skills and/or knowledge that you learned during the training, with?",
+                    "Would you recommend the training to others?",
+                    "Any other comments?",
+                ]
+            return download_csv([["event_code", *fields]])
+
+    return HttpResponseNotFound("Template not found")
