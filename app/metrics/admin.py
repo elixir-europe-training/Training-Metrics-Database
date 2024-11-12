@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
+from metrics.forms import ResponseSetForm
 
 from metrics.models import (
     Event,
@@ -41,6 +42,19 @@ class ResponseSetAdmin(ModelAdmin):
         "event",
         "user",
     )
+
+    def get_fields(self, request, obj=None):
+        if self.fields:
+            return self.fields
+        form = self._get_form_for_get_fields(request, obj)
+        mock_form = form(instance=obj)
+        return [*mock_form.fields, *self.get_readonly_fields(request, obj)]
+    
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        if obj is not None:
+            return ResponseSetForm
+        else:
+            return super().get_form(request, obj, change, **kwargs)
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
