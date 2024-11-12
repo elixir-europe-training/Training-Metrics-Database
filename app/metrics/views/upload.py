@@ -94,6 +94,49 @@ def table_output(columns: dict):
     return _table_output
 
 
+def get_import_context(data_type, user, node_main, event):
+    current_time = datetime.datetime.now()
+    import_context = import_utils.LegacyImportContext(
+        user=user,
+        node_main=node_main,
+        timestamps=(
+            current_time,
+            current_time
+        ),
+        fixed_event=event
+    )
+    if data_type == "events":
+        return (
+            import_context,
+            import_utils.legacy_to_current_event_dict,
+            import_context.event_from_dict,
+            {
+                "summary": summary_output,
+                "table": table_output({
+                    "id": "Event Code",
+                    "title": "Title",
+                    "date_start": "Start date",
+                    "date_end": "End date"
+                }),
+                "actions": events_actions_output
+            }
+        )
+    elif data_type == "demographic_quality_metrics":
+        (
+            import_context,
+            import_utils.legacy_to_current_quality_or_demographic_dict,
+            import_context.quality_or_demographic_from_dict,
+            {"summary": summary_output}
+        )
+    elif data_type == "impact_metrics":
+        return (
+            import_context,
+            import_utils.legacy_to_current_impact_dict,
+            import_context.impact_from_dict,
+            {"summary": summary_output}
+        )
+
+
 def legacy_upload(request, event):
     node = request.user.get_node()
     upload_types = {
@@ -126,43 +169,13 @@ def legacy_upload(request, event):
                     form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
                 else:
                     node_main = request.user.get_node()
-                    current_time = datetime.datetime.now()
-                    import_context = import_utils.LegacyImportContext(
-                        user=request.user,
-                        node_main=node_main,
-                        timestamps=(
-                            current_time,
-                            current_time
-                        ),
-                        fixed_event=event
-                    )
 
-                    (parser, importer, view_transforms) = {
-                        "events": (
-                            import_utils.legacy_to_current_event_dict,
-                            import_context.event_from_dict,
-                            {
-                                "summary": summary_output,
-                                "table": table_output({
-                                    "id": "Event Code",
-                                    "title": "Title",
-                                    "date_start": "Start date",
-                                    "date_end": "End date"
-                                }),
-                                "actions": events_actions_output
-                            }
-                        ),
-                        "demographic_quality_metrics": (
-                            import_utils.legacy_to_current_quality_or_demographic_dict,
-                            import_context.quality_or_demographic_from_dict,
-                            {"summary": summary_output}
-                        ),
-                        "impact_metrics": (
-                            import_utils.legacy_to_current_impact_dict,
-                            import_context.impact_from_dict,
-                            {"summary": summary_output}
-                        ),
-                    }[upload_type]
+                    (import_context, parser, importer, view_transforms) = get_import_context(
+                        upload_type,
+                        request.user,
+                        node_main,
+                        event
+                    )
 
                     csv_stream = io.StringIO(file.read().decode())
                     reader = csv.DictReader(csv_stream, delimiter=',')
@@ -240,6 +253,53 @@ def response_upload(request, event):
         ]
     ]
     file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
+
+    if request.method == "POST":
+        for form in forms:
+            if form.has_changed() and form.is_valid():
+                data = form.cleaned_data
+                upload_type = form.data_type
+                file = data["file"]
+
+                if not re.match(file_match, file.name):
+                    form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
+                else:
+                    node_main = request.user.get_node()
+
+                    (import_context, parser, importer, view_transforms) = (
+                        get_import_context(
+                            upload_type,
+                            request.user,
+                            node_main,
+                            event
+                        )
+                        if upload_type == "events"
+                        else (None, None, None, None)
+                    )
+
+                    csv_stream = io.StringIO(file.read().decode())
+                    reader = csv.DictReader(csv_stream, delimiter=',')
+                    entries = []
+                    for (index, row) in enumerate(reader):
+                        try:
+                            entries.append(parser(row))
+                        except ValidationError as e:
+                            traceback.print_exc()
+                            form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+
+                    if len(form.errors) == 0:
+                        items = []
+                        try:
+                            with transaction.atomic():
+                                items = [importer(entry) for entry in entries]
+
+                            form.outputs = {
+                                key: view_transform(items)
+                                for key, view_transform in view_transforms.items()
+                            }
+                        except Exception as e:
+                            traceback.print_exc()
+                            form.add_error(None, f"Failed to import '{upload_type}': {e}")
 
     title = (
         f"Upload data for event: {event.title}" 
