@@ -5,7 +5,7 @@
     {% include 'metrics/data-warning.html' %}
     {% for form in forms %}
     <h2>{{form.title}}</h2>
-    {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
+    {{ form.description | linebreaks }}
     {% if form.non_field_errors %}{% for error in form.non_field_errors %}
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         {{error}}
@@ -28,20 +28,9 @@
             {% endif %}
             {%endfor%}
             <button type="submit" class="btn btn-success">Upload</button>
-            {% if form.associated_templates %}
-                <button type="button" class="btn btn-primary dropdown-toggle ms-2" style="background-color:#87c265;" data-bs-toggle="dropdown">
-                Download template
-                </button>
-                <ul class="dropdown-menu">
-                    {% for label, url in form.associated_templates %}
-                    <li>
-                        <a class="dropdown-item" href="{{ url }}">
-                            {{ label }}
-                        </a>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% endif %}
+            {% for label, url in form.associated_templates %}
+                <a href="{{url}}" class="btn btn-success ms-2" style="background-color:#87c265;">Download {{label}} template</a>
+            {% endfor %}
         </form>
     </div>
     <div class="mb-3 row">

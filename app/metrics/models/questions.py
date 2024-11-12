@@ -15,6 +15,7 @@ class Question(EditTracking):
 
 class QuestionSet(EditTracking):
     name = models.TextField(max_length=1024)
+    description = models.TextField(default="", blank=True, max_length=5120)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     questions = models.ManyToManyField(Question)
 
@@ -24,6 +25,7 @@ class QuestionSet(EditTracking):
 
 class QuestionSuperSet(EditTracking):
     name = models.TextField(max_length=1024)
+    description = models.TextField(default="", blank=True, max_length=5120)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     node = models.ForeignKey(Node, on_delete=models.PROTECT, blank=True, null=True)
     question_sets = models.ManyToManyField(QuestionSet)

@@ -64,11 +64,7 @@ class DataUploadForm(forms.Form):
         self.data_type = data_type
         self.associated_templates=associated_templates
 
-        self.description = (
-            None
-            if description is None
-            else re.split("\n\n+", description)
-        )
+        self.description = description
         self.title = title
 
 
@@ -234,6 +230,7 @@ def response_upload(request, event):
                 data_type=super_set.slug,
                 title=super_set.name,
                 prefix=super_set.slug,
+                description=super_set.description,
                 associated_templates=[(
                     super_set.name,
                     reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
