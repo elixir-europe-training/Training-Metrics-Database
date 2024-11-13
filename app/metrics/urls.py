@@ -4,6 +4,7 @@ from django.urls import path
 from metrics import views
 from metrics.forms import UserLoginForm
 from metrics.views.upload import upload_data, download_event_template, download_questionsuperset_template
+from metrics.views.tess_import import tess_import
 from metrics.views.model_views import (
     EventView,
     InstitutionView,
@@ -24,6 +25,8 @@ urlpatterns = [
     path('upload-data', upload_data, name='upload-data'),
     path('download-event-template/', download_event_template, name='download_event_template'),
     path('download-questionsuperset-template/<int:questionsuperset_id>/<str:type>', download_questionsuperset_template, name='download_questionsuperset_template'),
+    path('tess-import', tess_import, name='tess-import'),
+    path('tess-import/<int:tess_id>', tess_import, name='tess-import'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
     path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),

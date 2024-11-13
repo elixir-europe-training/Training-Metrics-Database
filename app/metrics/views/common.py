@@ -20,6 +20,7 @@ def get_tabs(request, view_name=None):
     user_input = (
         [
             ("Upload data", "upload-data"),
+            ("Import from TeSS", "tess-import"),
             ("Browse events", "event-list"),
             ("All institutions", "institution-list")
         ]
@@ -85,7 +86,7 @@ def generate_pie(metrics, title, xaxis, yaxis):
                 "xanchor": "left",
                 "yanchor": "top",
                 "y": 0.5,
-                "x": 1.05  
+                "x": 1.05
             }
         )
     }
