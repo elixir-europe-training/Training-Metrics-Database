@@ -16,8 +16,9 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse, reverse_lazy
 from django.utils.http import urlencode
 from django.http import HttpResponse
-from metrics.models.questions import QuestionSuperSet
+from metrics.models.questions import QuestionSuperSet, ResponseSet, Response
 from django.http import HttpResponseNotFound
+from metrics.forms import QuestionSetForm
 
 
 UPLOAD_TYPES = {
@@ -49,14 +50,6 @@ class DataUploadForm(forms.Form):
     file = forms.FileField(
         label="CSV batch file",
         widget=FileInput(attrs={"class": "form-control"}),
-    )
-    upload_type = forms.ChoiceField(
-        label="Data type",
-        choices=(
-            (upload_id, upload_type["title"])
-            for (upload_id, upload_type) in UPLOAD_TYPES.items()
-        ),
-        widget=Select(attrs={"class": "form-control d-none"}),
     )
 
     def __init__(self, *args, title=None, description=None, associated_templates=None, data_type=None, **kwargs):
@@ -107,7 +100,6 @@ def get_import_context(data_type, user, node_main, event):
     )
     if data_type == "events":
         return (
-            import_context,
             import_utils.legacy_to_current_event_dict,
             import_context.event_from_dict,
             {
@@ -123,18 +115,65 @@ def get_import_context(data_type, user, node_main, event):
         )
     elif data_type == "demographic_quality_metrics":
         (
-            import_context,
             import_utils.legacy_to_current_quality_or_demographic_dict,
             import_context.quality_or_demographic_from_dict,
             {"summary": summary_output}
         )
     elif data_type == "impact_metrics":
         return (
-            import_context,
             import_utils.legacy_to_current_impact_dict,
             import_context.impact_from_dict,
             {"summary": summary_output}
         )
+
+
+def get_question_import_context(super_set, user, node_main, event):
+    forms = [
+        QuestionSetForm.from_question_set(qs)
+        for qs in super_set.question_sets.all()
+    ]
+    def _form_parser(entry):
+        errors = []
+        entry_forms = [
+            form(entry)
+            for form in forms
+        ]
+        for form in entry_forms:
+            if not form.is_valid():
+                errors.extend(form.errors)
+        if len(errors) > 0:
+            raise ValidationError(errors)
+        
+        current_event = event
+        if not current_event:
+            try:
+                current_event = models.Event.objects.filter(id=entry["event_id"]).first()
+            except (KeyError, ValueError) as e:
+                raise ValidationError(f"Failed to parse 'event_id': {e}")
+        
+        return (
+            current_event,
+            [
+                (form.question_set, form.cleaned_data)
+                for form in entry_forms
+            ]
+        )
+    
+    def _importer(entry):
+        (event, response_sets) = entry
+
+        for qs, data in response_sets:
+            rs = ResponseSet(user=user, event=event, question_set=qs)
+            rs.save()
+            for answer in data.values():
+                r = Response(response_set=rs, answer=answer)
+                r.save()
+
+    return (
+        _form_parser,
+        _importer,
+        {"summary": summary_output}
+    )
 
 
 def legacy_upload(request, event):
@@ -170,7 +209,7 @@ def legacy_upload(request, event):
                 else:
                     node_main = request.user.get_node()
 
-                    (import_context, parser, importer, view_transforms) = get_import_context(
+                    (parser, importer, view_transforms) = get_import_context(
                         upload_type,
                         request.user,
                         node_main,
@@ -240,7 +279,7 @@ def response_upload(request, event):
             DataUploadForm(
                 request.POST if request.method == "POST" else None,
                 request.FILES if request.method == "POST" else None,
-                data_type=super_set.slug,
+                data_type=super_set,
                 title=super_set.name,
                 prefix=super_set.slug,
                 description=super_set.description,
@@ -266,7 +305,7 @@ def response_upload(request, event):
                 else:
                     node_main = request.user.get_node()
 
-                    (import_context, parser, importer, view_transforms) = (
+                    (parser, importer, view_transforms) = (
                         get_import_context(
                             upload_type,
                             request.user,
@@ -274,7 +313,12 @@ def response_upload(request, event):
                             event
                         )
                         if upload_type == "events"
-                        else (None, None, None, None)
+                        else get_question_import_context(
+                            upload_type,
+                            request.user,
+                            node_main,
+                            event
+                        )
                     )
 
                     csv_stream = io.StringIO(file.read().decode())
@@ -373,8 +417,9 @@ def download_template(request, data_type, slug):
             questionsuperset = get_object_or_404(QuestionSuperSet, slug=slug)
 
             # Write each question in the QuestionSuperSet to the CSV
-            question_texts = []
-            question_slugs = []
+            question_texts = ["event_id"]
+            question_slugs = ["event_id"]
+            question_sample = [1]
 
             filtered_sets = questionsuperset.question_sets.all()
 
@@ -382,8 +427,11 @@ def download_template(request, data_type, slug):
                 for question in question_set.questions.all():
                     question_texts.append(question.text)
                     question_slugs.append(question.slug)
+                    first_answer = question.answers.first()
+                    question_sample.append(first_answer.slug if first_answer else None)
+            
 
-            return download_csv([question_texts, question_slugs])
+            return download_csv([question_slugs, question_sample])
         else:
             fields = []
             if slug == "impact":
