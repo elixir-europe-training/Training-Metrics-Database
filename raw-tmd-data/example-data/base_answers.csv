@@ -91,3 +91,34 @@ Impact.recommend_others,"Yes, I already have",se,,,
 Impact.recommend_others,"Yes, I would",se,,,
 Impact.recommend_others,Maybe,se,,,
 Impact.recommend_others,No,se,,,
+Demographic.employment_country,Switzerland,se,,,ch
+Demographic.employment_country,United Kingdom,se,,,gb
+Demographic.employment_country,Belgium,se,,,be
+Demographic.employment_country,France,se,,,fr
+Demographic.employment_country,Portugal,se,,,pt
+Demographic.employment_country,Luxembourg,se,,,lu
+Demographic.employment_country,Italy,se,,,it
+Demographic.employment_country,Netherlands,se,,,nl
+Demographic.employment_country,Estonia,se,,,ee
+Demographic.employment_country,Sweden,se,,,se
+Demographic.employment_country,Greece,se,,,gr
+Demographic.employment_country,Germany,se,,,de
+Demographic.employment_country,Norway,se,,,no
+Demographic.employment_country,Republic of Ireland,se,,,ie
+Demographic.employment_country,Denmark,se,,,dk
+Demographic.employment_country,Finland,se,,,fi
+Demographic.employment_country,Spain,se,,,es
+Demographic.employment_country,Malta,se,,,mt
+Demographic.employment_country,Czech Republic,se,,,cz
+Demographic.employment_country,Japan,se,,,jp
+Demographic.employment_country,Uruguay,se,,,uy
+Demographic.employment_country,Israel,se,,,il
+Demographic.employment_country,Latvia,se,,,lv
+Demographic.employment_country,Slovenia,se,,,si
+Demographic.employment_country,United States,se,,,us
+Demographic.employment_country,Hungary,se,,,hu
+Demographic.employment_country,Serbia,se,,,rs
+Demographic.employment_country,Poland,se,,,pl
+Demographic.employment_country,Argentina,se,,,ar
+Demographic.employment_country,Austria,se,,,at
+Demographic.employment_country,Morocco,se,,,ma
