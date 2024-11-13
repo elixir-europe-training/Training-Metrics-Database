@@ -9,13 +9,18 @@ from metrics.models import (
     QuestionSuperSet,
     Answer,
     Response,
-    ResponseSet
+    ResponseSet,
+    UserProfile
 )
 
 
 EDIT_TRACKING_FIELDS = [
     "user"
 ]
+
+@admin.register(UserProfile)
+class UserProfileAdmin(ModelAdmin):
+    pass
 
 
 @admin.register(Event)

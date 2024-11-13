@@ -2,10 +2,11 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 from django import forms
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import re
 import requests
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
 
 
 def string_choices(choices):
@@ -212,11 +213,36 @@ class OrganisingInstitution(models.Model):
             raise ValidationError(f"Not a valid ror id: {self.ror_id}")
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+    node = models.ForeignKey(
+        Node,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="users"
+    )
+
+    def __str__(self):
+        return "Profile for {0}".format(self.user)
+
+
 def get_node(self):
-    node_name = f"ELIXIR-{self.username.upper()}"
     try:
-        return Node.objects.get(name=node_name)
-    except Node.DoesNotExist:
+        return self.profile.node
+    except ObjectDoesNotExist:
         return None
 
+
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        node_name = f"ELIXIR-{instance.username.upper()}"
+        node = Node.objects.filter(name=node_name).first()
+        UserProfile.objects.create(user=instance, node=node)
+
+
 User.add_to_class("get_node", get_node)
+post_save.connect(create_user_profile, sender=User)
