@@ -1,4 +1,5 @@
 from metrics.models import QuestionSuperSet
+from django.conf import settings
 
 
 class SystemSettings:
@@ -16,7 +17,5 @@ class SystemSettings:
 
     @staticmethod
     def get_settings():
-        return SystemSettings({
-            #"use_new_model_upload",
-            #"use_new_model_stats",
-        })
+        feature_flags = getattr(settings, "FEATURE_FLAGS", [])
+        return SystemSettings(set(feature_flags))

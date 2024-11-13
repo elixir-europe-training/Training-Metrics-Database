@@ -158,3 +158,13 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Load field value aliases from CSV
 VALUE_ALIASES_PATH = "tmd/value-aliases-spec.csv"
+
+# Parse feature flags
+FEATURE_FLAGS = [
+    flag
+    for flag in [
+        segment.strip()
+        for segment in os.environ.get("TMD_FEATURE_FLAGS", "").split(",")
+    ]
+    if flag
+]
