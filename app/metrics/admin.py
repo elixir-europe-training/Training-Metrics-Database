@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
@@ -11,14 +10,21 @@ from metrics.models import (
     Response,
     ResponseSet,
     UserProfile,
-    Node
 )
 
 
-EDIT_TRACKING_FIELDS = [
+COMMON_EXCLUDES = [
     "user",
     "node"
 ]
+
+
+def is_owner_of_object(user, obj):
+    return (
+        not obj
+        or user.is_superuser
+        or user.get_node() == obj.node
+    )
 
 
 @admin.register(UserProfile)
@@ -28,7 +34,7 @@ class UserProfileAdmin(ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(ModelAdmin):
-    exclude = EDIT_TRACKING_FIELDS
+    exclude = COMMON_EXCLUDES
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -41,7 +47,7 @@ class ResponseAdmin(admin.TabularInline):
 
 @admin.register(ResponseSet)
 class ResponseSetAdmin(ModelAdmin):
-    exclude = EDIT_TRACKING_FIELDS
+    exclude = COMMON_EXCLUDES
     inlines = [
         ResponseAdmin,
     ]
@@ -68,14 +74,13 @@ class QuestionSetAdmin(ModelAdmin):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        
+
         user_node = request.user.get_node()
         if user_node:
             # Filter QuestionSets based on the node
-            exclude = EDIT_TRACKING_FIELDS  # needs to be included if we want to be able to change user for a set
             return qs.filter(
-                    node = user_node
-            ).distinct() | qs.filter(node = None).distinct()
+                    node=user_node
+            ).distinct() | qs.filter(node=None).distinct()
         return qs.none()
 
     def save_model(self, request, obj, form, change):
@@ -86,25 +91,18 @@ class QuestionSetAdmin(ModelAdmin):
         if not request.user.is_superuser:
             obj.node = request.user.get_node()
         return super().save_model(request, obj, form, change)
-    
-    def has_change_permission(self, request, obj = None):
+
+    def has_change_permission(self, request, obj=None):
         # Can only change sets from own node
-        if obj and not request.user.is_superuser:
-            user_node = request.user.get_node()  # Retrieve the user's associated node
-            if obj.node != user_node:
-                return False
-        return super().has_change_permission(request, obj=obj)
+        return (
+            is_owner_of_object(request.user, obj)
+            and super().has_change_permission(request, obj=obj)
+        )
 
-    def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete objects
-        if not request.user.is_superuser:
-            return False
-        return super().has_delete_permission(request, obj)
-
-    def get_fields(self, request, obj = None):
+    def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not request.user.is_superuser:
-            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+            fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
@@ -112,7 +110,7 @@ class QuestionSetAdmin(ModelAdmin):
             user_node = request.user.get_node()
             if not request.user.is_superuser and user_node:
                 # Filter questions to only those that belong to the user's node
-                kwargs["queryset"] = Question.objects.filter(node = user_node)
+                kwargs["queryset"] = Question.objects.filter(node=user_node)
             elif not request.user.is_superuser:
                 # If node user has no associated node, they see no questions
                 kwargs["queryset"] = Question.objects.none()
@@ -133,14 +131,13 @@ class QuestionSuperSetAdmin(ModelAdmin):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        
+
         user_node = request.user.get_node()
         if user_node:
             # Filter QuestionSuperSets based on the node
-            exclude = EDIT_TRACKING_FIELDS
             return qs.filter(
-                    node = user_node
-            ).distinct() | qs.filter(node = None).distinct()
+                    node=user_node
+            ).distinct() | qs.filter(node=None).distinct()
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -151,24 +148,16 @@ class QuestionSuperSetAdmin(ModelAdmin):
             obj.node = request.user.get_node()
         return super().save_model(request, obj, form, change)
 
-    def has_change_permission(self, request, obj = None):
-        # Can only change supersets from own node
-        if obj and not request.user.is_superuser:
-            user_node = request.user.get_node()  # Retrieve the user's associated node
-            if obj.node != user_node:
-                return False
-        return super().has_change_permission(request, obj = obj)
+    def has_change_permission(self, request, obj=None):
+        return (
+            is_owner_of_object(request.user, obj)
+            and super().has_change_permission(request, obj=obj)
+        )
 
-    def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete objects
-        if not request.user.is_superuser:
-            return False
-        return super().has_delete_permission(request, obj)
-
-    def get_fields(self, request, obj = None):
+    def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not request.user.is_superuser:
-            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+            fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
 
 
@@ -181,23 +170,17 @@ class AnswerAdmin(admin.TabularInline):
             return qs
         # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets (node=None)
         return qs.filter(
-            user = request.user
+            user=request.user
         ).distinct()
 
     def get_prepopulated_fields(self, request, obj=None):
         return {"slug": ["text"]}
 
-    def get_fields(self, request, obj = None):
+    def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not request.user.is_superuser:
-            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+            fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
-
-    def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete objects
-        if not request.user.is_superuser:
-            return False
-        return super().has_delete_permission(request, obj)
 
 
 @admin.register(Question)
@@ -218,7 +201,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
         user_node = request.user.get_node()
         if user_node:
-            return qs.filter(node = user_node)
+            return qs.filter(node=user_node)
         return qs.none()  # No node
 
     def save_model(self, request, obj, form, change):
@@ -229,20 +212,14 @@ class QuestionAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             obj.node = request.user.get_node()
         return super().save_model(request, obj, form, change)
-    
+
     def save_formset(self, request, form, formset, change):
         for instance in formset.save(commit=False):
             instance.user = request.user
         return super().save_formset(request, form, formset, change)
 
-    def get_fields(self, request, obj = None):
+    def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not request.user.is_superuser:
-            fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
+            fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
-
-    def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete objects
-        if not request.user.is_superuser:
-            return False
-        return super().has_delete_permission(request, obj)
