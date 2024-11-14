@@ -96,8 +96,8 @@ class QuestionSetAdmin(ModelAdmin):
         return super().has_change_permission(request, obj=obj)
 
     def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete superuser objects
-        if obj and obj.user != request.user and not request.user.is_superuser:
+        # Node users cannot delete objects
+        if not request.user.is_superuser:
             return False
         return super().has_delete_permission(request, obj)
 
@@ -160,8 +160,8 @@ class QuestionSuperSetAdmin(ModelAdmin):
         return super().has_change_permission(request, obj = obj)
 
     def has_delete_permission(self, request, obj = None):
-        # Node users cannot delete superuser objects
-        if obj and obj.user != request.user and not request.user.is_superuser:
+        # Node users cannot delete objects
+        if not request.user.is_superuser:
             return False
         return super().has_delete_permission(request, obj)
 
@@ -192,6 +192,12 @@ class AnswerAdmin(admin.TabularInline):
         if not request.user.is_superuser:
             fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
         return fields
+
+    def has_delete_permission(self, request, obj = None):
+        # Node users cannot delete objects
+        if not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 @admin.register(Question)
@@ -234,3 +240,9 @@ class QuestionAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             fields = [field for field in fields if field not in EDIT_TRACKING_FIELDS]
         return fields
+
+    def has_delete_permission(self, request, obj = None):
+        # Node users cannot delete objects
+        if not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
