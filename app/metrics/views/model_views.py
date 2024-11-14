@@ -174,6 +174,14 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
         context.update(get_tabs(self.request))
         context["can_edit"] = self.can_edit()
         context["tess_metadata"] = self.tess_metadata
+        # Tidy up tess metadata to remove blank/irrelevant fields
+        ignored = ('external-id', 'slug', 'last-scraped', 'scraper-record', 'cost-basis')
+        for key in ignored:
+            context["tess_metadata"].pop(key, None)
+        for key in list(context["tess_metadata"]):
+            value = context["tess_metadata"][key]
+            if type(value) is not bool and type(value) != 0 and not value:  # Preserve False and 0
+                del context["tess_metadata"][key]
         context["tess_url"] = self.tess_url
         return context
 
