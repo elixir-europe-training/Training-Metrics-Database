@@ -12,8 +12,7 @@ class Command(BaseCommand):
 
     def assign_group(self):
         # Current users in the system
-        node_users = ['nina',
-                      'be',
+        node_users = ['be',
                       'ch',
                       'cz',
                       'de',
@@ -45,10 +44,10 @@ class Command(BaseCommand):
 
         # Define the permissions to add
         permissions = [
-            'view_question', 'add_question', 'change_question', 'delete_question',
-            'view_questionset', 'add_questionset', 'change_questionset', 'delete_questionset',
-            'view_questionsuperset', 'add_questionsuperset', 'change_questionsuperset', 'delete_questionsuperset',
-            'view_answer', 'add_answer', 'change_answer', 'delete_answer'
+            'view_question', 'add_question', 'change_question',
+            'view_questionset', 'add_questionset', 'change_questionset',
+            'view_questionsuperset', 'add_questionsuperset', 'change_questionsuperset',
+            'view_answer', 'add_answer', 'change_answer'
         ]
 
         # Assign permissions to the group
