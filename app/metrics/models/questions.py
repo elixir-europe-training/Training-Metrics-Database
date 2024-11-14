@@ -8,6 +8,7 @@ class Question(EditTracking):
     description = models.CharField(max_length=2048, blank=True, null=True)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     is_multichoice = models.BooleanField(default=False)
+    node = models.ForeignKey(Node, on_delete=models.PROTECT, blank=True, null=True)
 
     def __str__(self):
         return f"{self.text} ({self.slug})"
@@ -18,6 +19,7 @@ class QuestionSet(EditTracking):
     description = models.TextField(default="", blank=True, max_length=5120)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     questions = models.ManyToManyField(Question)
+    node = models.ForeignKey(Node, on_delete=models.PROTECT, blank=True, null=True)
 
     def __str__(self):
         return self.name
