@@ -166,8 +166,10 @@ def get_question_import_context(super_set, user, node_main, event):
             rs = ResponseSet(user=user, event=event, question_set=qs)
             rs.save()
             for answer in data.values():
-                r = Response(response_set=rs, answer=answer)
-                r.save()
+                all_answers = answer if isinstance(answer, list) else [answer]
+                for a in all_answers:
+                    r = Response(response_set=rs, answer=a)
+                    r.save()
 
     return (
         _form_parser,
