@@ -34,7 +34,7 @@ UPLOAD_TYPES = {
             "id": "demographic_quality_metrics",
             "title": "Demographic and quality metrics",
             "description": "",
-            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "demographic_quality"})
+            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "demographic-quality"})
         },
         {
             "id": "impact_metrics",
@@ -381,9 +381,9 @@ def upload_data(request, event_id=None):
         return legacy_upload(request, event)
 
 
-def download_csv(lines):
+def download_csv(lines, filename="template"):
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="event_template.csv"'
+    response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
     writer = csv.writer(response)
 
     for line in lines:
@@ -411,7 +411,7 @@ def download_template(request, data_type, slug):
             'No. of trainers/ facilitators',
             'Url to event page/ agenda'
         ]
-        return download_csv([event_metrics])
+        return download_csv([event_metrics], "event-template")
     
     elif data_type == "metrics":
         settings = models.SystemSettings.get_settings()
@@ -433,7 +433,7 @@ def download_template(request, data_type, slug):
                     question_sample.append(first_answer.slug if first_answer else None)
             
 
-            return download_csv([question_slugs, question_sample])
+            return download_csv([question_slugs, question_sample], f"metrics-{slug}-template")
         else:
             fields = []
             if slug == "impact":
@@ -455,7 +455,7 @@ def download_template(request, data_type, slug):
                     "Any other comments?",
                 ]
                 
-            elif slug == "demographic_quality":
+            elif slug == "demographic-quality":
                 fields = [
                     "Which training event did you take part in?",
                     "How long ago did you attend the training?",
@@ -475,6 +475,6 @@ def download_template(request, data_type, slug):
                     "Would you recommend the training to others?",
                     "Any other comments?",
                 ]
-            return download_csv([["event_code", *fields]])
+            return download_csv([["event_code", *fields]], f"metrics-{slug}-template")
 
     return HttpResponseNotFound("Template not found")
