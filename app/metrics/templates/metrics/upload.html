@@ -28,6 +28,9 @@
             {% endif %}
             {%endfor%}
             <button type="submit" class="btn btn-success">Upload</button>
+            {% for label, url in form.associated_templates %}
+                <a href="{{url}}" class="btn btn-success ms-2" style="background-color:#87c265;">Download {{label}} template</a>
+            {% endfor %}
         </form>
     </div>
     <div class="mb-3 row">

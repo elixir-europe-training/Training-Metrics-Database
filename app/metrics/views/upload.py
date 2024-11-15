@@ -14,6 +14,7 @@ import datetime
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.utils.http import urlencode
+from django.templatetags.static import static
 
 
 UPLOAD_TYPES = {
@@ -22,17 +23,20 @@ UPLOAD_TYPES = {
         {
             "id": "events",
             "title": "Events",
-            "description": ""
+            "description": "",
+            "template_url": static("data-templates/events-template.csv"),
         },
         {
             "id": "demographic_quality_metrics",
             "title": "Demographic and quality metrics",
-            "description": ""
+            "description": "",
+            "template_url": static("data-templates/metrics-demographic-quality-template.csv"),
         },
         {
             "id": "impact_metrics",
             "title": "Impact metrics",
-            "description": ""
+            "description": "",
+            "template_url": static("data-templates/metrics-impact-template.csv"),
         },
     ]
 }
@@ -52,9 +56,10 @@ class DataUploadForm(forms.Form):
         widget=Select(attrs={"class": "form-control d-none"}),
     )
 
-    def __init__(self, *args, title=None, description=None, fixed_type=None, **kwargs):
+    def __init__(self, *args, title=None, description=None, fixed_type=None, associated_templates=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fixed_type = fixed_type
+        self.associated_templates = associated_templates
         if self.fixed_type is not None:
             upload_type = self.fields["upload_type"]
             upload_type.initial = self.fixed_type
@@ -115,6 +120,7 @@ def upload_data(request, event_id=None):
             title=upload_type["title"],
             description=upload_type["description"],
             prefix=upload_type["id"],
+            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
         )
         for upload_type in upload_types.values()
     ]
