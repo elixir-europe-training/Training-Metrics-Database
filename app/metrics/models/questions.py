@@ -8,6 +8,8 @@ class Question(EditTracking):
     description = models.CharField(max_length=2048, blank=True, null=True)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     is_multichoice = models.BooleanField(default=False)
+    node = models.ForeignKey(Node, on_delete=models.PROTECT, blank=True, null=True)
+    is_active = models.BooleanField(default = True)
 
     def __str__(self):
         return f"{self.text} ({self.slug})"
@@ -18,6 +20,8 @@ class QuestionSet(EditTracking):
     description = models.TextField(default="", blank=True, max_length=5120)
     slug = models.SlugField(default="", null=False, unique=True, max_length=1024)
     questions = models.ManyToManyField(Question)
+    node = models.ForeignKey(Node, on_delete=models.PROTECT, blank=True, null=True)
+    is_active = models.BooleanField(default = True)
 
     def __str__(self):
         return self.name
@@ -31,6 +35,7 @@ class QuestionSuperSet(EditTracking):
     question_sets = models.ManyToManyField(QuestionSet)
     use_for_metrics = models.BooleanField(default=False)
     use_for_upload = models.BooleanField(default=False)
+    is_active = models.BooleanField(default = True)
 
     def __str__(self):
         node_name = self.node.name if self.node else "Shared"
@@ -40,6 +45,7 @@ class QuestionSuperSet(EditTracking):
 class Answer(EditTracking):
     text = models.CharField(max_length=1024)
     slug = models.SlugField(default="", null=False, max_length=1024)
+    is_active = models.BooleanField(default = True)
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="answers"
     )
