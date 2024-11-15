@@ -1,0 +1,53 @@
+{% extends "common/base.html" %}
+{% load plotly_dash %}
+{% block header %}
+    {% plotly_header %}
+{% endblock %}
+{% load static %}
+{% block content %}
+    <h1>Reports</h1>
+    {% include 'common/tabs.html' %}
+    <div id="world-map"></div>
+    <script>
+        async function mountPlot() {
+            const metrics = await (await fetch("{{data_url}}")).json();
+            const rows = metrics.values;
+
+            function unpack(rows, key) {
+                return rows.map(function(row) { return row[key]; });
+            }
+
+            const data = [{
+                type: 'choropleth',
+                locationmode: 'country names',
+                locations: unpack(rows, 'country'),
+                z: unpack(rows, 'count'),
+                text: unpack(rows, 'country'),
+                color: 'log_count',
+                color_continuous_scale: ["#ffffff", "#F47D20"],
+            }];
+
+            const layout = {
+                title: {text: 'Event count per region'},
+                geo: {
+                    "bgcolor": "white",
+                    "landcolor": "#E5ECF6",
+                    "subunitcolor": "white",
+                    "showland": true,
+                    "showlakes": true,
+                    "lakecolor": "white",
+                    projection: {type: "equirectangular"},
+                    showframe: false,
+                    showcoastlines: false,
+                    showcountries: true,
+                    countrywidth: 0.2,
+                    lataxis_range: [-60, 90],
+                },
+                height: 600,
+            };
+
+            Plotly.newPlot("world-map", data, layout, {showLink: false, responsive: true, topojsonURL: "{% static 'vendor/data/' %}"});
+        }
+    </script>
+    <script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8" onload="mountPlot()"></script>
+{% endblock %}
