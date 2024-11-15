@@ -145,12 +145,24 @@ def get_question_import_context(super_set, user, node_main, event):
             raise ValidationError(errors)
         
         current_event = event
+        event_id = entry["event_id"]
         if not current_event:
             try:
-                current_event = models.Event.objects.filter(id=entry["event_id"]).first()
+                event_id = entry["event_id"]
+                current_event = models.Event.objects.filter(id=event_id).first()
             except (KeyError, ValueError) as e:
                 raise ValidationError(f"Failed to parse 'event_id': {e}")
         
+        if not current_event:
+            raise ValidationError(
+                f"Event with id '{event_id}', does not exist"
+            )
+
+        if current_event.is_locked or user.get_node() != current_event.node_main:
+            raise ValidationError(
+                f"The metrics for the event {current_event.id} can not"
+                f" be updated by the current user: {user.username}"
+            )
         return (
             current_event,
             [
