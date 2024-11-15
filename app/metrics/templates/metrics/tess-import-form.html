@@ -27,10 +27,12 @@
                 {% if tess_url %}
                     <a href="{{ tess_url }}" target="_blank">Go to TeSS entry</a><br/>
                 {% endif %}
+                <dl>
                 {% for key, value in tess_metadata.items %}
-                    <strong>{{ key }}:</strong><br/>
-                    <span>{{ value }}</span><br/><br/>
+                    <dt>{{ key|title }}:</dt>
+                    <dd>{{ value }}</dd>
                 {% endfor %}
+                </dl>
             </div>
         </div>
     </div>

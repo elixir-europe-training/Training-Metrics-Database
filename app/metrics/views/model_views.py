@@ -2,7 +2,7 @@ from django.views.generic.edit import FormView, UpdateView, DeleteView, CreateVi
 from django.views.generic.list import ListView
 from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from metrics import forms
 from metrics import models
@@ -12,7 +12,6 @@ from .common import get_tabs
 from django.urls import reverse_lazy, reverse
 import requests
 import re
-from django.core.exceptions import ValidationError
 
 
 class GenericUpdateView(UpdateView):
@@ -154,6 +153,7 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
     tess_id = None
     title = "Import from TeSS"
     tess_metadata = {}
+    converted_metadata = {}
     tess_url = None
 
     def get_actions(self):
@@ -174,6 +174,14 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
         context.update(get_tabs(self.request))
         context["can_edit"] = self.can_edit()
         context["tess_metadata"] = self.tess_metadata
+        # Tidy up tess metadata to remove blank/irrelevant fields
+        ignored = ('external-id', 'slug', 'last-scraped', 'scraper-record', 'cost-basis')
+        for key in ignored:
+            context["tess_metadata"].pop(key, None)
+        for key in list(context["tess_metadata"]):
+            value = context["tess_metadata"][key]
+            if type(value) is not bool and type(value) != 0 and not value:  # Preserve False and 0
+                del context["tess_metadata"][key]
         context["tess_url"] = self.tess_url
         return context
 
@@ -186,22 +194,21 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
         obj.node_main = self.request.user.get_node()
         return super().form_valid(form)
 
-    def get_form(self):
-        tmd_metadata = {}
+    def get_initial(self):
+        initial = super().initial.copy()
+        for key in self.converted_metadata:
+            initial[key] = self.converted_metadata.get(key, "")
+        return initial
+
+    def get(self, form_class=None):
         if self.tess_id:
             tess_metadata = self.import_from_tess(self.tess_id)
-            tmd_metadata = self.convert_tess_metadata(tess_metadata)
+            if tess_metadata is None:
+                return HttpResponseNotFound(f"Could not fetch event {self.tess_id} from TeSS")
             self.tess_metadata = tess_metadata["data"]["attributes"]
+            self.converted_metadata = self.convert_tess_metadata(tess_metadata)
             self.tess_url = "https://tess.elixir-europe.org" + tess_metadata["data"]["links"]["self"]
-            print(self.tess_url)
-        form = super().get_form()
-        tmd_metadata['user'] = self.request.user
-        tmd_metadata['node_main'] = self.request.user.get_node()
-        for key in form.fields:
-            field = form.fields[key]
-            field.initial = tmd_metadata.get(key, "")
-            field.disabled = not self.can_edit()
-        return form
+        return super().get(form_class)
 
     def import_from_tess(self, tess_id):
         tess_url = f"https://tess.elixir-europe.org/events/{tess_id}.json_api"
@@ -209,7 +216,7 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
         if response.status_code == 200:
             return response.json()
         else:
-            raise ValidationError(f"Could not fetch TeSS entry for: {tess_id}, {tess_url}, {response.status_code}")
+            return None
 
     def convert_tess_metadata(self, tess_metadata):
         # Take just the date part from the full date/time string
