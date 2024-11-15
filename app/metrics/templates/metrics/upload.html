@@ -2,7 +2,6 @@
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
-    {% include 'metrics/data-warning.html' %}
     {% for form in forms %}
     <h2>{{form.title}}</h2>
     {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
@@ -28,6 +27,9 @@
             {% endif %}
             {%endfor%}
             <button type="submit" class="btn btn-success">Upload</button>
+            {% for label, url in form.associated_templates %}
+                <a href="{{url}}" class="btn btn-success ms-2" style="background-color:#87c265;">Download {{label}} template</a>
+            {% endfor %}
         </form>
     </div>
     <div class="mb-3 row">
