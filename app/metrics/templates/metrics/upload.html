@@ -2,7 +2,6 @@
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
-    {% include 'metrics/data-warning.html' %}
     {% for form in forms %}
     <h2>{{form.title}}</h2>
     {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
