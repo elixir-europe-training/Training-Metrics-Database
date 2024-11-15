@@ -325,16 +325,24 @@ class MetricsGroup:
             grouped_values[group_id] = value_group
 
         result = [
-            {
-                r.answer.question.slug: r.answer.slug
-                for r in value_group
-            }
+            self._value_group(value_group)
             for value_group in grouped_values.values()
         ]
         return result
     
     def get_name(self):
         return self.name
+    
+    def _value_group(self, responses):
+        value_group = {}
+        for r in responses:
+            vid = r.answer.question.slug
+            vs = value_group.get(vid, [])
+            vs.append(r.answer.slug)
+            value_group[vid] = vs
+        return value_group
+
+
 
 
 class Metrics():

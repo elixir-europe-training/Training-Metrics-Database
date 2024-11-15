@@ -146,6 +146,7 @@ def load_questions():
             question = Question.objects.create(
                 slug=question_slug,
                 text=row["text"],
+                is_multichoice=bool(int(row["is_multichoice"])),
                 user=User.objects.get(username=row["user"])
             )
             question_set.questions.add(question)

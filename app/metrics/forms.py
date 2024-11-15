@@ -22,37 +22,68 @@ class UserLoginForm(AuthenticationForm):
 class QuestionSetForm(forms.Form):
     question_set = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for question in self.question_set.questions.all():
-            choices = [
-                (answer.slug, answer.text)
-                for answer in question.answers.all()
-            ]
-            label = question.text
-            self.fields[question.slug] = (
-                forms.MultipleChoiceField(
-                    label=label,
-                    choices=choices,
-                    required=True,
-                )
-                if question.is_multichoice
-                else forms.ChoiceField(
-                    label=label,
-                    choices=[
-                        ("", "---------"),
-                        *choices
-                    ],
-                    required=True,
-                )
+    def __init__(self, values, *args, **kwargs):
+        fields = {
+            question.slug: QuestionSetForm._parse_field(question)
+            for question in self.question_set.questions.all()
+        }
+        values = {
+            key: (
+                QuestionSetForm._parse_list(value)
+                if isinstance(fields[key], forms.MultipleChoiceField)
+                else value
             )
+            for key, value in values.items()
+            if key in fields
+        }
+        super().__init__(values, *args, **kwargs)
+        for key, field in fields.items():
+            self.fields[key] = field
+
+    @staticmethod
+    def _parse_field(question):
+        choices = [
+            (answer.slug, answer.text)
+            for answer in question.answers.all()
+        ]
+        label = question.text
+        return (
+            forms.MultipleChoiceField(
+                label=label,
+                choices=choices,
+                required=True,
+            )
+            if question.is_multichoice
+            else forms.ChoiceField(
+                label=label,
+                choices=[
+                    ("", "---------"),
+                    *choices
+                ],
+                required=True,
+            )
+        )
+    
+    @staticmethod
+    def _parse_list(value):
+        return [
+            v.strip()
+            for v in value.split(",")
+        ]
+
+    @staticmethod
+    def _clean_value(question, value):
+        return (
+            list(question.answers.filter(slug__in=value).all())
+            if isinstance(value, list)
+            else question.answers.get(slug=value)
+        )
 
     def clean(self):
         cleaned_data = super().clean()
-
         questions = list(self.question_set.questions.all())
         responses = {
-            question.slug: question.answers.get(slug=cleaned_data[question.slug])
+            question.slug: QuestionSetForm._clean_value(question, cleaned_data[question.slug])
             for question in questions
             if question.slug in cleaned_data and cleaned_data[question.slug]
         }
@@ -72,23 +103,3 @@ class QuestionSetForm(forms.Form):
             question_set = qs
 
         return _Form
-
-    def save_to(self, response_set):
-        if response_set:
-            cleaned_data = self.cleaned_data
-            question_data = {
-                question: cleaned_data[question.slug]
-                for question in response_set.question_set.questions.all()
-                if cleaned_data[question.slug]
-            }
-
-            if len(question_data.keys()) > 0:
-                responses = [
-                    models.Response(response_set=response_set, answer=question.answers.get(slug=value))
-                    for question, data in question_data.items()
-                    for value in (data if isinstance(data, list) else [data])
-                ]
-
-                for response in responses:
-                    response.save()
-
