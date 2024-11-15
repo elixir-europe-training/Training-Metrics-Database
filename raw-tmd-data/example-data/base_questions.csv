@@ -16,7 +16,7 @@ Impact.how_often_use_before,"How often did you use the tool(s)/ resource(s), cov
 Impact.how_often_use_after,"How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?",0,se,,,,,-
 Impact.able_to_explain,Do you feel that you are able to explain to others what you learnt in the training?,0,se,,,,,-
 Impact.able_use_now,Are you now able to use the tool(s)/ resource(s) covered in the training:,0,se,,,,,-
-Impact.help_work,How did the training event help with your work? [select all that apply],0,se,,,,,-
-Impact.attending_led_to,Attending the training event led to/ facilitated: [select all that apply],0,se,,,,,-
+Impact.help_work,How did the training event help with your work? [select all that apply],1,se,,,,,-
+Impact.attending_led_to,Attending the training event led to/ facilitated: [select all that apply],1,se,,,,,-
 Impact.people_share_knowledge,"How many people have you shared the skills and/or knowledge that you learned during the training, with?",0,se,,,,,-
 Impact.recommend_others,Would you recommend the training to others?,0,se,,,,,-
