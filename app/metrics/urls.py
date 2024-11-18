@@ -52,6 +52,8 @@ urlpatterns = [
     ),
 
     path('metrics/world-map', metrics.world_map_api, name="world-map-api"),
+    path('metrics/event', metrics.event_api, name="event-api"),
+    path('metrics/set/<str:question_set_id>', metrics.metrics_api, name="metrics-api"),
     path('world-map', metrics.world_map_event_count, name='world-map'),
 
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
