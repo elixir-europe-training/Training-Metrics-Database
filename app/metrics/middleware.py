@@ -207,7 +207,28 @@ def get_metrics(request):
         "Type": "event_type",
         "Event funding": "event_funding",
         "Target audience": "event_target_audience",
-        "Additional platforms": "event_additional_platforms"
+        "Additional platforms": "event_additional_platforms",
+        "Where did you see the course advertised?": "heard_from",
+        "What is your career stage?": "career_stage",
+        "What is your employment sector?": "employment_sector",
+        "What is your country of employment?": "employment_country",
+        "What is your gender?": "gender",
+        "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
+        "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
+        "Would you recommend the course?": "recommend_course",
+        "Please tell us your overall rating for the entire course": "course_rating",
+        "May we contact you by email in the future for more feedback?": "email_contact",
+        "The balance of theoretical and practical content was": "balance",
+        "How long ago did you attend the training?": "when_attend_training",
+        "What was your main reason for attending the training?": "main_attend_reason",
+        "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
+        "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
+        "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
+        "Are you now able to use the tool(s)/ resource(s) covered in the training?": "able_use_now",
+        "How did the training event help with your work?": "help_work",
+        "Attending the training event led to/ facilitated:": "attending_led_to",
+        "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
+        "Would you recommend the training to others?": "recommend_others"
     }
     groups = {
         "event": EventGroup(
