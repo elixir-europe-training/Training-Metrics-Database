@@ -155,7 +155,8 @@ class Group():
     
     def get_field_option_name(self, field_id, option_id):
         field_option_id = f"{field_id}:{option_id}"
-        return self.field_options_mapping.get(field_option_id, option_id)
+        default = option_id if option_id else "No response"
+        return self.field_options_mapping.get(field_option_id, default)
     
     def get_field_title(self, lookup_id):
         for name, field_id in self.field_mapping.items():
