@@ -101,6 +101,7 @@ def load_nodes():
         for row in reader:
             Node.objects.create(
                 name=row['name'],
+                country=row['country']
             )
 
 

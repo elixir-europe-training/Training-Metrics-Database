@@ -10,6 +10,7 @@ from metrics.models import (
     Response,
     ResponseSet,
     UserProfile,
+    Node
 )
 
 
@@ -29,6 +30,11 @@ def is_owner_of_object(user, obj):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(ModelAdmin):
+    pass
+
+
+@admin.register(Node)
+class NodeAdmin(ModelAdmin):
     pass
 
 
