@@ -6,10 +6,12 @@ from .views.demographic import demographic_report
 from .views.impact import impact_report
 from .views.quality import quality_report
 from .views.worldmap import world_map
+from django.shortcuts import redirect
 
 
 urlpatterns = [
-    path('', all_events, name='all-events'),
+    path('', lambda request: redirect('world-map', permanent=True)),
+    path('event-list', all_events, name='all-events'),
     path('event', event_report, name='event-report'),
     path('quality', quality_report, name='quality-report'),
     path('demographic', demographic_report, name='demographic-report'),
