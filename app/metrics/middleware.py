@@ -4,6 +4,30 @@ from contextlib import suppress
 from .models import Event, Quality, Impact, Demographic, Node
 
 
+def get_field_options(field):
+    choices = getattr(field, "choices", [])
+    choices = getattr(
+        getattr(field, "base_field", None),
+        "choices",
+        []
+    ) if not choices else choices
+    return (
+        []
+        if not choices
+        else [
+            choice[0]
+            for choice in choices
+        ]
+    )
+
+
+def get_model_field_options(model):
+    return (
+        (field.name, get_field_options(field))
+        for field in model._meta.get_fields()
+    )
+
+
 class EventGroup():
     def __init__(
         self,
@@ -28,11 +52,13 @@ class EventGroup():
         self.model = Event
         self.use_fields = use_fields
         self.field_options_mapping = field_options_mapping
-        self.fields = {
-            field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-            for field_id in set([*self.use_fields, *self.filter_fields])
-        }
         
+        all_fields = set([*self.use_fields, *self.filter_fields])
+        self.fields = {
+            field_id: options
+            for field_id, options in get_model_field_options(self.model)
+            if field_id in all_fields
+        }
     
     def get_graph_type(self):
         return self.graph_type
@@ -120,21 +146,26 @@ class Group():
         self.model = model
         self.use_fields = use_fields
         self.field_options_mapping = field_options_mapping
+
+        event_fields = [
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms",
+            "communities",
+        ]
+        all_fields = set([*self.use_fields, *self.filter_fields])
         self.fields = {
             **{
-                field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-                for field_id in self.use_fields
+                field_id: options
+                for field_id, options in get_model_field_options(self.model)
+                if field_id in self.use_fields
             },
             **{
-                f"event_{field_id}": Event.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-                for field_id in [
-                    "type",
-                    "funding",
-                    "target_audience",
-                    "additional_platforms",
-                    "communities",
-                ]
-            }
+                f"event_{field_id}": options
+                for field_id, options in get_model_field_options(Event)
+                if field_id in event_fields
+            },
         }
         
     
