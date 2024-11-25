@@ -28,6 +28,10 @@ def get_model_field_options(model):
     )
 
 
+def get_list(value):
+    return value if isinstance(value, list) else [value]
+
+
 class EventGroup():
     def __init__(
         self,
@@ -91,11 +95,11 @@ class EventGroup():
         if params.get("type"):
             query = query.filter(type=params.get("type"))
         if params.get("funding"):
-            query = query.filter(funding=params.get("funding"))
+            query = query.filter(funding__contains=get_list(params.get("funding")))
         if params.get("target_audience"):
-            query = query.filter(target_audience=params.get("target_audience"))
+            query = query.filter(target_audience__contains=get_list(params.get("target_audience")))
         if params.get("additional_platforms"):
-            query = query.filter(additional_platforms=params.get("additional_platforms"))
+            query = query.filter(additional_platforms__contains=get_list(params.get("additional_platforms")))
 
         date_from = params.get("date_from")
         date_to = params.get("date_to")
@@ -201,11 +205,11 @@ class Group():
         if params.get("event_type"):
             query = query.filter(event__type=params.get("event_type"))
         if params.get("event_funding"):
-            query = query.filter(event__funding=params.get("event_funding"))
+            query = query.filter(event__funding__contains=get_list(params.get("event_funding")))
         if params.get("event_target_audience"):
-            query = query.filter(event__target_audience=params.get("event_target_audience"))
+            query = query.filter(event__target_audience__contains=get_list(params.get("event_target_audience")))
         if params.get("event_additional_platforms"):
-            query = query.filter(event__additional_platforms=params.get("event_additional_platforms"))
+            query = query.filter(event__additional_platforms__contains=get_list(params.get("event_additional_platforms")))
 
         date_from = params.get("date_from")
         date_to = params.get("date_to")
