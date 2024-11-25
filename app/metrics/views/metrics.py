@@ -139,6 +139,7 @@ def question_api(request, question_set_id: str):
 
 
 def event_properties_api(request):
+    filterable_only = "filterable-only" in request.GET
     field_options = _get_model_field_options(Event)
 
     type_map = {
@@ -150,11 +151,21 @@ def event_properties_api(request):
         "BooleanField": "bool",
     }
 
+    filterable_fields = {
+        "type",
+        "funding",
+        "target_audience",
+        "additional_platforms",
+        "date_from",
+        "date_to"
+    }
+
     result = [
         {
             "label": field.verbose_name.title(),
             "id": field.name,
             "type": "choice" if options else type_map[field.get_internal_type()],
+            "filterable": field.name in filterable_fields,
             **({
                 "options": [
                     {
@@ -166,7 +177,11 @@ def event_properties_api(request):
             } if options else {})
         }
         for (field, options) in field_options
-        if field.get_internal_type() not in {"ForeignKey", "ManyToManyField"} and field.name not in {"id", "created", "modified", "code", "locked"}
+        if (
+            field.get_internal_type() not in {"ForeignKey", "ManyToManyField"}
+            and field.name not in {"id", "created", "modified", "code", "locked"}
+            and (not filterable_only or field.name in filterable_fields)
+        )
     ]
 
     return JsonResponse({
