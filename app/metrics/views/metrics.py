@@ -100,7 +100,81 @@ def event_api(request):
     })
 
 
-def metrics_api(request, question_set_id):
+def question_api(request, question_set_id: str):
+    (
+        _event_type,
+        _funding,
+        _target_audience,
+        _additional_platforms,
+        _date_from,
+        _date_to,
+        node_only,
+        current_node
+    ) = _get_filter_params(request)
+
+    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
+    if (superset.node is not None and superset.node != current_node):
+        raise PermissionDenied("This set is not publicly available")
+    
+
+    result = [
+        {
+            "label": question.text,
+            "id": question.slug,
+            "answers": [
+                {
+                    "label": answer.text,
+                    "id": answer.slug,
+                }
+                for answer in question.answers.all()
+            ]
+        }
+        for question_set in superset.question_sets.all()
+        for question in question_set.questions.all()
+    ]
+
+    return JsonResponse({
+        "values": result
+    })
+
+
+def event_properties_api(request):
+    field_options = _get_model_field_options(Event)
+
+    type_map = {
+        "CharField": "string",
+        "DateField": "date",
+        "DecimalField": "number",
+        "DateTimeField": "datetime",
+        "PositiveIntegerField": "number",
+        "BooleanField": "bool",
+    }
+
+    result = [
+        {
+            "label": field.verbose_name.title(),
+            "id": field.name,
+            "type": "choice" if options else type_map[field.get_internal_type()],
+            **({
+                "options": [
+                    {
+                        "label": option[1],
+                        "id": option[0],
+                    }
+                    for option in options
+                ]
+            } if options else {})
+        }
+        for (field, options) in field_options
+        if field.get_internal_type() not in {"ForeignKey", "ManyToManyField"} and field.name not in {"id", "created", "modified", "code", "locked"}
+    ]
+
+    return JsonResponse({
+        "values": result
+    })
+
+
+def metrics_api(request, question_set_id: str):
     (
         event_type,
         funding,
@@ -193,7 +267,7 @@ def _get_filter_params(request):
     date_from = request.GET.get("date-from", None)
     date_to = request.GET.get("date-to", None)
     node_only = bool(int(request.GET.get("node-only", "0")))
-    current_node = request.user.get_node() if request.user else None
+    current_node = request.user.get_node() if request.user.is_authenticated else None
 
     return (
         event_type,
@@ -215,3 +289,24 @@ def _value_group(responses):
         vs.append(r.answer.slug)
         value_group[vid] = vs
     return value_group
+
+
+def _get_field_options(field):
+    choices = getattr(field, "choices", [])
+    choices = getattr(
+        getattr(field, "base_field", None),
+        "choices",
+        []
+    ) if not choices else choices
+    return (
+        []
+        if not choices
+        else choices
+    )
+
+
+def _get_model_field_options(model):
+    return (
+        (field, _get_field_options(field))
+        for field in model._meta.get_fields()
+    )
