@@ -191,13 +191,7 @@ class GenericListView(ListView):
         context["table_items"] = [
             [
                 *extras,
-                *[
-                    (
-                        self.parse_value(value),
-                        value.get_absolute_url() if hasattr(value, "get_absolute_url") else None
-                    )
-                    for value in self.get_values(entry)
-                ]
+                *self.get_values(entry)
             ]
             for extras, entry in zip(extras_list, context["object_list"])
         ]
@@ -224,7 +218,14 @@ class GenericListView(ListView):
             return self.paginate_by
 
     def get_values(self, entry):
-        return [getattr(entry, fieldname) for fieldname in self.fields]
+        return [self.get_value(entry, fieldname) for fieldname in self.fields]
+    
+    def get_value(self, entry, fieldname):
+        value = self.parse_value(getattr(entry, fieldname))
+        return (
+            value,
+            value.get_absolute_url() if hasattr(value, "get_absolute_url") else None
+        )
 
     def parse_value(self, value):
         value_list = (
@@ -304,6 +305,13 @@ class InstitutionListView(LoginRequiredMixin, GenericListView):
         return [
             ("View", entry.get_absolute_url()),
         ]
+    
+    def get_value(self, entry, fieldname):
+        (value, url) = super().get_value(entry, fieldname)
+        if fieldname == "ror_id" and value:
+            return (value, value)
+        else:
+            return (value, url)
 
 
 class GenericEventMetricsDeleteView(
