@@ -170,11 +170,18 @@ FEATURE_FLAGS = [
     if flag
 ]
 
-AUTH_TOKEN_SECRET = os.environ.get(
-    "TMD_AUTH_TOKEN_SECRET",
-    get_random_secret_key()
-)
+
 AUTH_TOKEN_MAX_LIFE_TIME = int(os.environ.get(
     "TMD_AUTH_TOKEN_MAX_LIFE_TIME",
     "86400"
 ))
+
+AUTH_TOKEN_PRIVATE_KEY = os.environ.get(
+    "TMD_AUTH_TOKEN_PRIVATE_KEY",
+    "/opt/tmd/keys/tmd_private_key.pem"
+)
+
+AUTH_TOKEN_PUBLIC_KEY = os.environ.get(
+    "TMD_AAUTH_TOKEN_PUBLIC_KEY",
+    "/opt/tmd/keys/tmd_public_key.pem"
+)

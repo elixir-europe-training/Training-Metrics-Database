@@ -8,8 +8,11 @@ import base64
 
 def validate_token(token):
     try:
+        with open(settings.AUTH_TOKEN_PUBLIC_KEY, "r") as key_file:
+            public_key = key_file.read()
+
         token = base64.b64decode(token.encode("utf-8")).decode("utf-8")
-        data = jwt.decode(token, settings.AUTH_TOKEN_SECRET, algorithms=["HS256"])
+        data = jwt.decode(token, public_key, algorithms=["RS256"])
         username = data["username"]
         tick = data["tick"]
         valid_to = datetime.datetime.fromisoformat(data["valid_to"])
@@ -42,6 +45,10 @@ def create_signup_token(user):
         "tick": user.profile.auth_ticker,
         "valid_to": valid_to.isoformat(),
     }
-    token = jwt.encode(payload, settings.AUTH_TOKEN_SECRET, algorithm="HS256")
+
+    with open(settings.AUTH_TOKEN_PRIVATE_KEY, "r") as key_file:
+        private_key = key_file.read()
+
+    token = jwt.encode(payload, private_key, algorithm="RS256")
 
     return base64.b64encode(token.encode("utf-8")).decode("utf-8")

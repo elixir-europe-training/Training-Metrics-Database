@@ -1,5 +1,6 @@
 ARG TMDDIR="/opt/tmd/app"
 ARG TMDSTATICDIR="/opt/tmd/static"
+ARG TMDKEYSDIR="/opt/tmd/keys"
 ARG UID=1000
 ARG GID=1000
 
@@ -9,6 +10,7 @@ FROM python:3.11-slim AS base
 
 ARG TMDDIR
 ARG TMDSTATICDIR
+ARG TMDKEYSDIR
 ARG UID
 ARG GID
 
@@ -24,6 +26,11 @@ COPY app/utils/requirements.txt "${TMDDIR}/"
 RUN mkdir -p "${TMDSTATICDIR}"
 RUN pip install -r requirements.txt
 
+RUN mkdir -p "${TMDKEYSDIR}"
+RUN openssl genpkey -algorithm RSA -out "${TMDKEYSDIR}/tmd_private_key.pem" -pkeyopt rsa_keygen_bits:2048
+RUN openssl rsa -pubout -in "${TMDKEYSDIR}/tmd_private_key.pem" -out "${TMDKEYSDIR}/tmd_public_key.pem"
+RUN chown python:python "${TMDKEYSDIR}/tmd_private_key.pem"
+RUN chown python:python "${TMDKEYSDIR}/tmd_public_key.pem"
 
 # Production setup
 FROM base AS prod
