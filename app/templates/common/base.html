@@ -8,6 +8,14 @@
   <body>
     {% include 'common/nav.html' %} {% include 'common/messages.html' %}
     <article class="container main-content p-3">
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}Important: {% endif %}
+          {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
       {% include 'common/breadcrumbs.html' %} {% block content %} {% endblock %}
     </article>
     {% include 'common/footer.html' %}

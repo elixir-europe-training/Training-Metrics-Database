@@ -1,4 +1,5 @@
 import datetime
+import calendar
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django import forms
@@ -6,9 +7,10 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, Fieldset, Submit, Div
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from metrics.token import validate_token
+from metrics.token import validate_token, get_content
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.contrib import messages
 
 
 class SignupForm(forms.Form):
@@ -44,10 +46,24 @@ class SignupForm(forms.Form):
 
 def jwt_signup(request):
     form = SignupForm(request.POST or None)
+    try:
+        token = request.GET["token"]
+        token_content = get_content(token)
+        expiration = token_content["exp"]
+        now_timestamp = calendar.timegm(
+            datetime.datetime.now(tz=datetime.timezone.utc).utctimetuple()
+        )
+
+        if expiration < now_timestamp:
+            messages.warning(request, "The token has expired")
+
+    except (ValidationError, KeyError):
+        messages.warning(request, "The token is invalid")
+
     if request.method == "POST" and form.is_valid():
         try:
             form_data = form.cleaned_data
-            user = validate_token(request.GET["token"])
+            user = validate_token(token)
             user.set_password(form_data["password"])
             user.profile.auth_ticker += 1
             user.save()
@@ -66,4 +82,3 @@ def jwt_signup(request):
             "form": form,
         }
     )
-    token = request.GET["token"]
