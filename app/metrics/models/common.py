@@ -225,6 +225,8 @@ class UserProfile(models.Model):
         null=True,
         related_name="users"
     )
+    auth_ticker = models.IntegerField(default=0)
+    allow_token_reset = models.BooleanField(default=False)
 
     def __str__(self):
         return "Profile for {0}".format(self.user)

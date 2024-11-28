@@ -5,6 +5,7 @@ from metrics import views
 from metrics.forms import UserLoginForm
 from metrics.views.tess_import import tess_import
 from metrics.views.upload import upload_data, download_template
+from metrics.views.signup import jwt_signup
 from metrics.views.model_views import (
     EventView,
     InstitutionView,
@@ -22,6 +23,7 @@ urlpatterns = [
         name='login'
     ),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
+    path('signup/', jwt_signup, name='jwt-signup'),
     path('upload-data', upload_data, name='upload-data'),
     path('tess-import', tess_import, name='tess-import'),
     path('tess-import/<int:tess_id>', tess_import, name='tess-import'),

@@ -1,5 +1,8 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
+from metrics.token import create_signup_token
+from django.urls import reverse
+
 
 from metrics.models import (
     Event,
@@ -12,6 +15,7 @@ from metrics.models import (
     UserProfile,
     Node
 )
+from django.utils.safestring import mark_safe
 
 
 COMMON_EXCLUDES = [
@@ -30,7 +34,15 @@ def is_owner_of_object(user, obj):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(ModelAdmin):
-    pass
+    readonly_fields = ("signup_link",)
+
+    def signup_link(self, obj):
+        if obj.allow_token_reset:
+            token = create_signup_token(obj.user)
+            token_url = f"{reverse('jwt-signup')}?token={token}"
+            return mark_safe(f'<a href="{token_url}" target="_blank">Sign up link</a>')
+    
+    signup_link.short_description = "Sign up link"
 
 
 @admin.register(Node)
