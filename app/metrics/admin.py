@@ -34,14 +34,16 @@ def is_owner_of_object(user, obj):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(ModelAdmin):
-    readonly_fields = ("signup_link",)
-
     def signup_link(self, obj):
-        if obj.allow_token_reset:
-            token = create_signup_token(obj.user)
-            token_url = f"{reverse('jwt-signup')}?token={token}"
-            return mark_safe(f'<a href="{token_url}" target="_blank">Sign up link</a>')
-    
+        token = create_signup_token(obj.user)
+        token_url = f"{reverse('jwt-signup')}?token={token}"
+        return mark_safe(f'<a href="{token_url}" target="_blank">Sign up link</a>')
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser and obj and obj.allow_token_reset:
+            return ("signup_link",)
+        return ()
+
     signup_link.short_description = "Sign up link"
 
 
