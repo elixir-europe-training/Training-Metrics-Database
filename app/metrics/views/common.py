@@ -122,14 +122,14 @@ def get_callback(group):
                     metrics,
                     group.get_field_title(field_id),
                     group.get_field_title(field_id),
-                    f'No. of {group.get_name()}'
+                    group.get_name()
                 ))
             else:
                 outputs.append(generate_pie(
                     metrics,
                     group.get_field_title(field_id),
                     group.get_field_title(field_id),
-                    f'No. of {group.get_name()}'
+                    group.get_name()
                 ))
             # Append table data for DataTable component
             outputs.append([{"name": name, "value": value} for name, value in metrics.items()])
