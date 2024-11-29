@@ -22,14 +22,14 @@ class CustomUserAdmin(UserAdmin):
         return ()
     
     def get_fieldsets(self, request, obj=None):
-        if request.user.is_superuser:
-            return UserAdmin.fieldsets + (
+        if request.user.is_superuser and obj and obj.pk:
+            return super().get_fieldsets(request, obj) + (
                 ('Account Management', {'fields': ('password_reset_link',)}),
             )
-        return UserAdmin.fieldsets
+        return super().get_fieldsets(request, obj)
 
     def get_reset_url(self, obj):
-        if obj:
+        if obj and obj.pk:
             base64_encoded_id = utils.http.urlsafe_base64_encode(utils.encoding.force_bytes(obj.id))
             token = PasswordResetTokenGenerator().make_token(obj)
             reset_url_args = {'uidb64': base64_encoded_id, 'token': token}
@@ -38,7 +38,7 @@ class CustomUserAdmin(UserAdmin):
 
 
     def password_reset_link(self, obj):
-        if obj:
+        if obj and obj.pk:
             url = self.get_reset_url(obj)
             return format_html('<a href="{url}">Reset Password</a>', url=url)
 
