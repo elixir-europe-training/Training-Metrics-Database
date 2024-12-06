@@ -9,10 +9,21 @@ from metrics.models import SystemSettings
 def get_metrics_tabs():
     settings = SystemSettings.get_settings()
     supersets = settings.get_metrics_sets()
-    set_tabs = [
-        (superset.name, "metrics-set-report", {"question_set_id": superset.slug})
-        for superset in supersets
-    ]
+    set_tabs = (
+        [
+            (superset.name, "metrics-set-report", {"question_set_id": superset.slug})
+            for superset in supersets
+        ]
+        if settings.has_flag("use_new_model_stats")
+        else [
+            (label, "metrics-legacy-report", {"question_set_id": legacy_id})
+            for label, legacy_id in [
+                ("Impact metrics", "impact"),
+                ("Demographic metrics", "demographic"),
+                ("Quality metrics", "quality")
+            ]
+        ]
+    )
     return [
         ("Events", "metrics-event-report", {}),
         *set_tabs
