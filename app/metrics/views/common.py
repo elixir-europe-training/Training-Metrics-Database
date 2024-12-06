@@ -102,9 +102,10 @@ def get_callback(group):
         outputs = []
         for field_id, chart_type in zip(group.get_fields(), chart_types):
             metrics = calculate_metrics(values, field_id)
+            field_options = group.get_field_options(field_id)
             metrics = {
-                group.get_field_option_name(field_id, option_id): count
-                for option_id, count in metrics.items()
+                group.get_field_option_name(field_id, option_id): metrics.get(option_id, 0)
+                for option_id in {*field_options, *metrics.keys()}
             }
             if chart_type == 'bar':
                 outputs.append(generate_bar(
