@@ -4,7 +4,7 @@ from django.urls import reverse
 def get_navigation(request):
     return {
         "nav_items": [
-            {"title": "TMD - a new version of the Training Metrics Database", "icon": "", "url": reverse('all-events'), "type": "main"},
+            {"title": "TMD - a new version of the Training Metrics Database", "icon": "", "url": reverse("world-map"), "type": "main"},
             *[
                 {"title": title, "icon": icon, "url": url, "type": "user"}
                 for title, icon, url in (

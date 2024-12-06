@@ -1,8 +1,4 @@
 {% extends "common/base.html" %}
-{% load plotly_dash %}
-{% block header %}
-    {% plotly_header %}
-{% endblock %}
 {% load static %}
 {% block content %}
     <h1>Reports</h1>
@@ -18,24 +14,24 @@
             }
 
             const data = [{
-                type: 'choropleth',
-                locationmode: 'country names',
-                locations: unpack(rows, 'country'),
-                z: unpack(rows, 'count'),
-                text: unpack(rows, 'country'),
-                color: 'log_count',
+                type: "choropleth",
+                locationmode: "country names",
+                locations: unpack(rows, "country"),
+                z: unpack(rows, "count"),
+                text: unpack(rows, "country"),
+                color: "log_count",
                 color_continuous_scale: ["#ffffff", "#F47D20"],
             }];
 
             const layout = {
-                title: {text: 'Event count per region'},
+                title: {text: "Event count per region"},
                 geo: {
-                    "bgcolor": "white",
-                    "landcolor": "#E5ECF6",
-                    "subunitcolor": "white",
-                    "showland": true,
-                    "showlakes": true,
-                    "lakecolor": "white",
+                    bgcolor: "white",
+                    landcolor: "#E5ECF6",
+                    subunitcolor: "white",
+                    showland: true,
+                    showlakes: true,
+                    lakecolor: "white",
                     projection: {type: "equirectangular"},
                     showframe: false,
                     showcoastlines: false,
