@@ -8,6 +8,137 @@ from django.shortcuts import render
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.views import View
+import csv
+import io
+import base64
+
+
+class MetricsView(View):
+    def get_metrics(
+        self,
+        event_type=None,
+        event_funding=None,
+        event_target_audience=None,
+        event_additional_platforms=None,
+        event_node=None,
+        date_to=None,
+        date_from=None,
+        node_only=False,
+    ):
+        return []
+
+    def metrics_to_csv(self, metrics: list):
+        fieldnames = ["question", "option", "count"]
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        data = [
+            {
+                "question": entry["label"],
+                "option": option["label"],
+                "count": option["count"]
+            }
+            for entry in metrics
+            for option in entry["options"]
+        ]
+        writer.writeheader()
+        for entry in data:
+            writer.writerow(entry)
+
+        return output.getvalue()
+
+    def csv_to_base64_url(self, csv_data: str):
+        data = base64.b64encode(csv_data.encode('utf-8')).decode("utf-8").strip()
+        uri = f"data:text/csv;base64,{data}"
+        return uri
+
+    def get_download_name(self):
+        return "metrics"
+
+    def get_download_label(self):
+        return "Download metrics"
+
+    def get(self, request, *args, **kwargs):
+        (
+            event_type,
+            funding,
+            target_audience,
+            additional_platforms,
+            date_from,
+            date_to,
+            node_only,
+            current_node
+        ) = _get_filter_params(request)
+        metrics = self.get_metrics(
+            event_type=event_type,
+            event_funding=funding,
+            event_target_audience=target_audience,
+            event_additional_platforms=additional_platforms,
+            event_node=current_node,
+            date_to=date_to,
+            date_from=date_from,
+            node_only=node_only
+        )
+        title = getattr(self, "title", "Metrics")
+        data_csv = self.metrics_to_csv(metrics)
+        data_url = self.csv_to_base64_url(data_csv)
+        filename = f"{self.get_download_name()}.csv"
+        chart_type = {"pie": "pie", "bar": "bar"}.get(request.GET.get("chart-type", None), "pie")
+        return render(
+            request,
+            "metrics/metrics.html",
+            context={
+                **get_tabs(request),
+                "title": title,
+                "metrics": metrics,
+                "chart_type": chart_type,
+                "download": {
+                    "label": self.get_download_label(),
+                    "href": data_url,
+                    "filename": filename
+                }
+            }
+        )
+
+
+class EventMetricsView(MetricsView):
+    def get_download_name(self):
+        return "event-metrics"
+
+    def get_download_label(self):
+        return "Download event metrics"
+
+    def get_metrics(
+        self,
+        **kwargs
+    ):
+        return get_event_info(
+            **kwargs
+        )
+
+
+class SuperSetMetricsView(MetricsView):
+    def get_download_name(self):
+        question_set_id = self.kwargs["question_set_id"]
+        return f"{question_set_id}-metrics"
+
+    def get_download_label(self):
+        return f"Download {self.superset.name} metrics"
+
+    def get_metrics(
+        self,
+        **kwargs
+    ):
+        question_set_id = self.kwargs["question_set_id"]
+        superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
+        self.superset = superset
+        if (superset.node is not None and superset.node != current_node):
+            raise PermissionDenied("This set is not publicly available")
+
+        return get_metrics_info(
+            superset,
+            **kwargs
+        )
 
 
 def world_map_api(request):
@@ -49,51 +180,16 @@ def event_api(request):
         current_node
     ) = _get_filter_params(request)
 
-    query = Event.objects.all()
-    if event_type:
-        query = query.filter(type=event_type)
-    if funding:
-        query = query.filter(funding=funding)
-    if target_audience:
-        query = query.filter(target_audience=target_audience)
-    if additional_platforms:
-        query = query.filter(additional_platforms=additional_platforms)
-    if date_from is not None and date_to is not None:
-        query = query.filter(
-            Q(date_start__range=[date_from, date_to]) |
-            Q(date_end__range=[date_from, date_to])
-        )
-    if node_only and current_node:
-        query = query.filter(event__node=current_node)
-
-    entries = list(query.values())
-    params = {
-        "type": "Type",
-        "funding": "Event funding",
-        "target_audience": "Target audience",
-        "additional_platforms": "Additional platforms",
-        "communities": "Communities",
-    }
-
-    summary = {
-        key: _calculate_metrics(entries, key)
-        for key in params.keys()
-    }
-    result = [
-        {
-            "label": params.get(key),
-            "id": key,
-            "count": [
-                {
-                    "label": param,
-                    "id": param,
-                    "count": count
-                }
-                for param, count in summary[key].items()
-            ]
-        }
-        for key in params.keys()
-    ]
+    result = get_event_info(
+        event_type=event_type,
+        event_funding=funding,
+        event_target_audience=target_audience,
+        event_additional_platforms=additional_platforms,
+        event_node=current_node,
+        date_to=date_to,
+        date_from=date_from,
+        node_only=node_only
+    )
 
     return JsonResponse({
         "values": result
@@ -108,7 +204,7 @@ def question_api(request, question_set_id: str):
         _additional_platforms,
         _date_from,
         _date_to,
-        node_only,
+        _node_only,
         current_node
     ) = _get_filter_params(request)
 
@@ -117,21 +213,7 @@ def question_api(request, question_set_id: str):
         raise PermissionDenied("This set is not publicly available")
     
 
-    result = [
-        {
-            "label": question.text,
-            "id": question.slug,
-            "answers": [
-                {
-                    "label": answer.text,
-                    "id": answer.slug,
-                }
-                for answer in question.answers.all()
-            ]
-        }
-        for question_set in superset.question_sets.all()
-        for question in question_set.questions.all()
-    ]
+    result = get_question_info(superset)
 
     return JsonResponse({
         "values": result
@@ -140,8 +222,124 @@ def question_api(request, question_set_id: str):
 
 def event_properties_api(request):
     filterable_only = "filterable-only" in request.GET
-    field_options = _get_model_field_options(Event)
 
+    result = get_event_properties(filterable_only)
+
+    return JsonResponse({
+        "values": result
+    })
+
+
+def metrics_api(request, question_set_id: str):
+    (
+        event_type,
+        funding,
+        target_audience,
+        additional_platforms,
+        date_from,
+        date_to,
+        node_only,
+        current_node
+    ) = _get_filter_params(request)
+
+    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
+    if (superset.node is not None and superset.node != current_node):
+        raise PermissionDenied("This set is not publicly available")
+
+    result = get_metrics_info(
+        superset,
+        event_type=event_type,
+        event_funding=funding,
+        event_target_audience=target_audience,
+        event_additional_platforms=additional_platforms,
+        event_node=current_node,
+        date_to=date_to,
+        date_from=date_from,
+        node_only=node_only
+    )
+
+    return JsonResponse({
+        "values": result,
+    })
+
+
+def get_event_info(
+    event_type=None,
+    event_funding=None,
+    event_target_audience=None,
+    event_additional_platforms=None,
+    event_node=None,
+    date_to=None,
+    date_from=None,
+    node_only=False,
+):
+    query = Event.objects.all()
+    if event_type:
+        query = query.filter(type=event_type)
+    if event_funding:
+        query = query.filter(funding__contains=event_funding)
+    if event_target_audience:
+        query = query.filter(target_audience__contains=event_target_audience)
+    if event_additional_platforms:
+        query = query.filter(additional_platforms__contains=event_additional_platforms)
+    if date_from is not None and date_to is not None:
+        query = query.filter(
+            Q(date_start__range=[date_from, date_to]) |
+            Q(date_end__range=[date_from, date_to])
+        )
+    if node_only and event_node:
+        query = query.filter(event__node=event_node)
+
+    entries = list(query.values())
+    params = {
+        "type": "Type",
+        "funding": "Event funding",
+        "target_audience": "Target audience",
+        "additional_platforms": "Additional platforms",
+        "communities": "Communities",
+    }
+
+    summary = {
+        key: _calculate_metrics(entries, key)
+        for key in params.keys()
+    }
+    return [
+        {
+            "label": params.get(key),
+            "id": key,
+            "options": [
+                {
+                    "label": param,
+                    "id": param,
+                    "count": count
+                }
+                for param, count in summary[key].items()
+            ]
+        }
+        for key in params.keys()
+    ]
+
+
+def get_question_info(question_superset):
+    return [
+        {
+            "label": question.text,
+            "id": question.slug,
+            "options": [
+                {
+                    "label": answer.text,
+                    "id": answer.slug,
+                }
+                for answer in question.answers.all()
+            ]
+        }
+        for question_set in question_superset.question_sets.all()
+        for question in question_set.questions.all()
+    ]
+
+
+def get_event_properties(filterable_only=False):
+    field_options = _get_model_field_options(Event)
     type_map = {
         "CharField": "string",
         "DateField": "date",
@@ -160,7 +358,7 @@ def event_properties_api(request):
         "date_to"
     }
 
-    result = [
+    return [
         {
             "label": field.verbose_name.title(),
             "id": field.name,
@@ -184,42 +382,33 @@ def event_properties_api(request):
         )
     ]
 
-    return JsonResponse({
-        "values": result
-    })
 
-
-def metrics_api(request, question_set_id: str):
-    (
-        event_type,
-        funding,
-        target_audience,
-        additional_platforms,
-        date_from,
-        date_to,
-        node_only,
-        current_node
-    ) = _get_filter_params(request)
-
-    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
-    if (superset.node is not None and superset.node != current_node):
-        raise PermissionDenied("This set is not publicly available")
-
+def get_metrics_info(
+    question_superset,
+    event_type=None,
+    event_funding=None,
+    event_target_audience=None,
+    event_additional_platforms=None,
+    event_node=None,
+    date_to=None,
+    date_from=None,
+    node_only=False,
+):
     questions = {
         q.slug: q
-        for qs in superset.question_sets.all()
+        for qs in question_superset.question_sets.all()
         for q in qs.questions.all()
     }
 
     query = Response.objects.filter(answer__question__in=questions.values())
     if event_type:
         query = query.filter(response_set__event__type=event_type)
-    if funding:
-        query = query.filter(response_set__event__funding=funding)
-    if target_audience:
-        query = query.filter(response_set__event__target_audience=target_audience)
-    if additional_platforms:
-        query = query.filter(response_set__event__additional_platforms=additional_platforms)
+    if event_funding:
+        query = query.filter(response_set__event__funding__contains=event_funding)
+    if event_target_audience:
+        query = query.filter(response_set__event__target_audience__contains=event_target_audience)
+    if event_additional_platforms:
+        query = query.filter(response_set__event__additional_platforms__contains=event_additional_platforms)
     if node_only and current_node:
         query = query.filter(response_set__event__node=current_node)
     if date_from is not None and date_to is not None:
@@ -242,11 +431,11 @@ def metrics_api(request, question_set_id: str):
         for value in query
     }
 
-    result = [
+    return [
         {
             "label": question.text,
             "id": question.slug,
-            "count": [
+            "options": [
                 {
                     "label": answer.text,
                     "id": answer.slug,
@@ -258,9 +447,6 @@ def metrics_api(request, question_set_id: str):
         for question in questions.values()
     ]
 
-    return JsonResponse({
-        "values": result
-    })
 
 
 def _calculate_metrics(data, column):
@@ -276,9 +462,9 @@ def _calculate_metrics(data, column):
 
 def _get_filter_params(request):
     event_type = request.GET.get("type", None)
-    funding = request.GET.get("funding", None)
-    target_audience = request.GET.get("target-audience", None)
-    additional_platforms = request.GET.get("additional-platforms", None)
+    funding = request.GET.getlist("funding", None)
+    target_audience = request.GET.getlist("target-audience", None)
+    additional_platforms = request.GET.getlist("additional-platforms", None)
     date_from = request.GET.get("date-from", None)
     date_to = request.GET.get("date-to", None)
     node_only = bool(int(request.GET.get("node-only", "0")))

@@ -55,8 +55,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "metrics",
-    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
-    "dash_app",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -72,9 +70,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_plotly_dash.middleware.BaseMiddleware",
-    "django_plotly_dash.middleware.ExternalRedirectionMiddleware",
-    "metrics.middleware.metrics_middleware"
 ]
 
 ROOT_URLCONF = "tmd.urls"
