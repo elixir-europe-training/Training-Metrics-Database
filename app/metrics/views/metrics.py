@@ -1,5 +1,13 @@
 from django.http import JsonResponse
-from metrics.models import Event, QuestionSuperSet, Response
+from metrics.models import (
+    Event,
+    QuestionSuperSet,
+    Response,
+    Quality,
+    Impact,
+    Demographic,
+    SystemSettings,
+)
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, F
 from metrics.views.common import get_tabs
@@ -137,6 +145,33 @@ class SuperSetMetricsView(MetricsView):
 
         return get_metrics_info(
             superset,
+            **kwargs
+        )
+
+
+class LegacyMetricsView(MetricsView):
+    def get_download_name(self):
+        question_set_id = self.kwargs["question_set_id"]
+        return f"{question_set_id}-metrics"
+
+    def get_download_label(self):
+        return f"Download {self.model._meta.verbose_name} metrics"
+
+    def get_metrics(
+        self,
+        **kwargs
+    ):
+        question_set_id = self.kwargs["question_set_id"]
+        model = {
+            "quality": Quality,
+            "impact": Impact,
+            "demographic": Demographic
+        }.get(question_set_id, None)
+        if model is None:
+            return HttpResponseNotFound(f"This question set does not exist '{question_set_id}'")  
+        self.model = model
+        return get_legacy_metrics_info(
+            model,
             **kwargs
         )
 
@@ -445,6 +480,66 @@ def get_metrics_info(
             ]
         }
         for question in questions.values()
+    ]
+
+
+def get_legacy_metrics_info(
+    metrics_type,
+    event_type=None,
+    event_funding=None,
+    event_target_audience=None,
+    event_additional_platforms=None,
+    event_node=None,
+    date_to=None,
+    date_from=None,
+    node_only=False,
+):
+    query = metrics_type.objects.all()
+    if event_type:
+        query = query.filter(event__type=event_type)
+    if event_funding:
+        query = query.filter(event__funding__contains=event_funding)
+    if event_target_audience:
+        query = query.filter(event__target_audience__contains=event_target_audience)
+    if event_additional_platforms:
+        query = query.filter(event__additional_platforms__contains=event_additional_platforms)
+
+    if date_from is not None and date_to is not None:
+        query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
+    if node_only and event_node:
+        query = query.filter(event__node=event_node)
+
+    ignored_fields = {
+        "id",
+        "event_id",
+        "user_id",
+        "created",
+        "modified"
+    }
+
+    result = {}
+    for value in query.values():
+        for key, value in value.items():
+            if key not in ignored_fields:
+                result[key] = result.get(key, {})
+                values = value if isinstance(value, list) else [value]
+                for v in values:
+                    result[key][v] = result[key].get(v, 0) + 1
+
+    return [
+        {
+            "label": metrics_type._meta.get_field(key).verbose_name,
+            "id": key,
+            "options": [
+                {
+                    "label": option,
+                    "id": option,
+                    "count": count
+                }
+                for option, count in options.items()
+            ]
+        }
+        for key, options in result.items()
     ]
 
 
