@@ -4,8 +4,25 @@
     {% plotly_header %}
 {% endblock %}
 {% block content %}
-    <h1>Reports</h1>
+    {% if title %}<h1>{{title}}</h1>{% endif %}
     {% include 'common/tabs.html' %}
     {% if dash_name %}{% plotly_direct name=dash_name %}{% endif %}
+    {% if table %}
+    <table class="table table-bordered">
+        <thead class="thead-light">
+            <tr>
+                {% for heading in table.headings %}
+                <th>{{heading}}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in table.items %}
+            <tr>
+                {% for value in item %}
+                <td>{% if href %}<a href="{{href}}">{{value}}</a>{% else %}{{value}}{% endif %}</td>{% endfor %}
+            </tr>{% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
     {% plotly_footer %}
 {% endblock %}
