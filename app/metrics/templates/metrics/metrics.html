@@ -1,23 +1,28 @@
 {% extends "common/base.html" %}
+{% load crispy_forms_tags %}
 {% load static %}
 {% block content %}
     <h1>Reports</h1>
     {% include 'common/tabs.html' %}
+    {% crispy filter_form %}
+    <hr />
     {% for entry in metrics %}
     <h3>{{ entry.label }}</h3>
-    <table class="table table-bordered">
-        <thead class="thead-light">
-            <tr>
-                <th>Option</th><th>Number of responses</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for option in entry.options %}
-            <tr>
-                <td>{{ option.label }}</td><td width="20%">{{ option.count }}</td>
-            </tr>{% endfor %}
-        </tbody>
-    </table>
+    <div class="table-container">
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th>Option</th><th>Number of responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for option in entry.options %}
+                <tr>
+                    <td>{{ option.label }}</td><td width="20%">{{ option.count }}</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
     <div class="data-view" id="{{entry.id}}-view" data-value-id="{{entry.id}}"></div>
     {{ entry | json_script:entry.id }}
     {% endfor %}
