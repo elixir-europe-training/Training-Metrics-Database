@@ -11,6 +11,7 @@ from metrics.models import (
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, F
 from metrics.views.common import get_tabs
+from metrics.forms import MetricsFilterForm
 from django.urls import reverse
 from django.shortcuts import render
 from datetime import date
@@ -92,6 +93,7 @@ class MetricsView(View):
         data_url = self.csv_to_base64_url(data_csv)
         filename = f"{self.get_download_name()}.csv"
         chart_type = {"pie": "pie", "bar": "bar"}.get(request.GET.get("chart-type", None), "pie")
+        filter_form = MetricsFilterForm(request.GET or None)
         return render(
             request,
             "metrics/metrics.html",
@@ -100,6 +102,7 @@ class MetricsView(View):
                 "title": title,
                 "metrics": metrics,
                 "chart_type": chart_type,
+                "filter_form": filter_form,
                 "download": {
                     "label": self.get_download_label(),
                     "href": data_url,
@@ -558,11 +561,11 @@ def _calculate_metrics(data, column):
 def _get_filter_params(request):
     event_type = request.GET.get("type", None)
     funding = request.GET.getlist("funding", None)
-    target_audience = request.GET.getlist("target-audience", None)
-    additional_platforms = request.GET.getlist("additional-platforms", None)
-    date_from = request.GET.get("date-from", None)
-    date_to = request.GET.get("date-to", None)
-    node_only = bool(int(request.GET.get("node-only", "0")))
+    target_audience = request.GET.getlist("target_audience", None)
+    additional_platforms = request.GET.getlist("additional_platforms", None)
+    date_from = request.GET.get("date_start", None) or None
+    date_to = request.GET.get("date_end", None) or None
+    node_only = bool(int(request.GET.get("node_only", "0")))
     current_node = request.user.get_node() if request.user.is_authenticated else None
 
     return (
