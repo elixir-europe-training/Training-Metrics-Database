@@ -271,10 +271,9 @@ def legacy_upload(request, event):
 
 
 def response_upload(request, event):
+    settings = models.SystemSettings.get_settings()
     node = request.user.get_node()
-    question_supersets = QuestionSuperSet.objects.filter(
-        use_for_upload=True
-    )
+    question_supersets = settings.get_upload_sets()
     event_upload_form = None
     if event is None:
         upload_type = UPLOAD_TYPES["events"]

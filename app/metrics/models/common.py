@@ -135,27 +135,6 @@ class Event(EditTracking):
             self.date_start,
             self.date_end
         )
-
-    @property
-    def stats(self):
-        return [
-            (name, related.count())
-            for name, related in [
-                ("Quality metrics", self.quality),
-                ("Impact metrics", self.impact),
-                ("Demographic metrics", self.demographic)
-            ]
-        ]
-
-    @property
-    def metrics_status(self):
-        count = sum([1 if v > 0 else 0 for _n, v in self.stats])
-        return {
-            0: "None",
-            1: "Partial",
-            2: "Partial",
-            3: "Full"
-        }[count]
     
     @property
     def is_locked(self):
