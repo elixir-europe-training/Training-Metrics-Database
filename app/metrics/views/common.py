@@ -31,11 +31,6 @@ def get_metrics_tabs():
 
 
 def get_tabs(request, view_name=None):
-    view_name = (
-        request.resolver_match.view_name
-        if view_name is None
-        else view_name
-    )
     user_input = (
         [
             ("Upload data", "upload-data", {}),
@@ -46,7 +41,7 @@ def get_tabs(request, view_name=None):
         else []
     )
     tabs = [
-        {"title": title, "url": reverse(name, kwargs=kwargs)}
+        {"title": title, "url": reverse(name, kwargs=kwargs), "name": name}
         for title, name, kwargs in [
             ("World map", "world-map", {}),
             *get_metrics_tabs(),
@@ -56,7 +51,7 @@ def get_tabs(request, view_name=None):
     ]
     return {
         "tabs": [
-            {**tab, "active": tab["url"] == request.path_info}
+            {**tab, "active": tab["url"] == request.path_info or tab["name"] == view_name}
             for tab in tabs
         ]
     }
