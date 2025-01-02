@@ -114,7 +114,7 @@ def get_import_context(data_type, user, node_main, event):
             }
         )
     elif data_type == "demographic_quality_metrics":
-        (
+        return (
             import_utils.legacy_to_current_quality_or_demographic_dict,
             import_context.quality_or_demographic_from_dict,
             {"summary": summary_output}
