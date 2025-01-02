@@ -1,6 +1,4 @@
 django==4.2.*
-numpy==1.26.*
-pandas==2.0.3
 psycopg2-binary==2.9.6
 crispy-bootstrap5==0.7
 django-crispy-forms==2.0
