@@ -96,15 +96,36 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         return f"Event: {self.object}"
     
     def get_actions(self):
-        return (
-            [
-                (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics"),
-                (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
-                (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
-                (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
-            ] if self.can_edit()
-            else []
-        )
+        settings = models.SystemSettings.get_settings()
+        upload_action = (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics")
+        if settings.has_flag("use_new_model_upload"):
+            supersets = settings.get_upload_sets()
+            return (
+                [
+                    upload_action,
+                    *[
+                        (
+                            reverse(
+                                "superset-delete-responses",
+                                kwargs={"pk": self.object.id, "superset_slug": superset.slug}
+                            ),
+                            f"Delete {superset.name}"
+                        )
+                        for superset in supersets
+                    ]
+                ] if self.can_edit()
+                else []
+            )
+        else:
+            return (
+                [
+                    upload_action,
+                    (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
+                    (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
+                    (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
+                ] if self.can_edit()
+                else []
+            )
     
     def can_edit(self):
         model_object = self.get_object()
@@ -112,7 +133,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
             self.request.user.get_node() == model_object.node_main
             and not self.object.is_locked
         )
-    
+
     def get_stats(self):
         stat_fields = [
             "code",
@@ -123,7 +144,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
             for field in stat_fields
         ]
         return [
-            *self.object.stats,
+            *get_metrics_counts(self.object),
             *field_stats
         ]
 
@@ -290,13 +311,7 @@ class GenericListView(ListView):
             for entry in context["object_list"]
         ]
         max_extras = max(len(e) for e in extras_list)
-        context["table_headings"] = [
-            *["" for _i in range(max_extras)],
-            *[
-                self.get_field_label(field)
-                for field in self.fields
-            ]
-        ]
+        context["table_headings"] = self.get_headers(max_extras)
         context["table_items"] = [
             [
                 *extras,
@@ -332,6 +347,15 @@ class GenericListView(ListView):
         except ValueError:
             return self.paginate_by
 
+    def get_headers(self, max_extras):
+        return [
+            *["" for _i in range(max_extras)],
+            *[
+                self.get_field_label(field)
+                for field in self.fields
+            ]
+        ]
+
     def get_values(self, entry):
         return [getattr(entry, fieldname) for fieldname in self.fields]
 
@@ -360,14 +384,12 @@ class EventListView(LoginRequiredMixin, GenericListView):
         "date_period",
         "type",
         "organising_institution",
-        "metrics_status",
     ]
 
     def get_field_label(self, field):
         try:
             return {
                 "date_period": "Date Period",
-                "metrics_status": "Metrics Status",
             }[field]
         except KeyError:
             return super().get_field_label(field)
@@ -386,6 +408,20 @@ class EventListView(LoginRequiredMixin, GenericListView):
             else queryset
         )
         return queryset
+
+    def get_headers(self, max_extras):
+        headers = super().get_headers(max_extras)
+        return [
+            *headers,
+            "Metrics Status"
+        ]
+
+    def get_values(self, entry):
+        values = super().get_values(entry)
+        return [
+            *values,
+            get_metrics_status(entry)
+        ]
 
     def get_entry_extras(self, entry):
         user_node = self.request.user.get_node()
@@ -430,11 +466,14 @@ class GenericEventMetricsDeleteView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        name = self.metrics_model.__name__
+        name = self.get_name()
         context["title"] = f"Delete {name} metrics for: {self.object}"
         context["abort_url"] = self.get_success_url()
         context["message"] = f"Do you want to delete {name} metrics for the event '{self.object}'?"
         return context
+
+    def get_name(self):
+        return self.metrics_model.__name__
 
     def get_success_url(self):
         return self.object.get_absolute_url()
@@ -442,6 +481,30 @@ class GenericEventMetricsDeleteView(
     def form_valid(self, form):
         success_url = self.get_success_url()
         self.metrics_model.objects.filter(event=self.object).delete()
+        return HttpResponseRedirect(success_url)
+
+
+class SuperSetMetricsDeleteView(
+    GenericEventMetricsDeleteView
+):
+    metrics_model = models.ResponseSet
+
+    def get_superset(self):
+        superset_slug = self.kwargs["superset_slug"]
+        return get_object_or_404(models.QuestionSuperSet, slug=superset_slug)
+
+    def get_name(self):
+        superset = self.get_superset()
+        return superset.name
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        superset = self.get_superset()
+        question_sets = list(superset.question_sets.all())
+        self.metrics_model.objects.filter(
+            event=self.object,
+            question_set__in=question_sets
+        ).delete()
         return HttpResponseRedirect(success_url)
 
 
@@ -461,3 +524,42 @@ class DemographicMetricsDeleteView(
     GenericEventMetricsDeleteView
 ):
     metrics_model = models.Demographic
+
+
+def get_metrics_counts(event):
+    settings = models.SystemSettings.get_settings()
+    return (
+        [
+            (
+                superset.name,
+                max((
+                    models.ResponseSet.objects.filter(
+                        event=event,
+                        question_set=question_set
+                    ).count()
+                    for question_set in superset.question_sets.all()
+                ))
+            )
+            for superset in settings.get_upload_sets()
+        ]
+        if settings.has_flag("use_new_model_upload")
+        else [
+            (name, related.count())
+            for name, related in [
+                ("Quality metrics", event.quality),
+                ("Impact metrics", event.impact),
+                ("Demographic metrics", event.demographic)
+            ]
+        ]
+    )
+
+
+def get_metrics_status(event):
+    counts = get_metrics_counts(event)
+    count = sum([1 if v > 0 else 0 for _n, v in counts])
+    if count == 0:
+        return "None"
+    elif count < len(counts):
+        return "Partial"
+    else:
+        return "Full"

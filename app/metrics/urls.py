@@ -14,6 +14,7 @@ from metrics.views.model_views import (
     QualityMetricsDeleteView,
     DemographicMetricsDeleteView,
     ImpactMetricsDeleteView,
+    SuperSetMetricsDeleteView,
 )
 
 urlpatterns = [
@@ -43,6 +44,10 @@ urlpatterns = [
     path('event/delete-metrics/quality/<int:pk>',
         QualityMetricsDeleteView.as_view(),
         name="quality-delete-metrics"
+    ),
+    path('event/delete-metrics/superset/<int:pk>/<str:superset_slug>',
+        SuperSetMetricsDeleteView.as_view(),
+        name="superset-delete-responses"
     ),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset_done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
