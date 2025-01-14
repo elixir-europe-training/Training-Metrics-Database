@@ -163,23 +163,26 @@ class LegacyMetricsView(MetricsView):
         **kwargs
     ):
         question_set_id = self.kwargs["question_set_id"]
-        model = {
-            "quality": Quality,
-            "impact": Impact,
-            "demographic": Demographic
-        }.get(question_set_id, None)
-        if model is None:
-            raise Http404()
-        self.model = model
+        self.model = get_metrics_model_or_404(question_set_id)
         return get_legacy_metrics_info(
-            model,
+            self.model,
             **kwargs
         )
 
 
+def get_metrics_model_or_404(model_id):
+    model = {
+        "quality": Quality,
+        "impact": Impact,
+        "demographic": Demographic
+    }.get(model_id, None)
+    if model is None:
+        raise Http404(f"Model could nog be found: {model_id}")
+    return model
+
+
 def get_metrics_view():
     settings = SystemSettings.get_settings()
-    supersets = settings.get_metrics_sets()
 
     if settings.has_flag("use_new_model_stats"):
         return SuperSetMetricsView
@@ -266,12 +269,20 @@ def question_api(request, question_set_id: str):
 
 def event_properties_api(request):
     filterable_only = "filterable-only" in request.GET
-
     result = get_event_properties(filterable_only)
 
     return JsonResponse({
         "values": result
     })
+
+
+def get_metrics_api():
+    settings = SystemSettings.get_settings()
+
+    if settings.has_flag("use_new_model_stats"):
+        return metrics_api
+    else:
+        return legacy_metrics_api
 
 
 def metrics_api(request, question_set_id: str):
@@ -292,6 +303,36 @@ def metrics_api(request, question_set_id: str):
 
     result = get_metrics_info(
         superset,
+        event_type=event_type,
+        event_funding=funding,
+        event_target_audience=target_audience,
+        event_additional_platforms=additional_platforms,
+        event_node=node_only and current_node,
+        date_to=date_to,
+        date_from=date_from,
+    )
+
+    return JsonResponse({
+        "values": result,
+    })
+
+
+def legacy_metrics_api(request, question_set_id: str):
+    (
+        event_type,
+        funding,
+        target_audience,
+        additional_platforms,
+        date_from,
+        date_to,
+        node_only,
+        current_node
+    ) = _get_filter_params(request)
+
+    metrics_type = get_metrics_model_or_404(question_set_id)
+
+    result = get_legacy_metrics_info(
+        metrics_type,
         event_type=event_type,
         event_funding=funding,
         event_target_audience=target_audience,
