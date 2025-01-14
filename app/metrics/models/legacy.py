@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 class Demographic(EditTracking):
     event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="demographic")
     employment_country = models.TextField(
-
         verbose_name="What is your country of employment?",
         blank=True,
     )
