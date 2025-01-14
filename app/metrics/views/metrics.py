@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from metrics.models import (
     Event,
     QuestionSuperSet,
@@ -169,12 +169,22 @@ class LegacyMetricsView(MetricsView):
             "demographic": Demographic
         }.get(question_set_id, None)
         if model is None:
-            return HttpResponseNotFound(f"This question set does not exist '{question_set_id}'")  
+            raise Http404()
         self.model = model
         return get_legacy_metrics_info(
             model,
             **kwargs
         )
+
+
+def get_metrics_view():
+    settings = SystemSettings.get_settings()
+    supersets = settings.get_metrics_sets()
+
+    if settings.has_flag("use_new_model_stats"):
+        return SuperSetMetricsView
+    else:
+        return LegacyMetricsView
 
 
 def world_map_api(request):

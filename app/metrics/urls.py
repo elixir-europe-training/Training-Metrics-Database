@@ -62,8 +62,7 @@ urlpatterns = [
     path('world-map', metrics.world_map_event_count, name='world-map'),
 
     path('report/event', metrics.EventMetricsView.as_view(), name='metrics-event-report'),
-    path('report/set/<str:question_set_id>', metrics.SuperSetMetricsView.as_view(), name='metrics-set-report'),
-    path('report/legacy/<str:question_set_id>', metrics.LegacyMetricsView.as_view(), name='metrics-legacy-report'),
+    path('report/set/<str:question_set_id>', metrics.get_metrics_view().as_view(), name='metrics-set-report'),
 
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset_done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
