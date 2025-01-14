@@ -1,5 +1,3 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
@@ -7,7 +5,14 @@ from metrics import models
 from django.forms import ModelForm
 from django.forms.widgets import CheckboxInput
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, Fieldset, Div
+from crispy_forms.layout import (
+    Layout,
+    Field,
+    Fieldset,
+    Div,
+    Submit,
+)
+from crispy_forms.bootstrap import InlineCheckboxes
 
 
 class UserLoginForm(AuthenticationForm):
@@ -25,15 +30,20 @@ class UserLoginForm(AuthenticationForm):
 
 class MetricsFilterForm(ModelForm):
     class Meta:
-         model = models.Event
-         fields = [
+        model = models.Event
+        fields = [
             "date_start",
             "date_end",
             "type",
             "funding",
             "target_audience",
             "additional_platforms"
-         ]
+        ]
+    node_only = forms.MultipleChoiceField(
+        label="Node only",
+        choices=[(1, "Node only")],
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,8 +62,12 @@ class MetricsFilterForm(ModelForm):
             "funding",
             "target_audience",
             "additional_platforms",
-            Div(css_class="col-lg-10"),
-            Submit("submit", 'Filter', css_class="col-lg-2"),
+            InlineCheckboxes("node_only", small=False),
+            Div(css_class="col-lg-6"),
+            Div(
+                Submit("submit", 'Filter', css_class="col-lg-12"),
+                css_class="col-lg-2"
+            ),
         )
 
 
