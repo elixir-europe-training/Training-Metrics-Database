@@ -33,7 +33,6 @@ class MetricsView(View):
         event_node=None,
         date_to=None,
         date_from=None,
-        node_only=False,
     ):
         return []
 
@@ -83,10 +82,9 @@ class MetricsView(View):
             event_funding=funding,
             event_target_audience=target_audience,
             event_additional_platforms=additional_platforms,
-            event_node=current_node,
+            event_node=node_only and current_node,
             date_to=date_to,
             date_from=date_from,
-            node_only=node_only
         )
         title = getattr(self, "title", "Metrics")
         data_csv = self.metrics_to_csv(metrics)
@@ -223,10 +221,9 @@ def event_api(request):
         event_funding=funding,
         event_target_audience=target_audience,
         event_additional_platforms=additional_platforms,
-        event_node=current_node,
+        event_node=node_only and current_node,
         date_to=date_to,
         date_from=date_from,
-        node_only=node_only
     )
 
     return JsonResponse({
@@ -249,7 +246,6 @@ def question_api(request, question_set_id: str):
     superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
     if (superset.node is not None and superset.node != current_node):
         raise PermissionDenied("This set is not publicly available")
-    
 
     result = get_question_info(superset)
 
@@ -290,10 +286,9 @@ def metrics_api(request, question_set_id: str):
         event_funding=funding,
         event_target_audience=target_audience,
         event_additional_platforms=additional_platforms,
-        event_node=current_node,
+        event_node=node_only and current_node,
         date_to=date_to,
         date_from=date_from,
-        node_only=node_only
     )
 
     return JsonResponse({
@@ -309,7 +304,6 @@ def get_event_info(
     event_node=None,
     date_to=None,
     date_from=None,
-    node_only=False,
 ):
     query = Event.objects.all()
     if event_type:
@@ -325,8 +319,8 @@ def get_event_info(
             Q(date_start__range=[date_from, date_to]) |
             Q(date_end__range=[date_from, date_to])
         )
-    if node_only and event_node:
-        query = query.filter(event__node=event_node)
+    if event_node:
+        query = query.filter(node__in=[event_node])
 
     entries = list(query.values())
     params = {
@@ -430,7 +424,6 @@ def get_metrics_info(
     event_node=None,
     date_to=None,
     date_from=None,
-    node_only=False,
 ):
     questions = {
         q.slug: q
@@ -447,15 +440,13 @@ def get_metrics_info(
         query = query.filter(response_set__event__target_audience__contains=event_target_audience)
     if event_additional_platforms:
         query = query.filter(response_set__event__additional_platforms__contains=event_additional_platforms)
-    if node_only and current_node:
-        query = query.filter(response_set__event__node=current_node)
+    if event_node:
+        query = query.filter(response_set__event__node__in=[event_node])
     if date_from is not None and date_to is not None:
         query = query.filter(
             Q(response_set__event__date_start__range=[date_from, date_to]) |
             Q(response_set__event__date_end__range=[date_from, date_to])
         )
-    if node_only and current_node:
-        query = query.filter(event__node=current_node)
 
     query = query.prefetch_related("answer", "answer__question", "response_set")
     query = (
@@ -495,7 +486,6 @@ def get_legacy_metrics_info(
     event_node=None,
     date_to=None,
     date_from=None,
-    node_only=False,
 ):
     query = metrics_type.objects.all()
     if event_type:
@@ -509,8 +499,8 @@ def get_legacy_metrics_info(
 
     if date_from is not None and date_to is not None:
         query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
-    if node_only and event_node:
-        query = query.filter(event__node=event_node)
+    if event_node:
+        query = query.filter(event__node__in=[event_node])
 
     ignored_fields = {
         "id",
