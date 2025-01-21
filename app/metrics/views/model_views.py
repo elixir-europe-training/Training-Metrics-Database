@@ -248,6 +248,9 @@ class GenericListView(ListView):
         )
 
     def parse_value(self, value):
+        if value is None:
+            return None
+
         value_list = (
             list(value.all())
             if hasattr(value, "all")
