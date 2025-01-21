@@ -180,7 +180,11 @@ class GenericListView(ListView):
             self.get_entry_extras(entry)
             for entry in context["object_list"]
         ]
-        max_extras = max(len(e) for e in extras_list)
+        max_extras = (
+            max(len(e) for e in extras_list)
+            if len(extras_list) > 0
+            else 0
+        )
         context["table_headings"] = [
             *["" for _i in range(max_extras)],
             *[
