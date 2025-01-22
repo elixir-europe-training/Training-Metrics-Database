@@ -356,6 +356,11 @@ def get_event_info(
     date_to=None,
     date_from=None,
 ):
+    field_options = _get_model_field_options(Event)
+    options = {
+        field.name: options
+        for field, options in field_options
+    }
     query = Event.objects.all()
     if event_type:
         query = query.filter(type=event_type)
@@ -390,14 +395,24 @@ def get_event_info(
         {
             "label": params.get(key),
             "id": key,
-            "options": [
-                {
-                    "label": param,
-                    "id": param,
-                    "count": count
+            "options": list({
+                **{
+                    option: {
+                        "label": option,
+                        "id": option,
+                        "count": 0
+                    }
+                    for (option, _option) in options[key]
+                },
+                **{
+                    param: {
+                        "label": param,
+                        "id": param,
+                        "count": count
+                    }
+                    for param, count in summary[key].items()
                 }
-                for param, count in summary[key].items()
-            ]
+            }.values())
         }
         for key in params.keys()
     ]
@@ -538,6 +553,11 @@ def get_legacy_metrics_info(
     date_to=None,
     date_from=None,
 ):
+    field_options = _get_model_field_options(metrics_type)
+    mapped_options = {
+        field.name: options
+        for field, options in field_options
+    }
     query = metrics_type.objects.all()
     if event_type:
         query = query.filter(event__type=event_type)
@@ -574,14 +594,24 @@ def get_legacy_metrics_info(
         {
             "label": metrics_type._meta.get_field(key).verbose_name,
             "id": key,
-            "options": [
-                {
-                    "label": option,
-                    "id": option,
-                    "count": count
+            "options": list({
+                **{
+                    option: {
+                        "label": option,
+                        "id": option,
+                        "count": 0
+                    }
+                    for (option, _option) in mapped_options[key]
+                },
+                **{
+                    option: {
+                        "label": option,
+                        "id": option,
+                        "count": count
+                    }
+                    for option, count in options.items()
                 }
-                for option, count in options.items()
-            ]
+            }.values())
         }
         for key, options in result.items()
     ]
