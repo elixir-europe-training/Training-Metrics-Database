@@ -87,7 +87,7 @@ def table_output(columns: dict):
     return _table_output
 
 
-def get_import_context(data_type, user, node_main, event):
+def get_event_context(user, node_main, event):
     current_time = datetime.datetime.now()
     import_context = import_utils.LegacyImportContext(
         user=user,
@@ -98,41 +98,56 @@ def get_import_context(data_type, user, node_main, event):
         ),
         fixed_event=event
     )
-    if data_type == "events":
-        return (
-            import_utils.legacy_to_current_event_dict,
-            import_context.event_from_dict,
-            {
-                "summary": summary_output,
-                "table": table_output({
-                    "id": "Event Code",
-                    "title": "Title",
-                    "date_start": "Start date",
-                    "date_end": "End date"
-                }),
-                "actions": events_actions_output
-            }
-        )
-    elif data_type == "demographic_quality_metrics":
-        return (
-            import_utils.legacy_to_current_quality_or_demographic_dict,
-            import_context.quality_or_demographic_from_dict,
-            {"summary": summary_output}
-        )
-    elif data_type == "impact_metrics":
-        return (
-            import_utils.legacy_to_current_impact_dict,
-            import_context.impact_from_dict,
-            {"summary": summary_output}
-        )
+    return (
+        import_utils.legacy_to_current_event_dict,
+        import_context.event_from_dict,
+        {
+            "summary": summary_output,
+            "table": table_output({
+                "id": "Event Code",
+                "title": "Title",
+                "date_start": "Start date",
+                "date_end": "End date"
+            }),
+            "actions": events_actions_output
+        }
+    )
 
 
-def get_question_import_context(super_set, user, node_main, event):
+def get_question_import_context(super_set, user, node_main, event, is_legacy_data=False):
     forms = [
         QuestionSetForm.from_question_set(qs)
         for qs in super_set.question_sets.all()
     ]
+    legacy_extractors = (
+        {
+            "quality": [
+                import_utils.legacy_extract_quality,
+                import_utils.legacy_extract_event_id
+            ],
+            "demographic": [
+                import_utils.legacy_extract_demographic,
+                import_utils.legacy_extract_event_id
+            ],
+            "quality-and-demographic": [
+                import_utils.legacy_extract_quality,
+                import_utils.legacy_extract_demographic,
+                import_utils.legacy_extract_event_id
+            ],
+            "impact": [
+                import_utils.legacy_extract_impact,
+                import_utils.legacy_extract_event_id
+            ],
+        }.get(super_set.slug, None)
+        if is_legacy_data
+        else None
+    )
     def _form_parser(entry):
+        entry = (
+            import_utils.use_extractors(entry, legacy_extractors)
+            if legacy_extractors
+            else entry
+        )
         errors = []
         entry_forms = [
             form(entry)
@@ -190,86 +205,6 @@ def get_question_import_context(super_set, user, node_main, event):
     )
 
 
-def legacy_upload(request, event):
-    node = request.user.get_node()
-    upload_types = {
-        key: value
-        for key, value in UPLOAD_TYPES.items()
-        if event is None or key != "events"
-    }
-    forms = [
-        DataUploadForm(
-            request.POST if request.method == "POST" else None,
-            request.FILES if request.method == "POST" else None,
-            data_type=upload_type["id"],
-            title=upload_type["title"],
-            description=upload_type["description"],
-            prefix=upload_type["id"],
-            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
-        )
-        for upload_type in upload_types.values()
-    ]
-    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
-
-    if request.method == "POST":
-        for form in forms:
-            if form.has_changed() and form.is_valid():
-                data = form.cleaned_data
-                upload_type = form.data_type
-                file = data["file"]
-
-                if not re.match(file_match, file.name):
-                    form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
-                else:
-                    node_main = request.user.get_node()
-
-                    (parser, importer, view_transforms) = get_import_context(
-                        upload_type,
-                        request.user,
-                        node_main,
-                        event
-                    )
-
-                    csv_stream = io.StringIO(file.read().decode())
-                    reader = csv.DictReader(csv_stream, delimiter=',')
-                    entries = []
-                    for (index, row) in enumerate(reader):
-                        try:
-                            entries.append(parser(row))
-                        except ValidationError as e:
-                            traceback.print_exc()
-                            form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
-
-                    if len(form.errors) == 0:
-                        items = []
-                        try:
-                            with transaction.atomic():
-                                items = [importer(entry) for entry in entries]
-
-                            form.outputs = {
-                                key: view_transform(items)
-                                for key, view_transform in view_transforms.items()
-                            }
-                        except Exception as e:
-                            traceback.print_exc()
-                            form.add_error(None, f"Failed to import '{upload_type}': {e}")
-    
-    title = (
-        f"Upload data for event: {event.title}" 
-        if event
-        else "Upload data"
-    )
-    return render(
-        request,
-        'metrics/upload.html',
-        context={
-            "title": title,
-            **get_tabs(request, view_name="event-list" if event else None),
-            "forms": forms,
-        }
-    )
-
-
 def response_upload(request, event):
     settings = models.SystemSettings.get_settings()
     node = request.user.get_node()
@@ -319,8 +254,7 @@ def response_upload(request, event):
                     node_main = request.user.get_node()
 
                     (parser, importer, view_transforms) = (
-                        get_import_context(
-                            upload_type,
+                        get_event_context(
                             request.user,
                             node_main,
                             event
@@ -330,7 +264,8 @@ def response_upload(request, event):
                             upload_type,
                             request.user,
                             node_main,
-                            event
+                            event,
+                            True
                         )
                     )
 
@@ -376,7 +311,6 @@ def response_upload(request, event):
 
 @login_required
 def upload_data(request, event_id=None):
-    settings = models.SystemSettings.get_settings()
     node = request.user.get_node()
     event = get_object_or_404(models.Event, id=event_id) if event_id else None
 
@@ -386,10 +320,7 @@ def upload_data(request, event_id=None):
     if event and (event.is_locked or node != event.node_main):
         raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
     
-    if settings.has_flag("use_new_model_upload"):
-        return response_upload(request, event)
-    else:
-        return legacy_upload(request, event)
+    return response_upload(request, event)
 
 
 def download_csv(lines, filename="template"):
@@ -425,67 +356,23 @@ def download_template(request, data_type, slug):
         return download_csv([event_metrics], "event-template")
     
     elif data_type == "metrics":
-        settings = models.SystemSettings.get_settings()
-        if settings.has_flag("use_new_model_upload"):
-            questionsuperset = get_object_or_404(QuestionSuperSet, slug=slug)
+        questionsuperset = get_object_or_404(QuestionSuperSet, slug=slug)
 
-            # Write each question in the QuestionSuperSet to the CSV
-            question_texts = ["event_id"]
-            question_slugs = ["event_id"]
-            question_sample = [1]
+        # Write each question in the QuestionSuperSet to the CSV
+        question_texts = ["event_id"]
+        question_slugs = ["event_id"]
+        question_sample = [1]
 
-            filtered_sets = questionsuperset.question_sets.all()
+        filtered_sets = questionsuperset.question_sets.all()
 
-            for question_set in filtered_sets:
-                for question in question_set.questions.all():
-                    question_texts.append(question.text)
-                    question_slugs.append(question.slug)
-                    first_answer = question.answers.first()
-                    question_sample.append(first_answer.slug if first_answer else None)
-            
+        for question_set in filtered_sets:
+            for question in question_set.questions.all():
+                question_texts.append(question.text)
+                question_slugs.append(question.slug)
+                first_answer = question.answers.first()
+                question_sample.append(first_answer.slug if first_answer else None)
+        
 
-            return download_csv([question_slugs, question_sample], f"metrics-{slug}-template")
-        else:
-            fields = []
-            if slug == "impact":
-                fields = [
-                    "Where did you see the course advertised?",
-                    "What is your career stage?",
-                    "What is your employment sector?",
-                    "What is your country of employment?",
-                    "What is your gender?",
-                    "Have you used the tool(s)/resource(s) covered in the course before?",
-                    "Will you use the tool(s)/resource(s) covered in the course again?",
-                    "Would you recommend the course?",
-                    "Please tell us your overall rating for the entire course",
-                    "May we contact you by email in the future for more feedback?",
-                    "What part of the training did you enjoy the most?",
-                    "What part of the training did you enjoy the least?",
-                    "The balance of theoretical and practical content was",
-                    "What other topics would you like to see covered in the future?",
-                    "Any other comments?",
-                ]
-                
-            elif slug == "demographic-quality":
-                fields = [
-                    "Which training event did you take part in?",
-                    "How long ago did you attend the training?",
-                    "What was your main reason for attending the training?",
-                    "What was your main reason for attending the training? (Other)",
-                    "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?",
-                    "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?",
-                    "Do you feel that you are able to explain to others what you learnt in the training?",
-                    "Do you feel that you are able to explain to others what you learnt in the training? (Other)",
-                    "Are you now able to use the tool(s)/ resource(s) covered in the training:",
-                    "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)",
-                    "How did the training event help with your work? [select all that apply]",
-                    "How did the training event help with your work? (Other)",
-                    "Attending the training event led to/ facilitated: [select all that apply]",
-                    "Attending the training event led to/ facilitated: (Other),Please elaborate on any impact",
-                    "How many people have you shared the skills and/or knowledge that you learned during the training, with?",
-                    "Would you recommend the training to others?",
-                    "Any other comments?",
-                ]
-            return download_csv([["event_code", *fields]], f"metrics-{slug}-template")
+        return download_csv([question_slugs, question_sample], f"metrics-{slug}-template")
 
     return HttpResponseNotFound("Template not found")

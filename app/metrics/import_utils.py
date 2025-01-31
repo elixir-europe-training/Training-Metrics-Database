@@ -18,6 +18,8 @@ from typing import Callable
 import functools
 import csv
 import logging
+from django.template.defaultfilters import slugify
+from collections import defaultdict
 
 
 logger = logging.getLogger(__name__)
@@ -302,6 +304,13 @@ def use_alias(value):
     )
 
 
+def slugify_csv(csv_string):
+    return ",".join([
+        slugify(value)
+        for value in csv_to_array(csv_string)
+    ])
+
+
 def csv_to_array(csv_string):
     return [
         use_alias(x.strip())
@@ -371,71 +380,77 @@ def legacy_to_current_event_dict(data: dict) -> dict:
         raise ValidationError(f"Missing source data '{e}'")
 
 
-def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
-    try:
-        mapping = {
-            "event_code": "event",
-            "Where did you see the course advertised?": "heard_from",
-            "What is your career stage?": "career_stage",
-            "What is your employment sector?": "employment_sector",
-            "What is your country of employment?": "employment_country",
-            "What is your gender?": "gender",
-            "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
-            "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
-            "Would you recommend the course?": "recommend_course",
-            "Please tell us your overall rating for the entire course": "course_rating",
-            "May we contact you by email in the future for more feedback?": "email_contact",
-            "What part of the training did you enjoy the most?": None,
-            "What part of the training did you enjoy the least?": None,
-            "The balance of theoretical and practical content was": "balance",
-            "What other topics would you like to see covered in the future?": None,
-            "Any other comments?": None,
-        }
-        return {
-            **{
-                target_id: data[source_id]
-                for source_id, target_id in mapping.items()
-                if target_id is not None
-            },
-            "event": int(data["event_code"])
-        }
-    except KeyError as e:
-        raise ValidationError(f"Missing source data '{e}'")
+def legacy_extract_quality(data: dict) -> dict:
+    mapping = {
+        "Have you used the tool(s)/resource(s) covered in the course before?": "quality-used_resources_before",
+        "Will you use the tool(s)/resource(s) covered in the course again?": "quality-used_resources_future",
+        "Would you recommend the course?": "quality-recommend_course",
+        "Please tell us your overall rating for the entire course": "quality-course_rating",
+        "May we contact you by email in the future for more feedback?": "quality-email_contact",
+        "The balance of theoretical and practical content was": "quality-balance",
+    }
+    parsers = {}
+    return map_and_slugify(data, mapping, parsers)
 
 
-def legacy_to_current_impact_dict(data: dict) -> dict:
-    try:
-        mapping = {
-            "event_code": "event",
-            "Which training event did you take part in?": None,
-            "How long ago did you attend the training?": "when_attend_training",
-            "What was your main reason for attending the training?": "main_attend_reason",
-            "What was your main reason for attending the training? (Other)": None,
-            "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
-            "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
-            "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
-            "Do you feel that you are able to explain to others what you learnt in the training? (Other)": None,
-            "Are you now able to use the tool(s)/ resource(s) covered in the training:": "able_use_now",
-            "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)": None,
-            "How did the training event help with your work? [select all that apply]": "help_work",
-            "How did the training event help with your work? (Other)": None,
-            "Attending the training event led to/ facilitated: [select all that apply]": "attending_led_to",
-            "Attending the training event led to/ facilitated: (Other)": None,
-            "Please elaborate on any impact": None,
-            "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
-            "Would you recommend the training to others?": "recommend_others",
-            "Any other comments?": None,
-        }
-        return {
-            **{
-                target_id: data[source_id]
-                for source_id, target_id in mapping.items()
-                if target_id is not None
-            },
-            "event": int(data["event_code"])
-        }
-    except KeyError as e:
-        raise ValidationError(f"Missing source data '{e}'")
+def legacy_extract_demographic(data: dict) -> dict:
+    mapping = {
+        "Where did you see the course advertised?": "demographic-heard_from",
+        "What is your career stage?": "demographic-career_stage",
+        "What is your employment sector?": "demographic-employment_sector",
+        "What is your country of employment?": "demographic-employment_country",
+        "What is your gender?": "demographic-gender",
+    }
+    parsers = {
+        "demographic-employment_country": lambda v: v or "none",
+        "demographic-heard_from": lambda v: slugify_csv(v) or "none"
+    }
+    return map_and_slugify(data, mapping, parsers)
+
+
+def legacy_extract_event_id(data: dict) -> dict:
+    return (
+        {"event_id": int(data["event_code"])}
+        if "event_code" in data
+        else {}
+    )
+
+
+def legacy_extract_impact(data: dict) -> dict:
+    mapping = {
+        "How long ago did you attend the training?": "impact-when_attend_training",
+        "What was your main reason for attending the training?": "main_attend_reason",
+        "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "impact-how_often_use_before",
+        "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "impact-how_often_use_after",
+        "Do you feel that you are able to explain to others what you learnt in the training?": "impact-able_to_explain",
+        "Are you now able to use the tool(s)/ resource(s) covered in the training:": "impact-able_use_now",
+        "How did the training event help with your work? [select all that apply]": "impact-help_work",
+        "Attending the training event led to/ facilitated: [select all that apply]": "impact-attending_led_to",
+        "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "impact-people_share_knowledge",
+        "Would you recommend the training to others?": "impact-recommend_others",
+    }
+    parsers = {
+        "impact-attending_led_to": slugify_csv,
+        "impact-help_work": slugify_csv,
+    }
+    return map_and_slugify(data, mapping, parsers)
+
+
+def use_extractors(data: dict, extractors: list) -> dict:
+    output = dict()
+    for extractor in extractors:
+        output.update(extractor(data))
+    return output
+
+
+def map_and_slugify(data: dict, key_map: dict, parsers: dict) -> dict:
+    _parsers = defaultdict(lambda: slugify)
+    _parsers.update(parsers)
+    return {
+        target_id: _parsers[target_id](data[source_id])
+        for source_id, target_id in key_map.items()
+        if source_id in data
+    }
 
 
 def parse_location(location: str) -> dict:
