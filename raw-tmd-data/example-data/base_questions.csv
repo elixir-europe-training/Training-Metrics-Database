@@ -1,5 +1,5 @@
 slug,text,is_multichoice,user,description,created,modified,is_active,node
-Demographic.heard_from,Where did you see the course advertised?,0,se,,,,,-
+Demographic.heard_from,Where did you see the course advertised?,1,se,,,,,-
 Demographic.career_stage,What is your career stage?,0,se,,,,,-
 Demographic.employment_sector,What is your employment sector?,0,se,,,,,-
 Demographic.employment_country,What is your country of employment?,0,se,,,,,-
