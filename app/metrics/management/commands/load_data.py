@@ -47,7 +47,11 @@ def are_headers_in_model(csv_file_path, model):
                 if field.name not in {"locked"}
             ]
         )
-        headers = sorted(reader.fieldnames)
+        headers = sorted([
+            fieldname
+            for fieldname in reader.fieldnames
+            if fieldname not in {"is_optional"}
+        ])
         uncommon_headers = set(
             model_attributes).symmetric_difference(set(headers))
         if len(uncommon_headers) > 1:
@@ -152,6 +156,14 @@ def load_questions():
                 user=User.objects.get(username=row["user"])
             )
             question_set.questions.add(question)
+            if bool(int(row["is_optional"])):
+                Answer.objects.create(
+                    slug="no-response",
+                    text="-",
+                    user=User.objects.get(username=row["user"]),
+                    question=question
+                )
+
 
 
 def load_answers():
