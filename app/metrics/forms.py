@@ -30,7 +30,7 @@ class QuestionSetForm(forms.Form):
         values = {
             key: (
                 QuestionSetForm._parse_list(value)
-                if isinstance(fields[key], forms.MultipleChoiceField)
+                if isinstance(fields[key], forms.MultipleChoiceField) and not isinstance(value, list)
                 else value
             )
             for key, value in values.items()

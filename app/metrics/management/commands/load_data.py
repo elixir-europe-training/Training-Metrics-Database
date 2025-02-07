@@ -10,6 +10,7 @@ from metrics.models import (
     Question,
     QuestionSet,
     QuestionSuperSet,
+    ResponseSet,
     Answer
 )
 from metrics import import_utils
@@ -197,6 +198,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["resetdata"]:
             all_models = [
+                ResponseSet,
                 QuestionSuperSet,
                 QuestionSet,
                 Question,
