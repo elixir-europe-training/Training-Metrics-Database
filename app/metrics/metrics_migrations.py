@@ -11,6 +11,7 @@ from .models import (
     QuestionSuperSet
 )
 from .forms import QuestionSetForm
+from typing import Type
 from django.template.defaultfilters import slugify
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
@@ -181,7 +182,7 @@ def map_response(response: str):
     return response_map.get(slug_response, slug_response)
 
 
-def dict_to_responseset(entry: dict, user: User, event: Event, QSForm: QuestionSetForm):
+def dict_to_responseset(entry: dict, user: User, event: Event, QSForm: Type[QuestionSetForm]):
     form = QSForm(entry)
 
     if not form.is_valid():
