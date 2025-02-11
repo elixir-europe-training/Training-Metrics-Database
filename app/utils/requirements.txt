@@ -1,4 +1,5 @@
 django==4.2.*
+plotly==5.24.1
 django-plotly-dash==2.2.*
 numpy==1.26.*
 pandas==2.0.3
