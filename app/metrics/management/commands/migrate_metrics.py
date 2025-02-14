@@ -311,6 +311,7 @@ def dict_to_responseset(
         all_answers = answer if isinstance(answer, list) else [answer]
         for a in all_answers:
             Response.objects.create(response_set=rs, answer=a)
+    return rs
 
 
 def migrate_all():
