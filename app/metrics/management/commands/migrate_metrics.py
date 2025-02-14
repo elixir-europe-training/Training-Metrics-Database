@@ -313,23 +313,27 @@ def dict_to_responseset(
             Response.objects.create(response_set=rs, answer=a)
 
 
+def migrate_all():
+    (
+        quality,
+        impact,
+        demographic
+    ) = (
+        QuestionSet.objects.filter(slug=slug).get()
+        for slug in ["quality", "impact", "demographic"]
+    )
+
+    with transaction.atomic():
+        quality_to_responseset(list(Quality.objects.all()), quality)
+        impact_to_responseset(list(Impact.objects.all()), impact)
+        demographic_to_responseset(
+            list(Demographic.objects.all()),
+            demographic
+        )
+
+
 class Command(BaseCommand):
     help = "Migrates metrics from old structure to the new"
 
     def handle(self, *args, **options):
-        (
-            quality,
-            impact,
-            demographic
-        ) = (
-            QuestionSet.objects.filter(slug=slug).get()
-            for slug in ["quality", "impact", "demographic"]
-        )
-
-        with transaction.atomic():
-            quality_to_responseset(list(Quality.objects.all()), quality)
-            impact_to_responseset(list(Impact.objects.all()), impact)
-            demographic_to_responseset(
-                list(Demographic.objects.all()),
-                demographic
-            )
+        migrate_all()
