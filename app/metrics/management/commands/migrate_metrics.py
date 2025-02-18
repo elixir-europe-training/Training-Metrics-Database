@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.template.defaultfilters import slugify
+from django.core.exceptions import ValidationError
 
 from metrics.models import (
     Event,
@@ -10,10 +11,10 @@ from metrics.models import (
     Response,
     ResponseSet,
     QuestionSet,
+    EditTracking,
 )
 from metrics.forms import QuestionSetForm
 from typing import Type
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 import functools
 
@@ -40,15 +41,16 @@ def demographic_to_responseset(
 
 
 def migrate_entries(entries: list, model, questionset: QuestionSet):
+    validate_compatibility(model, questionset)
+
     fields = list(model._meta.get_fields())
 
     QSForm = QuestionSetForm.from_question_set(questionset)
 
-    model_name = slugify(model._meta.verbose_name)
-
+    ignored_fields = get_ignored_fields()
     for entry in entries:
         entry_data = {
-            f"{model_name}-{field.name}": (
+            get_field_id(model, field): (
                 [
                     map_response(value)
                     for value in getattr(entry, field.name)
@@ -57,8 +59,63 @@ def migrate_entries(entries: list, model, questionset: QuestionSet):
                 else map_response(getattr(entry, field.name))
             )
             for field in fields
+            if field.name not in ignored_fields
         }
         dict_to_responseset(entry_data, entry.user, entry.event, QSForm)
+
+
+def validate_compatibility(model, questionset: QuestionSet):
+    ignored_fields = get_ignored_fields()
+    fields = list(model._meta.get_fields())
+    for field in fields:
+        if field.name not in ignored_fields:
+            field_id = get_field_id(model, field)
+            question = questionset.questions.filter(slug=field_id).first()
+
+            if question is None:
+                raise ValidationError(
+                    f"Field {field_id} has no representation in set {questionset.slug}"  # noqa: E501
+                )
+
+            for option in get_field_options(field):
+                mapped_option = map_response(option)
+                if not question.answers.filter(slug=mapped_option).exists():
+                    raise ValidationError(
+                        f"Choice {field_id}.{option}({mapped_option}) has no representation in set {question.slug}"  # noqa: E501
+                    )
+
+
+def get_ignored_fields():
+    return {
+        "id",
+        "event",
+        *{
+            field.name
+            for field in EditTracking._meta.get_fields()
+        }
+    }
+
+
+def get_field_id(model, field):
+    model_name = slugify(model._meta.verbose_name)
+    return f"{model_name}-{field.name}"
+
+
+def get_field_options(field):
+    choices = getattr(field, "choices", [])
+    choices = getattr(
+        getattr(field, "base_field", None),
+        "choices",
+        []
+    ) if not choices else choices
+    return (
+        []
+        if not choices
+        else [
+            choice[0]
+            for choice in choices
+        ]
+    )
 
 
 @functools.cache
@@ -142,7 +199,7 @@ def get_response_map():
         "Sudan": "sd",
         "Bhutan": "bt",
         "Guinea-Bissau": "gw",
-        "Myanmar": "mm",
+        "Myanmar, {Burma}": "mm",
         "Suriname": "sr",
         "Bolivia": "bo",
         "Guyana": "gy",
