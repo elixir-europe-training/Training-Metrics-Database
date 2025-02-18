@@ -96,7 +96,8 @@ class TestImportValues(TestCase):
         with connection.schema_editor() as schema_editor:
             schema_editor.create_model(cls.model_a)
             schema_editor.create_model(cls.model_deviations)
-        cls.user = User.objects.create()
+        cls.user = User.objects.create(username="user")
+        cls.secondary_user = User.objects.create(username="secondary_user")
         cls.node = Node.objects.create()
         cls.event_a = Event.objects.create(
             code="123",
@@ -450,29 +451,35 @@ class TestImportValues(TestCase):
         self.assertEqual(self.questionset.questions.all().count(), 2)
 
         variants = [
-            (self.event_a, "A", ["MA", "MC"]),
-            (self.event_a, "c", ["mA", "Mb"]),
-            (self.event_b, "C", ["mb", "mC"]),
-            (self.event_b, "b", ["mb", "mC"]),
+            (self.user, self.event_a, "A", ["MA", "MC"]),
+            (self.user, self.event_a, "c", ["mA", "Mb"]),
+            (self.secondary_user, self.event_b, "C", ["mb", "mC"]),
+            (self.secondary_user, self.event_b, "b", ["mb", "mC"]),
         ]
 
         entries = [
             self.model_a.objects.create(
                 choice_field=choice,
                 multichoice_field=multichoice,
-                user=self.user,
+                user=user,
                 event=event,
             )
-            for (event, choice, multichoice) in variants
+            for (user, event, choice, multichoice) in variants
         ]
         migrate_entries(entries, self.model_a, self.questionset)
 
         self.assertEquals(
-            ResponseSet.objects.filter(event=self.event_a).count(),
+            ResponseSet.objects.filter(
+                event=self.event_a,
+                user=self.user
+            ).count(),
             2
         )
         self.assertEquals(
-            ResponseSet.objects.filter(event=self.event_b).count(),
+            ResponseSet.objects.filter(
+                event=self.event_b,
+                user=self.secondary_user
+            ).count(),
             2
         )
 
