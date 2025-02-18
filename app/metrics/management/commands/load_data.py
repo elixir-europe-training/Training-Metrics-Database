@@ -145,6 +145,13 @@ def load_questions():
         }
         for qs in question_sets.values():
             core_set.question_sets.add(qs)
+            qs_ss = QuestionSuperSet.objects.create(
+                name=qs.name,
+                slug=qs.slug,
+                user=User.objects.get(username=rows[0]["user"])
+            )
+            qs_ss.question_sets.add(qs)
+            qs_ss.save()
 
         for row in rows:
             question_slug = _parse_question_id(row["slug"])
