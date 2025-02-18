@@ -10,6 +10,7 @@ from metrics.models import (
     Question,
     QuestionSet,
     QuestionSuperSet,
+    ResponseSet,
     Answer
 )
 from metrics import import_utils
@@ -46,7 +47,11 @@ def are_headers_in_model(csv_file_path, model):
                 if field.name not in {"locked"}
             ]
         )
-        headers = sorted(reader.fieldnames)
+        headers = sorted([
+            fieldname
+            for fieldname in reader.fieldnames
+            if fieldname not in {"is_optional"}
+        ])
         uncommon_headers = set(
             model_attributes).symmetric_difference(set(headers))
         if len(uncommon_headers) > 1:
@@ -140,6 +145,13 @@ def load_questions():
         }
         for qs in question_sets.values():
             core_set.question_sets.add(qs)
+            qs_ss = QuestionSuperSet.objects.create(
+                name=qs.name,
+                slug=qs.slug,
+                user=User.objects.get(username=rows[0]["user"])
+            )
+            qs_ss.question_sets.add(qs)
+            qs_ss.save()
 
         for row in rows:
             question_slug = _parse_question_id(row["slug"])
@@ -151,6 +163,14 @@ def load_questions():
                 user=User.objects.get(username=row["user"])
             )
             question_set.questions.add(question)
+            if bool(int(row["is_optional"])):
+                Answer.objects.create(
+                    slug="no-response",
+                    text="-",
+                    user=User.objects.get(username=row["user"]),
+                    question=question
+                )
+
 
 
 def load_answers():
@@ -197,6 +217,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["resetdata"]:
             all_models = [
+                ResponseSet,
                 QuestionSuperSet,
                 QuestionSet,
                 Question,

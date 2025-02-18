@@ -1,12 +1,12 @@
 from django.db import models
-from .common import ChoiceArrayField, string_choices, EditTracking
+from .common import ChoiceArrayField, string_choices, country_list, EditTracking
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
 
 class Demographic(EditTracking):
     event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="demographic")
-    employment_country = models.TextField(blank=True)
+    employment_country = models.TextField(blank=True, choices=string_choices(country_list))
     heard_from = ChoiceArrayField(base_field=models.TextField(
             choices=string_choices([
                 "TeSS",
