@@ -10,7 +10,7 @@ from metrics.models.common import (
     Node,
     country_list,
 )
-from metrics.models import Question, QuestionSet, Answer
+from metrics.models import Question, QuestionSet, Answer, Response
 from django.db import models, connection
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -427,13 +427,50 @@ class TestImportValues(TestCase):
             ("c", ["mA", "Mb"]),
             ("C", ["mb", "mC"]),
         ]
-        for (choice, multichoice) in variants:
+
+        entries = [
             self.model_a.objects.create(
                 choice_field=choice,
                 multichoice_field=multichoice,
                 user=self.user,
                 event=self.event,
             )
-
-        entries = list(self.model_a.objects.all())
+            for (choice, multichoice) in variants
+        ]
         migrate_entries(entries, self.model_a, self.questionset)
+
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-choice_field",
+                answer__slug="a"
+            ).count(),
+            1
+        )
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-choice_field",
+                answer__slug="c"
+            ).count(),
+            2
+        )
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-multichoice_field",
+                answer__slug="ma"
+            ).count(),
+            2
+        )
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-multichoice_field",
+                answer__slug="mb"
+            ).count(),
+            2
+        )
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-multichoice_field",
+                answer__slug="mc"
+            ).count(),
+            2
+        )
