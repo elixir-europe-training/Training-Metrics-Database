@@ -10,7 +10,13 @@ from metrics.models.common import (
     Node,
     country_list,
 )
-from metrics.models import Question, QuestionSet, Answer, Response
+from metrics.models import (
+    Question,
+    QuestionSet,
+    Answer,
+    Response,
+    ResponseSet
+)
 from django.db import models, connection
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -92,9 +98,30 @@ class TestImportValues(TestCase):
             schema_editor.create_model(cls.model_deviations)
         cls.user = User.objects.create()
         cls.node = Node.objects.create()
-        cls.event = Event.objects.create(
+        cls.event_a = Event.objects.create(
             code="123",
-            title="The event",
+            title="Event A",
+            date_start=datetime.date.today(),
+            date_end=datetime.date.today(),
+            duration=1,
+            type="Training - face to face",
+            location_city="City",
+            location_country="Sweden",
+            funding=["ELIXIR Converge"],
+            target_audience=["Industry"],
+            additional_platforms=["Compute"],
+            communities=["Human Data"],
+            number_participants=4,
+            number_trainers=4,
+            url="http://localhost",
+            status="Complete",
+            locked=True,
+            node_main=cls.node,
+            user=cls.user,
+        )
+        cls.event_b = Event.objects.create(
+            code="234",
+            title="Event B",
             date_start=datetime.date.today(),
             date_end=datetime.date.today(),
             duration=1,
@@ -423,9 +450,10 @@ class TestImportValues(TestCase):
         self.assertEqual(self.questionset.questions.all().count(), 2)
 
         variants = [
-            ("A", ["MA", "MC"]),
-            ("c", ["mA", "Mb"]),
-            ("C", ["mb", "mC"]),
+            (self.event_a, "A", ["MA", "MC"]),
+            (self.event_a, "c", ["mA", "Mb"]),
+            (self.event_b, "C", ["mb", "mC"]),
+            (self.event_b, "b", ["mb", "mC"]),
         ]
 
         entries = [
@@ -433,16 +461,32 @@ class TestImportValues(TestCase):
                 choice_field=choice,
                 multichoice_field=multichoice,
                 user=self.user,
-                event=self.event,
+                event=event,
             )
-            for (choice, multichoice) in variants
+            for (event, choice, multichoice) in variants
         ]
         migrate_entries(entries, self.model_a, self.questionset)
+
+        self.assertEquals(
+            ResponseSet.objects.filter(event=self.event_a).count(),
+            2
+        )
+        self.assertEquals(
+            ResponseSet.objects.filter(event=self.event_b).count(),
+            2
+        )
 
         self.assertEquals(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-choice_field",
                 answer__slug="a"
+            ).count(),
+            1
+        )
+        self.assertEquals(
+            Response.objects.filter(
+                answer__question__slug="test-metrics-a-choice_field",
+                answer__slug="b"
             ).count(),
             1
         )
@@ -465,12 +509,12 @@ class TestImportValues(TestCase):
                 answer__question__slug="test-metrics-a-multichoice_field",
                 answer__slug="mb"
             ).count(),
-            2
+            3
         )
         self.assertEquals(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-multichoice_field",
                 answer__slug="mc"
             ).count(),
-            2
+            3
         )
