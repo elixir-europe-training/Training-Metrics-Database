@@ -4,6 +4,34 @@ from contextlib import suppress
 from .models import Event, Quality, Impact, Demographic, Node
 
 
+def get_field_options(field):
+    choices = getattr(field, "choices", [])
+    choices = getattr(
+        getattr(field, "base_field", None),
+        "choices",
+        []
+    ) if not choices else choices
+    return (
+        []
+        if not choices
+        else [
+            choice[0]
+            for choice in choices
+        ]
+    )
+
+
+def get_model_field_options(model):
+    return (
+        (field.name, get_field_options(field))
+        for field in model._meta.get_fields()
+    )
+
+
+def get_list(value):
+    return value if isinstance(value, list) else [value]
+
+
 class EventGroup():
     def __init__(
         self,
@@ -28,11 +56,13 @@ class EventGroup():
         self.model = Event
         self.use_fields = use_fields
         self.field_options_mapping = field_options_mapping
-        self.fields = {
-            field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-            for field_id in set([*self.use_fields, *self.filter_fields])
-        }
         
+        all_fields = set([*self.use_fields, *self.filter_fields])
+        self.fields = {
+            field_id: options
+            for field_id, options in get_model_field_options(self.model)
+            if field_id in all_fields
+        }
     
     def get_graph_type(self):
         return self.graph_type
@@ -65,11 +95,11 @@ class EventGroup():
         if params.get("type"):
             query = query.filter(type=params.get("type"))
         if params.get("funding"):
-            query = query.filter(funding=params.get("funding"))
+            query = query.filter(funding__contains=get_list(params.get("funding")))
         if params.get("target_audience"):
-            query = query.filter(target_audience=params.get("target_audience"))
+            query = query.filter(target_audience__contains=get_list(params.get("target_audience")))
         if params.get("additional_platforms"):
-            query = query.filter(additional_platforms=params.get("additional_platforms"))
+            query = query.filter(additional_platforms__contains=get_list(params.get("additional_platforms")))
 
         date_from = params.get("date_from")
         date_to = params.get("date_to")
@@ -120,21 +150,26 @@ class Group():
         self.model = model
         self.use_fields = use_fields
         self.field_options_mapping = field_options_mapping
+
+        event_fields = [
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms",
+            "communities",
+        ]
+        all_fields = set([*self.use_fields, *self.filter_fields])
         self.fields = {
             **{
-                field_id: self.model.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-                for field_id in self.use_fields
+                field_id: options
+                for field_id, options in get_model_field_options(self.model)
+                if field_id in self.use_fields
             },
             **{
-                f"event_{field_id}": Event.objects.order_by().values(field_id).distinct().values_list(field_id, flat=True)
-                for field_id in [
-                    "type",
-                    "funding",
-                    "target_audience",
-                    "additional_platforms",
-                    "communities",
-                ]
-            }
+                f"event_{field_id}": options
+                for field_id, options in get_model_field_options(Event)
+                if field_id in event_fields
+            },
         }
         
     
@@ -170,11 +205,11 @@ class Group():
         if params.get("event_type"):
             query = query.filter(event__type=params.get("event_type"))
         if params.get("event_funding"):
-            query = query.filter(event__funding=params.get("event_funding"))
+            query = query.filter(event__funding__contains=get_list(params.get("event_funding")))
         if params.get("event_target_audience"):
-            query = query.filter(event__target_audience=params.get("event_target_audience"))
+            query = query.filter(event__target_audience__contains=get_list(params.get("event_target_audience")))
         if params.get("event_additional_platforms"):
-            query = query.filter(event__additional_platforms=params.get("event_additional_platforms"))
+            query = query.filter(event__additional_platforms__contains=get_list(params.get("event_additional_platforms")))
 
         date_from = params.get("date_from")
         date_to = params.get("date_to")
