@@ -317,6 +317,7 @@ def get_metrics(request):
                 "how_often_use_after",
                 "able_to_explain",
                 "able_use_now",
+                "help_work",
                 "attending_led_to",
                 "people_share_knowledge",
                 "recommend_others",
