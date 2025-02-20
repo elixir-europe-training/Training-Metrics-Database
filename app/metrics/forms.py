@@ -39,6 +39,12 @@ class MetricsFilterForm(ModelForm):
             "target_audience",
             "additional_platforms"
         ]
+        widgets = {
+            "funding": forms.CheckboxSelectMultiple,
+            "target_audience": forms.CheckboxSelectMultiple,
+            "additional_platforms": forms.CheckboxSelectMultiple,
+        }
+
     node_only = forms.MultipleChoiceField(
         label="Node only",
         choices=[(1, "Node only")],
