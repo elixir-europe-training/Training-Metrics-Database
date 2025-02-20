@@ -6,8 +6,14 @@ from django.contrib.auth.models import User
 
 class Demographic(EditTracking):
     event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="demographic")
-    employment_country = models.TextField(blank=True, choices=string_choices(country_list))
-    heard_from = ChoiceArrayField(base_field=models.TextField(
+    employment_country = models.TextField(
+        verbose_name="What is your country of employment?",
+        blank=True,
+        choices=string_choices(country_list)
+    )
+    heard_from = ChoiceArrayField(
+        verbose_name="Where did you hear about this course?",
+        base_field=models.TextField(
             choices=string_choices([
                 "TeSS",
                 "Host Institute Website",
@@ -18,7 +24,6 @@ class Demographic(EditTracking):
                 "Other",
             ]),
         ),
-        verbose_name="Where did you hear about this course?",
     )
 
     employment_sector = models.TextField(
@@ -33,12 +38,13 @@ class Demographic(EditTracking):
     )
 
     gender = models.TextField(
+        verbose_name="What is your gender?",
         choices=[
             ("Male", "Male"),
             ("Female", "Female"),
             ("Other", "Other"),
             ("Prefer not to say", "Prefer not to say"),
-        ]
+        ],
     )
 
     career_stage = models.TextField(
@@ -59,6 +65,7 @@ class Demographic(EditTracking):
 class Quality(EditTracking):
     event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="quality")
     used_resources_before = models.TextField(
+        verbose_name="Have you used the tool(s)/resource(s) covered in the course before?",
         blank=True,
         choices=[
             ("Frequently (weekly to daily)", "Frequently (weekly to daily)"),
@@ -72,6 +79,7 @@ class Quality(EditTracking):
     )
 
     used_resources_future = models.TextField(
+        verbose_name="Will you use the tool(s)/resource(s) covered in the course again?",
         blank=True,
         choices=[
             ("Yes", "Yes"),
@@ -81,6 +89,7 @@ class Quality(EditTracking):
     )
 
     recommend_course = models.TextField(
+        verbose_name="Would you recommend the course?",
         blank=True,
         choices=[
             ("Yes", "Yes"),
@@ -90,6 +99,7 @@ class Quality(EditTracking):
     )
 
     course_rating = models.TextField(
+        verbose_name="Please tell us your overall rating for the entire course",
         blank=True,
         choices=[
             ("Poor (1)", "Poor (1)"),
@@ -107,6 +117,7 @@ class Quality(EditTracking):
     ]
 
     balance = models.TextField(
+        verbose_name="The balance of theoretical and practical content was",
         blank=True,
         choices=[
             ("About right", "About right"),
@@ -116,6 +127,7 @@ class Quality(EditTracking):
     )
 
     email_contact = models.TextField(
+        verbose_name="May we contact you by email in the future for more feedback?",
         choices=[
             ("Yes", "Yes"),
             ("No", "No"),
@@ -220,27 +232,41 @@ class Impact(EditTracking):
 
     event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="impact")
     when_attend_training = models.TextField(
+        verbose_name="How long ago did you attend the training?",
         choices=HOW_LONG_CHOICES)
-    main_attend_reason = models.TextField(blank=True, choices=REASON_CHOICES)
+    main_attend_reason = models.TextField(
+        verbose_name="What was your main reason for attending the training?",
+        blank=True,
+        choices=REASON_CHOICES)
     how_often_use_before = models.TextField(
+        verbose_name="How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?",
         blank=True,
         choices=HOW_OFTEN_BEFORE_CHOICES)
     how_often_use_after = models.TextField(
+        verbose_name="How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?",
         blank=True,
         choices=HOW_OFTEN_AFTER_CHOICES)
-    able_to_explain = models.TextField(choices=EXPLAIN_CHOICES)
-    able_use_now = models.TextField(choices=ABLE_USE_NOW_CHOICES)
+    able_to_explain = models.TextField(
+        verbose_name="Do you feel that you are able to explain to others what you learnt in the training?",
+        choices=EXPLAIN_CHOICES)
+    able_use_now = models.TextField(
+        verbose_name="Are you now able to use the tool(s)/ resource(s) covered in the training?",
+        choices=ABLE_USE_NOW_CHOICES)
     help_work = ChoiceArrayField(
+        verbose_name="How did the training event help with your work?",
         base_field=models.TextField(choices=HELP_WORK_CHOICES)
     )
     attending_led_to = ChoiceArrayField(
+        verbose_name="Attending the training event led to/ facilitated:",
         blank=True,
         base_field=models.TextField(choices=ATTENDING_LED_TO_CHOICES)
     )
     people_share_knowledge = models.TextField(
+        verbose_name="How many people have you shared the skills and/or knowledge that you learned during the training, with?",
         blank=True,
         choices=PEOPLE_SHARE_KNOWLEDGE_CHOICES)
     recommend_others = models.TextField(
+        verbose_name="Would you recommend the training to others?",
         blank=True,
         choices=RECOMMEND_OTHERS_CHOICES)
 

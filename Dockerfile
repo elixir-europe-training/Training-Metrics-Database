@@ -35,7 +35,6 @@ ENV DJANGO_PRODUCTION=1
 
 COPY app/metrics "${TMDDIR}/metrics"
 COPY app/tmd "${TMDDIR}/tmd"
-COPY app/dash_app "${TMDDIR}/dash_app"
 COPY app/templates "${TMDDIR}/templates"
 COPY app/static "${TMDDIR}/static"
 COPY app/entrypoint "${TMDDIR}/"

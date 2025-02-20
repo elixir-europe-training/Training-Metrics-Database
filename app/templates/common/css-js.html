@@ -12,12 +12,14 @@
   href="{% static 'vendor/tess-widget.css' %}"
   rel="stylesheet"
 />
+<link rel="stylesheet" href="{% static 'vendor/flatpickr.min.css' %}">
 <script
   src="{% static 'vendor/bootstrap.bundle.min.js' %}"
 ></script>
 <script
   src="{% static 'vendor/tess-widget-standalone.js' %}"
 ></script>
+<script src="{% static 'vendor/flatpickr.min.js' %}"></script>
 
 <style>
   /* css file for TMD */
@@ -74,4 +76,27 @@
   .DateInput_input {
     font-size: 14px;
   }
+
+  .table-container {
+    max-height: calc(10 * 38px);
+    overflow: auto;
+    margin-bottom: 1rem;
+  }
+  .table-container > table {
+    margin-bottom: 0;
+  }
+  .table-container > table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 </style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      flatpickr('.datepicker', {
+          dateFormat: 'Y-m-d',  // Set the date format
+          enableTime: false     // Disable time picker if needed
+      });
+  });
+</script>
