@@ -575,6 +575,8 @@ def get_legacy_metrics_info(
 
     ignored_fields = {
         "id",
+        "event",
+        "user",
         "event_id",
         "user_id",
         "created",
@@ -594,26 +596,19 @@ def get_legacy_metrics_info(
         {
             "label": metrics_type._meta.get_field(key).verbose_name,
             "id": key,
-            "options": list({
-                **{
+            "options": list(
+                {
                     option: {
-                        "label": option,
+                        "label": label,
                         "id": option,
-                        "count": 0
+                        "count": result.get(key, {}).get(option, 0)
                     }
-                    for (option, _option) in mapped_options[key]
-                },
-                **{
-                    option: {
-                        "label": option,
-                        "id": option,
-                        "count": count
-                    }
-                    for option, count in options.items()
-                }
-            }.values())
+                    for label, option in options
+                }.values()
+            )
         }
-        for key, options in result.items()
+        for key, options in mapped_options.items()
+        if key not in ignored_fields
     ]
 
 
