@@ -1,11 +1,13 @@
 from django.contrib.auth.views import LoginView, LogoutView, FormView
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.shortcuts import redirect
 
 from metrics import views
 from metrics.forms import UserLoginForm
 from metrics.views.tess_import import tess_import
 from metrics.views.upload import upload_data, download_template
+from metrics.views import metrics
 from metrics.views.model_views import (
     EventView,
     InstitutionView,
@@ -18,6 +20,7 @@ from metrics.views.model_views import (
 )
 
 urlpatterns = [
+    path('', lambda request: redirect('world-map', permanent=True)),
     path('login/', LoginView.as_view(
         template_name='metrics/login.html',
         authentication_form=UserLoginForm, next_page='/'),
@@ -49,6 +52,18 @@ urlpatterns = [
         SuperSetMetricsDeleteView.as_view(),
         name="superset-delete-responses"
     ),
+
+    path('metrics/world-map', metrics.world_map_api, name="world-map-api"),
+    path('metrics/event', metrics.event_api, name="event-api"),
+    path('metrics/set/<str:question_set_id>', metrics.get_metrics_api(), name="metrics-api"),
+    path('properties/set/<str:question_set_id>', metrics.question_api, name="properties-set-api"),
+    path('properties/event', metrics.event_properties_api, name="properties-event-api"),
+    
+    path('world-map', metrics.world_map_event_count, name='world-map'),
+
+    path('report/event', metrics.EventMetricsView.as_view(), name='metrics-event-report'),
+    path('report/set/<str:question_set_id>', metrics.get_metrics_view().as_view(), name='metrics-set-report'),
+
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset_done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 ]

@@ -1,0 +1,78 @@
+{% extends "common/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% block content %}
+    <h1>Reports</h1>
+    {% include 'common/tabs.html' %}
+    {% crispy filter_form %}
+    <hr />
+    {% for entry in metrics %}
+    <h3>{{ entry.label }}</h3>
+    <div class="table-container">
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th>Option</th><th>Number of responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for option in entry.options %}
+                <tr>
+                    <td>{{ option.label }}</td><td width="20%">{{ option.count }}</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="data-view" id="{{entry.id}}-view" data-value-id="{{entry.id}}"></div>
+    {{ entry | json_script:entry.id }}
+    {% endfor %}
+    <hr>
+    <a href="{{ download.href }}" download="{{ download.filename }}" class="btn btn-primary">{{ download.label }}</a>
+    <script>
+        async function mountPlot() {
+            const views = Array.from(document.getElementsByClassName("data-view")).map(element => ({
+                elementId: element.id,
+                data: JSON.parse(document.getElementById(element.getAttribute("data-value-id")).textContent)
+            }))
+            
+            const chartType = "{{ chart_type }}"
+            const layout = chartType === "pie" ? {
+                xaxis: {
+                    title: "Options",
+                    tickfont: {size: 10}
+                },
+                yaxis: {title: "Number of answers"},
+                width: 900,
+                height: 600,
+                legend: {
+                    xanchor: "left",
+                    yanchor: "top",
+                    y: 0.5,
+                    x: 1.05
+                }
+            } : {
+                xaxis: {
+                    title: "Options",
+                    tickfont: {'size': 10}
+                },
+                yaxis: {title: "Number of answers"},
+            }
+
+            for (const view of views) {
+                const data = [
+                    chartType === "pie" ? {
+                        values: view.data.options.map(option => option.count),
+                        labels: view.data.options.map(option => option.label),
+                        type: "pie"
+                    } : {
+                        y: view.data.options.map(option => option.count),
+                        x: view.data.options.map(option => option.label),
+                        type: "bar"
+                    }
+                ]
+                Plotly.newPlot(view.elementId, data, layout, {showLink: false, responsive: true});
+            }
+        }
+    </script>
+    <script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8" onload="mountPlot()"></script>
+{% endblock %}

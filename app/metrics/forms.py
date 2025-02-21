@@ -1,9 +1,18 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
-import metrics.models as models
+from metrics import models
+from django.forms import ModelForm
+from django.forms.widgets import CheckboxInput
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import (
+    Layout,
+    Field,
+    Fieldset,
+    Div,
+    Submit,
+)
+from crispy_forms.bootstrap import InlineCheckboxes
 
 
 class UserLoginForm(AuthenticationForm):
@@ -17,6 +26,56 @@ class UserLoginForm(AuthenticationForm):
 
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+
+class MetricsFilterForm(ModelForm):
+    class Meta:
+        model = models.Event
+        fields = [
+            "date_start",
+            "date_end",
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms"
+        ]
+        widgets = {
+            "funding": forms.CheckboxSelectMultiple,
+            "target_audience": forms.CheckboxSelectMultiple,
+            "additional_platforms": forms.CheckboxSelectMultiple,
+        }
+
+    node_only = forms.MultipleChoiceField(
+        label="Node only",
+        choices=[(1, "Node only")],
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.required = False
+
+        self.helper = FormHelper(self)
+        self.helper.form_method = "GET"
+        self.helper.form_class = "row"
+        self.helper.wrapper_class = "col-lg-4"
+        self.helper.disable_csrf = True
+        self.helper.layout = Layout(
+            Field("date_start", css_class="datepicker form-control"),
+            Field("date_end", css_class="datepicker form-control"),
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms",
+            InlineCheckboxes("node_only", small=False),
+            Div(css_class="col-lg-6"),
+            Div(
+                Submit("submit", 'Filter', css_class="col-lg-12"),
+                css_class="col-lg-2"
+            ),
+        )
+
 
 
 class QuestionSetForm(forms.Form):
