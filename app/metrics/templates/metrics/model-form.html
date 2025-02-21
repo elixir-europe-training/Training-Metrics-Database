@@ -16,7 +16,7 @@
                 {% for name, value in stats %}
                 <tr>
                     <td>{{ name }}</td>
-                    <td>{{ value }}</td>
+                    <td>{% if value.1 %}<a href="{{ value.1 }}">{{ value.0 }}</a>{% else %}{{ value.0 }}{% endif %}</td>
                 </tr>{% endfor %}
             </tbody>
         </table>

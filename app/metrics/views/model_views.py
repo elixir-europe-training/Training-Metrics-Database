@@ -4,6 +4,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
+from django.utils.http import urlencode
 from metrics import forms
 from metrics import models
 from django.core import serializers
@@ -140,13 +141,18 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
             "node_main",
         ]
         field_stats = [
-            (self.model._meta.get_field(field).verbose_name.title(), getattr(self.object, field))
+            (self.model._meta.get_field(field).verbose_name.title(), (getattr(self.object, field), None))
             for field in stat_fields
         ]
+        metrics_counts = [
+            (label, (value, None))
+            for label, value in get_metrics_counts(self.object)
+        ]
         return [
-            *get_metrics_counts(self.object),
+            *metrics_counts,
             *field_stats
         ]
+
 
 class TessImportEventView(LoginRequiredMixin, CreateView):
     # Figure out how to avoid duplicating this from EventView
@@ -270,13 +276,20 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
             "ror_id",
         ]
         field_stats = [
-            (self.model._meta.get_field(field).verbose_name.title(), getattr(self.object, field))
+            (self.model._meta.get_field(field).verbose_name.title(), self.get_stat(field))
             for field in stat_fields
         ]
         return [
             *field_stats,
-            ("Events", models.Event.objects.filter(organising_institution=self.object).count()),
+            self.get_event_stat()
         ]
+
+    def get_stat(self, field):
+        value = getattr(self.object, field)
+        if field == "ror_id":
+            return (value, value)
+        else:
+            return (value, None)
 
     def form_valid(self, form):
         result = super().form_valid(form)
@@ -284,6 +297,15 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
         self.object.save()
         
         return result
+
+    def get_event_stat(self):
+        base_url = reverse("event-list")
+        query_params = {"institution_id": self.object.id}
+        view_list_url = f"{base_url}?{urlencode(query_params, doseq=True)}"
+        return (
+            "Events",
+            (models.Event.objects.filter(organising_institution=self.object).count(), view_list_url)
+        )
 
 
 class GenericListView(ListView):
@@ -319,13 +341,7 @@ class GenericListView(ListView):
         context["table_items"] = [
             [
                 *extras,
-                *[
-                    (
-                        self.parse_value(value),
-                        value.get_absolute_url() if hasattr(value, "get_absolute_url") else None
-                    )
-                    for value in self.get_values(entry)
-                ]
+                *self.get_values(entry)
             ]
             for extras, entry in zip(extras_list, context["object_list"])
         ]
@@ -361,9 +377,19 @@ class GenericListView(ListView):
         ]
 
     def get_values(self, entry):
-        return [getattr(entry, fieldname) for fieldname in self.fields]
+        return [self.get_value(entry, fieldname) for fieldname in self.fields]
+    
+    def get_value(self, entry, fieldname):
+        value = self.parse_value(getattr(entry, fieldname))
+        return (
+            value,
+            value.get_absolute_url() if hasattr(value, "get_absolute_url") else None
+        )
 
     def parse_value(self, value):
+        if value is None:
+            return None
+
         value_list = (
             list(value.all())
             if hasattr(value, "all")
@@ -400,6 +426,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
 
     def get_queryset(self):
         id_list = self.request.GET.getlist("id", None)
+        institution_id_list = self.request.GET.getlist("institution_id", None)
         queryset = super().get_queryset().order_by("-id")
         queryset = (
             queryset.filter(node_main=self.request.user.get_node())
@@ -409,6 +436,11 @@ class EventListView(LoginRequiredMixin, GenericListView):
         queryset = (
             queryset.filter(id__in=id_list)
             if id_list
+            else queryset
+        )
+        queryset = (
+            queryset.filter(organising_institution__in=institution_id_list)
+            if institution_id_list
             else queryset
         )
         return queryset
@@ -424,7 +456,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
         values = super().get_values(entry)
         return [
             *values,
-            get_metrics_status(entry)
+            (get_metrics_status(entry), None)
         ]
 
     def get_entry_extras(self, entry):
@@ -453,6 +485,13 @@ class InstitutionListView(LoginRequiredMixin, GenericListView):
         return [
             ("View", entry.get_absolute_url()),
         ]
+
+    def get_value(self, entry, fieldname):
+        (value, url) = super().get_value(entry, fieldname)
+        if fieldname == "ror_id" and value:
+            return (value, value)
+        else:
+            return (value, url)
 
 
 class GenericEventMetricsDeleteView(
