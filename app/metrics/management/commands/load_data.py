@@ -172,7 +172,6 @@ def load_questions():
                 )
 
 
-
 def load_answers():
     with open(DATA_SOURCES[Answer]) as csvfile:
         reader = csv.DictReader(csvfile)
@@ -186,6 +185,24 @@ def load_answers():
                 user=User.objects.get(username=row["user"]),
                 question=question
             )
+
+
+def load_metrics():
+    num_workers = 3
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        functions_to_execute = [
+            load_demographics,
+            load_qualities,
+            load_impacts,
+        ]
+
+        futures = [executor.submit(func) for func in functions_to_execute]
+
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
 
 def is_empty(items):
@@ -206,6 +223,13 @@ class Command(BaseCommand):
             "--targetdir",
             type=str,
             required=False,
+        )
+
+        parser.add_argument(
+            "--loaders",
+            type=str,
+            required=False,
+            nargs='+'
         )
 
         parser.add_argument(
@@ -243,40 +267,23 @@ class Command(BaseCommand):
             if not are_headers_in_model(csv_file_path, model):
                 raise Exception(
                     f'Some headers are not present for model {model.__name__} in {csv_file_path}')
+        
+        loader_ids = set(options["loaders"]) if options["loaders"] else None
 
-        print("LOADING NODES")
-        print("------------------------")
-        load_nodes()
-        print("LOADING INSTITUTIONS")
-        print("------------------------")
-        load_institutions()
-        print("LOADING USERS")
-        print("------------------------")
-        load_user()
-        print("LOADING EVENTS")
-        print("------------------------")
-        load_events()
-        print("LOADING QUESTIONS")
-        print("------------------------")
-        load_questions()
-        print("LOADING ANSWERS")
-        print("------------------------")
-        load_answers()
-        print("LOADING METRICS")
-        print("------------------------")
+        items_to_load = [
+            ("nodes", [load_nodes]),
+            ("institutions", [load_institutions]),
+            ("user", [load_user]),
+            ("events", [load_events]),
+            ("questions", [load_questions, load_answers]),
+            ("metrics", [load_metrics])
+        ]
 
-        num_workers = 3
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            functions_to_execute = [
-                load_demographics,
-                load_qualities,
-                load_impacts,
-            ]
+        for loader_id, loaders in items_to_load:
+            if not loader_ids or loader_id in loader_ids:
+                print(f"LOADING {loader_id.upper()}")
+                print("------------------------")
+                for loader in loaders:
+                    loader()
 
-            futures = [executor.submit(func) for func in functions_to_execute]
 
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"An error occurred: {e}")
