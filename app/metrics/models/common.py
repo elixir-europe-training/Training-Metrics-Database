@@ -36,6 +36,7 @@ class EditTracking(models.Model):
 
 
 country_list = [
+    "Afghanistan",
     "Ecuador",
     "Luxembourg",
     "Sao Tome & Principe",
