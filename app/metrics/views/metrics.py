@@ -90,7 +90,7 @@ class MetricsView(View):
         data_csv = self.metrics_to_csv(metrics)
         data_url = self.csv_to_base64_url(data_csv)
         filename = f"{self.get_download_name()}.csv"
-        chart_type = {"pie": "pie", "bar": "bar"}.get(request.GET.get("chart-type", None), "pie")
+        chart_type = {"pie": "pie", "bar": "bar"}.get(request.GET.get("chart_type", None), "pie")
         filter_form = MetricsFilterForm(request.GET or None)
         return render(
             request,

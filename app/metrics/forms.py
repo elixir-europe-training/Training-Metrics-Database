@@ -12,7 +12,7 @@ from crispy_forms.layout import (
     Div,
     Submit,
 )
-from crispy_forms.bootstrap import InlineCheckboxes
+from crispy_forms.bootstrap import InlineCheckboxes, InlineRadios
 
 
 class UserLoginForm(AuthenticationForm):
@@ -51,6 +51,12 @@ class MetricsFilterForm(ModelForm):
         widget=forms.CheckboxSelectMultiple,
     )
 
+    chart_type = forms.ChoiceField(
+        label="Chart type",
+        choices=[("pie", "Pie chart"), ("bar", "Bar chart")],
+        widget=forms.RadioSelect,
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
@@ -69,9 +75,10 @@ class MetricsFilterForm(ModelForm):
             "target_audience",
             "additional_platforms",
             InlineCheckboxes("node_only", small=False),
-            Div(css_class="col-lg-6"),
+            InlineRadios("chart_type", small=False),
+            Div(css_class="col-lg-2"),
             Div(
-                Submit("submit", 'Filter', css_class="col-lg-12"),
+                Submit("submit", "Apply", css_class="col-lg-12"),
                 css_class="col-lg-2"
             ),
         )
