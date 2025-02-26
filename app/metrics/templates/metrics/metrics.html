@@ -70,7 +70,11 @@
                         type: "bar"
                     }
                 ]
-                Plotly.newPlot(view.elementId, data, layout, {showLink: false, responsive: true});
+                const viewLayout = {
+                    title: {text: view.data.label},
+                    ...layout
+                }
+                Plotly.newPlot(view.elementId, data, viewLayout, {showLink: false, responsive: true});
             }
         }
     </script>
