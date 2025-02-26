@@ -20,7 +20,8 @@ def all_events(request):
         'dash_app/template.html',
         context={
             **get_tabs(request),
-            **dash_config
+            **dash_config,
+            "title": "All events"
         }
     )
 
