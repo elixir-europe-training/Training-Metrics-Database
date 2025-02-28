@@ -370,11 +370,11 @@ def get_event_info(
         query = query.filter(target_audience__contains=event_target_audience)
     if event_additional_platforms:
         query = query.filter(additional_platforms__contains=event_additional_platforms)
-    if date_from is not None and date_to is not None:
-        query = query.filter(
-            Q(date_start__range=[date_from, date_to]) |
-            Q(date_end__range=[date_from, date_to])
-        )
+
+    date_from_filter = Q(date_end__gte=date_from) if date_from else Q()
+    date_to_filter = Q(date_start__lte=date_to) if date_to else Q()
+    query = query.filter(date_from_filter & date_to_filter)
+
     if event_node:
         query = query.filter(node__in=[event_node])
 
@@ -395,7 +395,7 @@ def get_event_info(
         {
             "label": params.get(key),
             "id": key,
-            "options": list({
+            "options": sorted(list({
                 **{
                     option: {
                         "label": option,
@@ -412,7 +412,7 @@ def get_event_info(
                     }
                     for param, count in summary[key].items()
                 }
-            }.values())
+            }.values()), key=lambda v: -v["count"])
         }
         for key in params.keys()
     ]
@@ -452,8 +452,8 @@ def get_event_properties(filterable_only=False):
         "funding",
         "target_audience",
         "additional_platforms",
-        "date_from",
-        "date_to"
+        "date_start",
+        "date_end"
     }
 
     return [
@@ -508,11 +508,10 @@ def get_metrics_info(
         query = query.filter(response_set__event__additional_platforms__contains=event_additional_platforms)
     if event_node:
         query = query.filter(response_set__event__node__in=[event_node])
-    if date_from is not None and date_to is not None:
-        query = query.filter(
-            Q(response_set__event__date_start__range=[date_from, date_to]) |
-            Q(response_set__event__date_end__range=[date_from, date_to])
-        )
+
+    date_from_filter = Q(response_set__event__date_end__gte=date_from) if date_from else Q()
+    date_to_filter = Q(response_set__event__date_start__lte=date_to) if date_to else Q()
+    query = query.filter(date_from_filter & date_to_filter)
 
     query = query.prefetch_related("answer", "answer__question", "response_set")
     query = (
@@ -530,14 +529,14 @@ def get_metrics_info(
         {
             "label": question.text,
             "id": question.slug,
-            "options": [
+            "options": sorted([
                 {
                     "label": answer.text,
                     "id": answer.slug,
                     "count": summary.get(answer.id, 0)
                 }
                 for answer in question.answers.all()
-            ]
+            ], key=lambda v: -v["count"])
         }
         for question in questions.values()
     ]
@@ -568,8 +567,10 @@ def get_legacy_metrics_info(
     if event_additional_platforms:
         query = query.filter(event__additional_platforms__contains=event_additional_platforms)
 
-    if date_from is not None and date_to is not None:
-        query = query.filter(event__date_start__range=[date_from, date_to]).filter(event__date_end__range=[date_from, date_to])
+    date_from_filter = Q(event__date_end__gte=date_from) if date_from else Q()
+    date_to_filter = Q(event__date_start__lte=date_to) if date_to else Q()
+    query = query.filter(date_from_filter & date_to_filter)
+
     if event_node:
         query = query.filter(event__node__in=[event_node])
 
@@ -596,7 +597,7 @@ def get_legacy_metrics_info(
         {
             "label": metrics_type._meta.get_field(key).verbose_name,
             "id": key,
-            "options": list(
+            "options": sorted(list(
                 {
                     option: {
                         "label": label,
@@ -605,7 +606,7 @@ def get_legacy_metrics_info(
                     }
                     for label, option in options
                 }.values()
-            )
+            ), key=lambda v: -v["count"])
         }
         for key, options in mapped_options.items()
         if key not in ignored_fields
@@ -629,8 +630,8 @@ def _get_filter_params(request):
     funding = request.GET.getlist("funding", None)
     target_audience = request.GET.getlist("target_audience", None)
     additional_platforms = request.GET.getlist("additional_platforms", None)
-    date_from = request.GET.get("date_start", None) or None
-    date_to = request.GET.get("date_end", None) or None
+    date_from = request.GET.get("date_from", None) or None
+    date_to = request.GET.get("date_to", None) or None
     node_only = bool(int(request.GET.get("node_only", "0")))
     current_node = request.user.get_node() if request.user.is_authenticated else None
 

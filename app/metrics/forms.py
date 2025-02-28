@@ -32,8 +32,6 @@ class MetricsFilterForm(ModelForm):
     class Meta:
         model = models.Event
         fields = [
-            "date_start",
-            "date_end",
             "type",
             "funding",
             "target_audience",
@@ -44,6 +42,9 @@ class MetricsFilterForm(ModelForm):
             "target_audience": forms.CheckboxSelectMultiple,
             "additional_platforms": forms.CheckboxSelectMultiple,
         }
+
+    date_from = forms.DateField()
+    date_to = forms.DateField()
 
     node_only = forms.MultipleChoiceField(
         label="Node only",
@@ -68,8 +69,8 @@ class MetricsFilterForm(ModelForm):
         self.helper.wrapper_class = "col-lg-4"
         self.helper.disable_csrf = True
         self.helper.layout = Layout(
-            Field("date_start", css_class="datepicker form-control"),
-            Field("date_end", css_class="datepicker form-control"),
+            Field("date_from", css_class="datepicker form-control"),
+            Field("date_to", css_class="datepicker form-control"),
             "type",
             "funding",
             "target_audience",
