@@ -19,8 +19,7 @@
 {% block content %}
     <h1>Reports</h1>
     {% include 'common/tabs.html' %}
-    {% crispy filter_form %}
-    <hr />
+    {% include 'common/filter-form.html' %}
     {% for entry in metrics %}
     <h3>{{ entry.label }}</h3>
     <div class="table-container">
