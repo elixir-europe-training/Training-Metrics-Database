@@ -10,13 +10,12 @@ from metrics.models import (
 )
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, F
-from metrics.views.common import get_tabs
+from metrics.views.common import get_tabs, get_event_filter_query, dict_to_querydict
 from metrics.forms import MetricsFilterForm
 from django.urls import reverse
 from django.shortcuts import render
 from datetime import date
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 from django.views import View
 import csv
 import io
@@ -92,6 +91,7 @@ class MetricsView(View):
         filename = f"{self.get_download_name()}.csv"
         chart_type = {"pie": "pie", "bar": "bar"}.get(request.GET.get("chart_type", None), "pie")
         filter_form = MetricsFilterForm(request.GET or None)
+        filter_params = dict_to_querydict(filter_form.cleaned_data if filter_form.is_valid() else {})
         return render(
             request,
             "metrics/metrics.html",
@@ -101,6 +101,7 @@ class MetricsView(View):
                 "metrics": metrics,
                 "chart_type": chart_type,
                 "filter_form": filter_form,
+                "filter_params": filter_params,
                 "download": {
                     "label": self.get_download_label(),
                     "href": data_url,
@@ -361,22 +362,15 @@ def get_event_info(
         field.name: options
         for field, options in field_options
     }
-    query = Event.objects.all()
-    if event_type:
-        query = query.filter(type=event_type)
-    if event_funding:
-        query = query.filter(funding__contains=event_funding)
-    if event_target_audience:
-        query = query.filter(target_audience__contains=event_target_audience)
-    if event_additional_platforms:
-        query = query.filter(additional_platforms__contains=event_additional_platforms)
-
-    date_from_filter = Q(date_end__gte=date_from) if date_from else Q()
-    date_to_filter = Q(date_start__lte=date_to) if date_to else Q()
-    query = query.filter(date_from_filter & date_to_filter)
-
-    if event_node:
-        query = query.filter(node__in=[event_node])
+    query = Event.objects.filter(get_event_filter_query(
+        event_type,
+        event_funding,
+        event_target_audience,
+        event_additional_platforms,
+        event_node,
+        date_to,
+        date_from
+    ))
 
     entries = list(query.values())
     params = {
@@ -498,20 +492,16 @@ def get_metrics_info(
     }
 
     query = Response.objects.filter(answer__question__in=questions.values())
-    if event_type:
-        query = query.filter(response_set__event__type=event_type)
-    if event_funding:
-        query = query.filter(response_set__event__funding__contains=event_funding)
-    if event_target_audience:
-        query = query.filter(response_set__event__target_audience__contains=event_target_audience)
-    if event_additional_platforms:
-        query = query.filter(response_set__event__additional_platforms__contains=event_additional_platforms)
-    if event_node:
-        query = query.filter(response_set__event__node__in=[event_node])
-
-    date_from_filter = Q(response_set__event__date_end__gte=date_from) if date_from else Q()
-    date_to_filter = Q(response_set__event__date_start__lte=date_to) if date_to else Q()
-    query = query.filter(date_from_filter & date_to_filter)
+    query = query.filter(get_event_filter_query(
+        event_type,
+        event_funding,
+        event_target_audience,
+        event_additional_platforms,
+        event_node,
+        date_to,
+        date_from,
+        prefix="response_set__event__"
+    ))
 
     query = query.prefetch_related("answer", "answer__question", "response_set")
     query = (
@@ -558,21 +548,16 @@ def get_legacy_metrics_info(
         for field, options in field_options
     }
     query = metrics_type.objects.all()
-    if event_type:
-        query = query.filter(event__type=event_type)
-    if event_funding:
-        query = query.filter(event__funding__contains=event_funding)
-    if event_target_audience:
-        query = query.filter(event__target_audience__contains=event_target_audience)
-    if event_additional_platforms:
-        query = query.filter(event__additional_platforms__contains=event_additional_platforms)
-
-    date_from_filter = Q(event__date_end__gte=date_from) if date_from else Q()
-    date_to_filter = Q(event__date_start__lte=date_to) if date_to else Q()
-    query = query.filter(date_from_filter & date_to_filter)
-
-    if event_node:
-        query = query.filter(event__node__in=[event_node])
+    query = query.filter(get_event_filter_query(
+        event_type,
+        event_funding,
+        event_target_audience,
+        event_additional_platforms,
+        event_node,
+        date_to,
+        date_from,
+        prefix="event__"
+    ))
 
     ignored_fields = {
         "id",

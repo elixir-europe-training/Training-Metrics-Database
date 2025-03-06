@@ -5,11 +5,13 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.utils.http import urlencode
+from metrics.views.common import get_event_filter_query, dict_to_querydict
 from metrics import forms
 from metrics import models
 from django.core import serializers
 from collections.abc import Iterable
 from .common import get_tabs
+from metrics.forms import EventFilterForm
 from django.urls import reverse_lazy, reverse
 import requests
 import re
@@ -345,14 +347,22 @@ class GenericListView(ListView):
             ]
             for extras, entry in zip(extras_list, context["object_list"])
         ]
-        context["node_only"] = self.node_only
+        filter_form = self.get_filter_form()
+        context["filter_form"] = filter_form
+        filter_params = dict_to_querydict(self.get_filter_params(filter_form))
+        context["filter_params"] = filter_params
         context["page_size"] = self.get_paginate_by(None)
         context.update(get_tabs(self.request))
         return context
 
-    @property
-    def node_only(self):
-        return "node_only" in self.request.GET
+    def get_filter_form(self):
+        FilterForm = getattr(self, "filter_form", None)
+        return None if FilterForm is None else FilterForm(self.request.GET or None)
+
+    def get_filter_params(self, filter_form):
+        if filter_form and filter_form.is_valid():
+            return filter_form.cleaned_data
+        return {}
 
     def get_entry_extras(self, entry):
         return []
@@ -415,6 +425,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
         "type",
         "organising_institution",
     ]
+    filter_form = EventFilterForm
 
     def get_field_label(self, field):
         try:
@@ -425,25 +436,36 @@ class EventListView(LoginRequiredMixin, GenericListView):
             return super().get_field_label(field)
 
     def get_queryset(self):
-        id_list = self.request.GET.getlist("id", None)
-        institution_id_list = self.request.GET.getlist("institution_id", None)
         queryset = super().get_queryset().order_by("-id")
-        queryset = (
-            queryset.filter(node_main=self.request.user.get_node())
-            if self.node_only
-            else queryset
-        )
+        filter_form = self.get_filter_form()
+        filter_params = self.get_filter_params(filter_form)
+        if filter_form and filter_form.is_valid():
+            queryset = queryset.filter(get_event_filter_query(
+                filter_params.get("type"),
+                filter_params.get("funding"),
+                filter_params.get("target_audience"),
+                filter_params.get("additional_platforms"),
+                self.request.user.get_node() if filter_params.get("node_only") else None,
+                filter_params.get("date_to"),
+                filter_params.get("date_from"),
+            ))
+        id_list = filter_params.get("id", None)
         queryset = (
             queryset.filter(id__in=id_list)
             if id_list
             else queryset
         )
-        queryset = (
-            queryset.filter(organising_institution__in=institution_id_list)
-            if institution_id_list
-            else queryset
-        )
         return queryset
+
+    def get_filter_params(self, filter_form):
+        base_params = super().get_filter_params(filter_form)
+        extra_params = {
+            "id": self.request.GET.getlist("id", None)
+        }
+        return {
+            **base_params,
+            **extra_params,
+        }
 
     def get_headers(self, max_extras):
         headers = super().get_headers(max_extras)

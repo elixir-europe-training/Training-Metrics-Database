@@ -30,7 +30,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(attrs={'class': 'form-control'}))
 
 
-class MetricsFilterForm(ModelForm):
+class EventFilterForm(ModelForm):
     class Meta:
         model = models.Event
         fields = [
@@ -54,6 +54,33 @@ class MetricsFilterForm(ModelForm):
         widget=forms.CheckboxSelectMultiple,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.required = False
+
+        self.helper = FormHelper(self)
+        self.helper.form_method = "GET"
+        self.helper.form_class = "row"
+        self.helper.wrapper_class = "col-lg-4"
+        self.helper.disable_csrf = True
+        self.helper.layout = Layout(
+            Field("date_from", css_class="datepicker form-control"),
+            Field("date_to", css_class="datepicker form-control"),
+            "type",
+            "funding",
+            "target_audience",
+            "additional_platforms",
+            InlineCheckboxes("node_only", small=False),
+            Div(css_class="col-lg-6"),
+            Div(
+                Submit("submit", "Apply", css_class="col-lg-12"),
+                css_class="col-lg-2"
+            ),
+        )
+
+
+class MetricsFilterForm(EventFilterForm):
     chart_type = forms.ChoiceField(
         label="Chart type",
         choices=[("pie", "Pie chart"), ("bar", "Bar chart")],
