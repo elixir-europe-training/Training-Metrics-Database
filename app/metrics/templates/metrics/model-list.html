@@ -1,42 +1,36 @@
 {% extends "common/base.html" %}
-{% load crispy_forms_tags %}
 {% block content %}
     <h1>{{title}}</h1>
     {% include 'common/tabs.html' %}
     {% include 'metrics/data-warning.html' %}
-    {% if filter_form %}
-    {% crispy filter_form %}
-    <hr />
-    {% endif %}
-    <div class="mb-3 row">
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_previous %}href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"{% endif %}>Previous</a></li>
-                <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_next %}href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}"{% endif %}>Next</a></li>
-                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span></li>
-            </ul>
-        </nav>
-        <table class="table table-bordered">
-            <thead class="thead-light">
-                <tr>
-                    {% for heading in table_headings %}
-                    <th>{{heading}}</th>{% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in table_items %}
-                <tr>
-                    {% for value, href in item %}
-                    <td>{% if href %}<a href="{{href}}">{{value}}</a>{% else %}{{value}}{% endif %}</td>{% endfor %}
-                </tr>{% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_previous %}href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"{% endif %}>Previous</a></li>
-                <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_next %}href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}"{% endif %}>Next</a></li>
-                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span></li>
-            </ul>
-        </nav>
-    </div>
+    {% include 'common/filter-form.html' %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_previous %}href="?{{ filter_params.urlencode }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"{% endif %}>Previous</a></li>
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_next %}href="?{{ filter_params.urlencode }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}"{% endif %}>Next</a></li>
+            <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span></li>
+        </ul>
+    </nav>
+    <table class="table table-bordered">
+        <thead class="thead-light">
+            <tr>
+                {% for heading in table_headings %}
+                <th>{{heading}}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in table_items %}
+            <tr>
+                {% for value, href in item %}
+                <td>{% if href %}<a href="{{href}}">{{value}}</a>{% else %}{{value}}{% endif %}</td>{% endfor %}
+            </tr>{% endfor %}
+        </tbody>
+    </table>
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_previous %}href="?{{ filter_params.urlencode }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"{% endif %}>Previous</a></li>
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_next %}href="?{{ filter_params.urlencode }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}"{% endif %}>Next</a></li>
+            <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span></li>
+        </ul>
+    </nav>
 {% endblock %}
