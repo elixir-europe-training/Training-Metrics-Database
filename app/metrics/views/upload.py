@@ -334,29 +334,40 @@ def response_upload(request, event):
                         )
                     )
 
-                    csv_stream = io.StringIO(file.read().decode())
-                    reader = csv.DictReader(csv_stream, delimiter=',')
-                    entries = []
-                    for (index, row) in enumerate(reader):
-                        try:
-                            entries.append(parser(row))
-                        except ValidationError as e:
-                            traceback.print_exc()
-                            form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+                    try:
+                        csv_stream = io.StringIO(file.read().decode())
+                        reader = csv.DictReader(csv_stream, delimiter=',')
+                        entries = []
+                        for (index, row) in enumerate(reader):
+                            try:
+                                entries.append(parser(row))
+                            except (ValidationError, ) as e:
+                                traceback.print_exc()
+                                form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
 
-                    if len(form.errors) == 0:
-                        items = []
-                        try:
-                            with transaction.atomic():
-                                items = [importer(entry) for entry in entries]
+                        if len(form.errors) == 0:
+                            items = []
+                            try:
+                                with transaction.atomic():
+                                    items = [importer(entry) for entry in entries]
 
-                            form.outputs = {
-                                key: view_transform(items)
-                                for key, view_transform in view_transforms.items()
-                            }
-                        except Exception as e:
-                            traceback.print_exc()
-                            form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                                form.outputs = {
+                                    key: view_transform(items)
+                                    for key, view_transform in view_transforms.items()
+                                }
+                            except Exception as e:
+                                traceback.print_exc()
+                                form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                    except (UnicodeDecodeError, csv.Error) as e:
+                        form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                        if isinstance(e, UnicodeDecodeError):
+                            form.add_error(
+                                None,
+                                "Make sure that the file is of the right format. "
+                                "The file needs to be a CSV (comma separated values) "
+                                "and use the character encoding UTF-8."
+                            )
+
 
     title = (
         f"Upload data for event: {event.title}" 
