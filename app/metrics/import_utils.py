@@ -10,6 +10,8 @@ from metrics.models import (
     Node,
     OrganisingInstitution,
     ChoiceArrayField,
+    country_mapping,
+    EditTracking,
 )
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -94,7 +96,7 @@ class ImportContext:
         new_inst.save()
         self._institutions[ror_id] = new_inst
         return new_inst
-    
+
     def responses_from_dict(self, question_set_id, data: dict):
         if question_set_id == "demographic":
             return self._demographic_from_dict(data)
@@ -516,3 +518,70 @@ def update_table_rows(
             new_row[alias] = generator()
         new_data.append(new_row)
     return new_data
+
+
+def get_field_id(model, field_name):
+    model_name = slugify(model._meta.verbose_name)
+    return f"{model_name}-{field_name}"
+
+
+def parse_legacy_entry_data(entry_data, model):
+    return {
+        get_field_id(model, field_name): (
+            [
+                map_response(value)
+                for value in value_or_list
+            ]
+            if isinstance(value_or_list, list)
+            else map_response(value_or_list)
+        )
+        for field_name, value_or_list in entry_data.items()
+    }
+
+
+@functools.cache
+def get_response_map():
+    country_base_map = country_mapping
+
+    country_map = {
+        slugify(key): value
+        for key, value in country_base_map.items()
+    }
+    response_map = {
+        "": "no-response",
+        "to-learn-something-new-to-aid-me-in-my-current-researchwork": "to-learn-something-new-to-aid-me-in-my-current-research-work",  # noqa: E501
+        "to-build-on-existing-knowledge-to-aid-me-in-my-current-researchwork": "to-build-on-existing-knowledge-to-aid-me-in-my-current-research-work",  # noqa: E501
+        "by-using-training-materialsnotes-from-the-training-event": "by-using-training-materials-notes-from-the-training-event",  # noqa: E501
+        "it-did-not-help-as-i-do-not-use-the-toolsresources-covered-in-the-training-event": "it-did-not-help-as-i-do-not-use-the-tools-resources-covered-in-the-training-event",  # noqa: E501
+        "it-improved-communication-with-the-bioinformaticianstatistician-analyzing-my-data": "it-improved-communication-with-the-bioinformatician-statistician-analyzing-my-data",  # noqa: E501
+        "submission-of-my-dissertationthesis-for-degree-purposes": "submission-of-my-dissertation-thesis-for-degree-purposes",  # noqa: E501
+        "useful-collaborations-with-other-participantstrainers-from-the-training-event": "useful-collaborations-with-other-participants-trainers-from-the-training-event"  # noqa: E501
+    }
+
+    return {
+        **country_map,
+        **response_map
+    }
+
+
+def map_response(response: str):
+    slug_response = slugify(response)
+    response_map = get_response_map()
+
+    return response_map.get(slug_response, slug_response)
+
+
+def get_metrics_fields(model):
+    ignored_fields = {
+        "id",
+        "event",
+        *{
+            field.name
+            for field in EditTracking._meta.get_fields()
+        }
+    }
+    return [
+        field
+        for field in model._meta.get_fields()
+        if field.name not in ignored_fields
+    ]

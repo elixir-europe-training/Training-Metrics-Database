@@ -11,6 +11,7 @@ from metrics.models import (
 )
 from metrics.import_utils import ImportContext
 import csv
+import functools
 
 
 # Create your tests here.
@@ -30,9 +31,9 @@ class TestImportValues(TestCase):
         }
         model_import_map = {
             "Event": context.event_from_dict,
-            "Demographic": context.demographic_from_dict,
-            "Quality": context.quality_from_dict,
-            "Impact": context.impact_from_dict
+            "Demographic": functools.partial(context.responses_from_dict, "demographic"),
+            "Quality": functools.partial(context.responses_from_dict, "quality"),
+            "Impact": functools.partial(context.responses_from_dict, "impact")
         }
         model_base_data = {
             "Event": {
@@ -43,7 +44,7 @@ class TestImportValues(TestCase):
                 "date_end": "2024-01-02",
                 "duration": "2",
                 "location_city": "Anytown",
-                "location_country": "Anywhere",
+                "location_country": "Sweden",
                 "number_participants": "10",
                 "number_trainers": "10",
                 "url": "https://local.local",
@@ -53,7 +54,7 @@ class TestImportValues(TestCase):
             "Demographic": {
                 "user": user.username,
                 "event": event.code,
-                "employment_country": "Anywhere",
+                "employment_country": "Sweden",
 
             },
             "Quality": {
