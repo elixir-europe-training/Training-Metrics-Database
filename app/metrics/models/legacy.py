@@ -12,7 +12,7 @@ class Demographic(EditTracking):
         choices=string_choices(country_list)
     )
     heard_from = ChoiceArrayField(
-        verbose_name="Where did you hear about this course?",
+        verbose_name="Where did you see the course advertised?",
         base_field=models.TextField(
             choices=string_choices([
                 "TeSS",
@@ -27,7 +27,7 @@ class Demographic(EditTracking):
     )
 
     employment_sector = models.TextField(
-        verbose_name="Employment sector",
+        verbose_name="What is your employment sector?",
         choices=[
             ("Academia/ Research Institution", "Academia/ Research Institution"),
             ("Industry", "Industry"),
@@ -48,7 +48,7 @@ class Demographic(EditTracking):
     )
 
     career_stage = models.TextField(
-        verbose_name="Career stage",
+        verbose_name="What is your career stage?",
         choices=[
             ("Undergraduate student", "Undergraduate student"),
             ("Masters student", "Masters student"),
@@ -250,14 +250,14 @@ class Impact(EditTracking):
         verbose_name="Do you feel that you are able to explain to others what you learnt in the training?",
         choices=EXPLAIN_CHOICES)
     able_use_now = models.TextField(
-        verbose_name="Are you now able to use the tool(s)/ resource(s) covered in the training?",
+        verbose_name="Are you now able to use the tool(s)/ resource(s) covered in the training:",
         choices=ABLE_USE_NOW_CHOICES)
     help_work = ChoiceArrayField(
-        verbose_name="How did the training event help with your work?",
+        verbose_name="How did the training event help with your work? [select all that apply]",
         base_field=models.TextField(choices=HELP_WORK_CHOICES)
     )
     attending_led_to = ChoiceArrayField(
-        verbose_name="Attending the training event led to/ facilitated:",
+        verbose_name="Attending the training event led to/ facilitated: [select all that apply]",
         blank=True,
         base_field=models.TextField(choices=ATTENDING_LED_TO_CHOICES)
     )

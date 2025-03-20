@@ -13,6 +13,7 @@ from crispy_forms.layout import (
     Submit,
 )
 from crispy_forms.bootstrap import InlineCheckboxes, InlineRadios
+from django.utils.text import slugify
 
 
 class UserLoginForm(AuthenticationForm):
@@ -97,8 +98,8 @@ class QuestionSetForm(forms.Form):
         values = {
             key: (
                 QuestionSetForm._parse_list(value)
-                if isinstance(fields[key], forms.MultipleChoiceField) and not isinstance(value, list)
-                else value
+                if isinstance(fields[key], forms.MultipleChoiceField)
+                else slugify(value)
             )
             for key, value in values.items()
             if key in fields
@@ -134,8 +135,12 @@ class QuestionSetForm(forms.Form):
     @staticmethod
     def _parse_list(value):
         return [
-            v.strip()
-            for v in value.split(",")
+            slugify(v.strip())
+            for v in (
+                value
+                if isinstance(value, list)
+                else value.split(",")
+            )
         ]
 
     @staticmethod

@@ -137,6 +137,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
 
     list_display = (
         "name",
+        "slug",
         "node",
         "user",
     )
@@ -202,6 +203,7 @@ class QuestionAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ["text"]}
     list_display = (
         "text",
+        "slug",
         "user",
     )
     inlines = [
