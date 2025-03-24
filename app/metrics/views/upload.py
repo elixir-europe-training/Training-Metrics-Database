@@ -404,7 +404,11 @@ def response_upload(request, event):
                     try:
                         csv_stream = io.StringIO(file.read().decode())
                         reader = csv.DictReader(csv_stream, delimiter=',')
-                        compatiblity_model = get_matching_legacy_model(reader.fieldnames, {upload_type.slug})
+                        compatiblity_model = (
+                            get_matching_legacy_model(reader.fieldnames, {upload_type.slug})
+                            if isinstance(upload_type, QuestionSuperSet)
+                            else None
+                        )
                         compatibility_transform = (
                             None
                             if compatiblity_model is None
