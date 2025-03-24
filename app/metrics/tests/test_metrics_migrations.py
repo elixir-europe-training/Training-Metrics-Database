@@ -13,7 +13,6 @@ from metrics.models.common import (
 from metrics.models import (
     Question,
     QuestionSet,
-    Answer,
     Response,
     ResponseSet
 )
@@ -21,8 +20,8 @@ from django.db import models, connection
 from django.test import TestCase
 from django.contrib.auth.models import User
 import datetime
-from django.template.defaultfilters import slugify
 from django.core.exceptions import ValidationError
+from .utils import create_questionset, create_question
 
 
 class TestMetricsA(EditTracking):
@@ -58,34 +57,6 @@ class TestDeviations(EditTracking):
         max_length=128,
         choices=string_choices(DEVIATING_CHOICES)
     )
-
-
-def create_question(user, text, slug, choices, is_multichoice=False):
-    question = Question.objects.create(
-        text=text,
-        slug=slug,
-        user=user,
-        is_multichoice=is_multichoice,
-    )
-    for choice in choices:
-        Answer.objects.create(
-            question=question,
-            text=choice,
-            slug=slugify(choice),
-            user=user,
-        )
-    return question
-
-
-def create_questionset(user, name, slug, questions):
-    questionset = QuestionSet.objects.create(
-        name=name,
-        slug=slug,
-        user=user,
-    )
-    questionset.questions.add(*questions)
-    questionset.save()
-    return questionset
 
 
 class TestImportValues(TestCase):
