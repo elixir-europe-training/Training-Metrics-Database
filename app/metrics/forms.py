@@ -1,3 +1,4 @@
+import functools
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
@@ -90,17 +91,7 @@ class QuestionSetForm(forms.Form):
     question_set = None
 
     def __init__(self, values, *args, **kwargs):
-        fields = {
-            question.slug: QuestionSetForm._parse_field(question)
-            for question in self.question_set.questions.all()
-        }
-        self.label_value_map = {
-            field_id: {
-                slugify(label): value
-                for (value, label) in field.choices
-            }
-            for field_id, field in fields.items()
-        }
+        fields = self.question_set_fields
         values = {
             field_id: (
                 self._parse_list(field_id, value)
@@ -113,30 +104,6 @@ class QuestionSetForm(forms.Form):
         super().__init__(values, *args, **kwargs)
         for key, field in fields.items():
             self.fields[key] = field
-
-    @staticmethod
-    def _parse_field(question):
-        choices = [
-            (answer.slug, answer.text)
-            for answer in question.answers.all()
-        ]
-        label = question.text
-        return (
-            forms.MultipleChoiceField(
-                label=label,
-                choices=choices,
-                required=True,
-            )
-            if question.is_multichoice
-            else forms.ChoiceField(
-                label=label,
-                choices=[
-                    ("", "---------"),
-                    *choices
-                ],
-                required=True,
-            )
-        )
 
     def _parse_list(self, field_id, value):
         return [
@@ -179,8 +146,44 @@ class QuestionSetForm(forms.Form):
         return responses
 
     @staticmethod
+    def _parse_field(question):
+        choices = [
+            (answer.slug, answer.text)
+            for answer in question.answers.all()
+        ]
+        label = question.text
+        return (
+            forms.MultipleChoiceField(
+                label=label,
+                choices=choices,
+                required=True,
+            )
+            if question.is_multichoice
+            else forms.ChoiceField(
+                label=label,
+                choices=[
+                    ("", "---------"),
+                    *choices
+                ],
+                required=True,
+            )
+        )
+
+    @staticmethod
     def from_question_set(qs):
+        fields = {
+            question.slug: QuestionSetForm._parse_field(question)
+            for question in qs.questions.all()
+        }
         class _Form(QuestionSetForm):
             question_set = qs
+            question_set_fields = fields
+            label_value_map = {
+                field_id: {
+                    slugify(label): value
+                    for (value, label) in field.choices
+                }
+                for field_id, field in fields.items()
+            }
 
         return _Form
