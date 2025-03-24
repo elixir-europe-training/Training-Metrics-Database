@@ -94,14 +94,21 @@ class QuestionSetForm(forms.Form):
             question.slug: QuestionSetForm._parse_field(question)
             for question in self.question_set.questions.all()
         }
+        self.label_value_map = {
+            field_id: {
+                slugify(label): value
+                for (value, label) in field.choices
+            }
+            for field_id, field in fields.items()
+        }
         values = {
-            key: (
-                self._parse_list(value)
-                if isinstance(fields[key], forms.MultipleChoiceField)
-                else self._parse_item(value)
+            field_id: (
+                self._parse_list(field_id, value)
+                if isinstance(fields[field_id], forms.MultipleChoiceField)
+                else self._parse_item(field_id, value)
             )
-            for key, value in values.items()
-            if key in fields
+            for field_id, value in values.items()
+            if field_id in fields
         }
         super().__init__(values, *args, **kwargs)
         for key, field in fields.items():
@@ -131,9 +138,9 @@ class QuestionSetForm(forms.Form):
             )
         )
 
-    def _parse_list(self, value):
+    def _parse_list(self, field_id, value):
         return [
-            self._parse_item(v)
+            self._parse_item(field_id, v)
             for v in (
                 value
                 if isinstance(value, list)
@@ -141,8 +148,9 @@ class QuestionSetForm(forms.Form):
             )
         ]
 
-    def _parse_item(self, value):
-        return slugify(value.strip())
+    def _parse_item(self, field_id, value):
+        default_value = slugify(value.strip())
+        return self.label_value_map.get(field_id, {}).get(default_value, default_value)
 
     @staticmethod
     def _clean_value(question, value):
