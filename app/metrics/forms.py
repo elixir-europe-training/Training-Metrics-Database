@@ -86,7 +86,6 @@ class MetricsFilterForm(ModelForm):
         )
 
 
-
 class QuestionSetForm(forms.Form):
     question_set = None
 
@@ -97,9 +96,9 @@ class QuestionSetForm(forms.Form):
         }
         values = {
             key: (
-                QuestionSetForm._parse_list(value)
+                self._parse_list(value)
                 if isinstance(fields[key], forms.MultipleChoiceField)
-                else slugify(value)
+                else self._parse_item(value)
             )
             for key, value in values.items()
             if key in fields
@@ -131,17 +130,19 @@ class QuestionSetForm(forms.Form):
                 required=True,
             )
         )
-    
-    @staticmethod
-    def _parse_list(value):
+
+    def _parse_list(self, value):
         return [
-            slugify(v.strip())
+            self._parse_item(v)
             for v in (
                 value
                 if isinstance(value, list)
                 else value.split(",")
             )
         ]
+
+    def _parse_item(self, value):
+        return slugify(value.strip())
 
     @staticmethod
     def _clean_value(question, value):
@@ -168,7 +169,7 @@ class QuestionSetForm(forms.Form):
                     )
 
         return responses
-    
+
     @staticmethod
     def from_question_set(qs):
         class _Form(QuestionSetForm):
