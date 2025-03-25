@@ -172,3 +172,5 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
