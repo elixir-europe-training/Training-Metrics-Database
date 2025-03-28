@@ -12,6 +12,7 @@ from metrics.models import (
     ChoiceArrayField,
     country_mapping,
     EditTracking,
+    UserProfile,
 )
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -233,7 +234,7 @@ class LegacyImportContext(ImportContext):
         return self._timestamps
 
     def assert_can_change_data(self, user, event):
-        if not event.is_locked and user.get_node() != event.node_main:
+        if not event.is_locked and UserProfile.get_node(user) != event.node_main:
             raise PermissionDenied(
                 f"The metrics for the event {event.id}, {event.code} can not"
                 f" be updated by the current user: {user.username}"

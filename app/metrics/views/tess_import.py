@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from metrics.models import Node
+from metrics.models import Node, UserProfile
 from .common import get_tabs
 from django import forms
 from django.forms.widgets import FileInput, Select, CheckboxInput
@@ -20,7 +20,7 @@ from .model_views import EventView, TessImportEventView
 
 @login_required
 def tess_import(request, tess_id=None):
-    node = request.user.get_node()
+    node = UserProfile.get_node(request.user)
 
     if not node:
         raise PermissionDenied(f"You have to be associated with a node to upload data.")

@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from metrics.models import Event
+from metrics.models import Event, UserProfile
 from django.utils.html import format_html
 
 from metrics.models import (
@@ -32,7 +32,7 @@ def is_owner_of_object(user, obj):
     return (
         not obj
         or user.is_superuser
-        or user.get_node() == obj.node
+        or UserProfile.get_node(user) == obj.node
     )
 
 
@@ -89,7 +89,7 @@ class QuestionSetAdmin(ModelAdmin):
         if request.user.is_superuser:
             return qs
 
-        user_node = request.user.get_node()
+        user_node = UserProfile.get_node(request.user)
         if user_node:
             # Filter QuestionSets based on the node
             return qs.filter(
@@ -103,7 +103,7 @@ class QuestionSetAdmin(ModelAdmin):
         else:
             obj.user = request.user
         if not request.user.is_superuser:
-            obj.node = request.user.get_node()
+            obj.node = UserProfile.get_node(request.user)
         return super().save_model(request, obj, form, change)
 
     def has_change_permission(self, request, obj=None):
@@ -121,7 +121,7 @@ class QuestionSetAdmin(ModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "questions":
-            user_node = request.user.get_node()
+            user_node = UserProfile.get_node(request.user)
             if not request.user.is_superuser and user_node:
                 # Filter questions to only those that belong to the user's node
                 kwargs["queryset"] = Question.objects.filter(node=user_node)
@@ -147,7 +147,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
         if request.user.is_superuser:
             return qs
 
-        user_node = request.user.get_node()
+        user_node = UserProfile.get_node(request.user)
         if user_node:
             # Filter QuestionSuperSets based on the node
             return qs.filter(
@@ -160,7 +160,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
         else:
             obj.user = request.user
         if not request.user.is_superuser:
-            obj.node = request.user.get_node()
+            obj.node = UserProfile.get_node(request.user)
         return super().save_model(request, obj, form, change)
 
     def has_change_permission(self, request, obj=None):
@@ -215,7 +215,7 @@ class QuestionAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return qs
 
-        user_node = request.user.get_node()
+        user_node = UserProfile.get_node(request.user)
         if user_node:
             return qs.filter(node=user_node)
         return qs.none()  # No node
@@ -226,7 +226,7 @@ class QuestionAdmin(admin.ModelAdmin):
         else:
             obj.user = request.user
         if not request.user.is_superuser:
-            obj.node = request.user.get_node()
+            obj.node = UserProfile.get_node(request.user)
         return super().save_model(request, obj, form, change)
 
     def save_formset(self, request, form, formset, change):

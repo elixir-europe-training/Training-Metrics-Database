@@ -5,8 +5,8 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.utils.http import urlencode
-from metrics import forms
-from metrics import models
+from metrics import forms, models
+from metrics.models import UserProfile, SystemSettings
 from django.core import serializers
 from collections.abc import Iterable
 from .common import get_tabs
@@ -63,7 +63,7 @@ class UserHasNodeMixin(UserPassesTestMixin):
     def test_func(self):
         try:
             model_object = self.get_object()
-            return self.request.user.get_node() == model_object.node_main
+            return UserProfile.get_node(self.request.user) == model_object.node_main
         except self.model.DoesNotExist:
             return True
 
@@ -97,7 +97,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         return f"Event: {self.object}"
     
     def get_actions(self):
-        settings = models.SystemSettings.get_settings()
+        settings = SystemSettings.get_settings(self.request.user)
         upload_action = (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics")
         if settings.has_flag("use_new_model_upload"):
             supersets = settings.get_upload_sets()
@@ -131,7 +131,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     def can_edit(self):
         model_object = self.get_object()
         return (
-            self.request.user.get_node() == model_object.node_main
+            UserProfile.get_node(self.request.user) == model_object.node_main
             and not self.object.is_locked
         )
 
@@ -146,7 +146,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
         ]
         metrics_counts = [
             (label, (value, None))
-            for label, value in get_metrics_counts(self.object)
+            for label, value in get_metrics_counts(self.object, self.request.user)
         ]
         return [
             *metrics_counts,
@@ -218,7 +218,7 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         obj = form.save(commit = False)
         obj.user = self.request.user
-        obj.node_main = self.request.user.get_node()
+        obj.node_main = UserProfile.get_node(self.request.user)
         return super().form_valid(form)
 
     def get_initial(self):
@@ -429,7 +429,7 @@ class EventListView(LoginRequiredMixin, GenericListView):
         institution_id_list = self.request.GET.getlist("institution_id", None)
         queryset = super().get_queryset().order_by("-id")
         queryset = (
-            queryset.filter(node_main=self.request.user.get_node())
+            queryset.filter(node_main=UserProfile.get_node(self.request.user))
             if self.node_only
             else queryset
         )
@@ -456,11 +456,11 @@ class EventListView(LoginRequiredMixin, GenericListView):
         values = super().get_values(entry)
         return [
             *values,
-            (get_metrics_status(entry), None)
+            (get_metrics_status(entry, self.request.user), None)
         ]
 
     def get_entry_extras(self, entry):
-        user_node = self.request.user.get_node()
+        user_node = UserProfile.get_node(self.request.user)
         can_edit = user_node == entry.node_main and not entry.is_locked
         return [
             ("Edit" if can_edit else "View", entry.get_absolute_url()),
@@ -569,8 +569,8 @@ class DemographicMetricsDeleteView(
     metrics_model = models.Demographic
 
 
-def get_metrics_counts(event):
-    settings = models.SystemSettings.get_settings()
+def get_metrics_counts(event, user):
+    settings = SystemSettings.get_settings(user)
     return (
         [
             (
@@ -597,8 +597,8 @@ def get_metrics_counts(event):
     )
 
 
-def get_metrics_status(event):
-    counts = get_metrics_counts(event)
+def get_metrics_status(event, user):
+    counts = get_metrics_counts(event, user)
     count = sum([1 if v > 0 else 0 for _n, v in counts])
     if count == 0:
         return "None"

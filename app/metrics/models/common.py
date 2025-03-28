@@ -412,15 +412,15 @@ class UserProfile(models.Model):
         related_name="users"
     )
 
+    @staticmethod
+    def get_node(user):
+        try:
+            return user.profile.node
+        except (ObjectDoesNotExist, AttributeError):
+            return None
+
     def __str__(self):
         return "Profile for {0}".format(self.user)
-
-
-def get_node(self):
-    try:
-        return self.profile.node
-    except ObjectDoesNotExist:
-        return None
 
 
 def create_user_profile(sender, instance, created, **kwargs):
@@ -430,5 +430,4 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance, node=node)
 
 
-User.add_to_class("get_node", get_node)
 post_save.connect(create_user_profile, sender=User)

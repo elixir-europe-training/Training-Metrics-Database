@@ -20,6 +20,7 @@ from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet, ResponseSet, Response
 from django.http import HttpResponseNotFound
 from metrics.forms import QuestionSetForm
+from metrics.models import UserProfile, SystemSettings
 
 
 UPLOAD_TYPES = {
@@ -53,8 +54,9 @@ class DataUploadForm(forms.Form):
         widget=FileInput(attrs={"class": "form-control"}),
     )
 
-    def __init__(self, *args, title=None, description=None, associated_templates=None, data_type=None, **kwargs):
+    def __init__(self, *args, title=None, description=None, associated_templates=None, data_type=None, badge=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.badge=badge
         self.data_type = data_type
         self.associated_templates=associated_templates
 
@@ -227,7 +229,7 @@ def get_question_import_context(super_set, user, node_main, event):
                 f"Event with id '{event_id}', does not exist"
             )
 
-        if current_event.is_locked or user.get_node() != current_event.node_main:
+        if current_event.is_locked or UserProfile.get_node(user) != current_event.node_main:
             raise ValidationError(
                 f"The metrics for the event {current_event.id} can not"
                 f" be updated by the current user: {user.username}"
@@ -260,7 +262,7 @@ def get_question_import_context(super_set, user, node_main, event):
 
 
 def legacy_upload(request, event):
-    node = request.user.get_node()
+    node = UserProfile.get_node(request.user)
     upload_types = {
         key: value
         for key, value in UPLOAD_TYPES.items()
@@ -278,7 +280,7 @@ def legacy_upload(request, event):
         )
         for upload_type in upload_types.values()
     ]
-    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
+    file_match = f"^.+-{event.id}\\.csv$" if event else "^.+\\.csv$"
 
     if request.method == "POST":
         for form in forms:
@@ -290,7 +292,7 @@ def legacy_upload(request, event):
                 if not re.match(file_match, file.name):
                     form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
                 else:
-                    node_main = request.user.get_node()
+                    node_main = UserProfile.get_node(request.user)
 
                     (parser, importer, view_transforms) = get_import_context(
                         upload_type,
@@ -340,8 +342,7 @@ def legacy_upload(request, event):
 
 
 def response_upload(request, event):
-    settings = models.SystemSettings.get_settings()
-    node = request.user.get_node()
+    settings = SystemSettings.get_settings(request.user)
     question_supersets = settings.get_upload_sets()
     event_upload_form = None
     if event is None:
@@ -365,6 +366,7 @@ def response_upload(request, event):
                 title=super_set.name,
                 prefix=super_set.slug,
                 description=super_set.description,
+                badge=None if super_set.node is None else super_set.node.name,
                 associated_templates=[(
                     super_set.name,
                     reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
@@ -373,7 +375,7 @@ def response_upload(request, event):
             for super_set in question_supersets
         ]
     ]
-    file_match = f"^.+-{event.id}\.csv$" if event else "^.+\.csv$"
+    file_match = f"^.+-{event.id}\\.csv$" if event else r"^.+\\.csv$"
 
     if request.method == "POST":
         for form in forms:
@@ -385,7 +387,7 @@ def response_upload(request, event):
                 if not re.match(file_match, file.name):
                     form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
                 else:
-                    node_main = request.user.get_node()
+                    node_main = UserProfile.get_node(request.user)
                     (parser, importer, view_transforms) = (
                         get_import_context(
                             upload_type,
@@ -477,8 +479,8 @@ def response_upload(request, event):
 
 @login_required
 def upload_data(request, event_id=None):
-    settings = models.SystemSettings.get_settings()
-    node = request.user.get_node()
+    settings = SystemSettings.get_settings(request.user)
+    node = UserProfile.get_node(request.user)
     event = get_object_or_404(models.Event, id=event_id) if event_id else None
 
     if not node:
@@ -526,7 +528,7 @@ def download_template(request, data_type, slug):
         return download_csv([event_metrics], "event-template")
     
     elif data_type == "metrics":
-        settings = models.SystemSettings.get_settings()
+        settings = SystemSettings.get_settings(request.user)
         if settings.has_flag("use_new_model_upload"):
             questionsuperset = get_object_or_404(QuestionSuperSet, slug=slug)
 

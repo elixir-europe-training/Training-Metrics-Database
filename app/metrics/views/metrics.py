@@ -6,6 +6,7 @@ from metrics.models import (
     Quality,
     Impact,
     Demographic,
+    UserProfile,
     SystemSettings,
 )
 from django.core.exceptions import PermissionDenied
@@ -141,6 +142,7 @@ class SuperSetMetricsView(MetricsView):
         question_set_id = self.kwargs["question_set_id"]
         superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
         self.superset = superset
+        current_node = UserProfile.get_node(self.request.user)
         if (superset.node is not None and superset.node != current_node):
             raise PermissionDenied("This set is not publicly available")
 
@@ -181,13 +183,13 @@ def get_metrics_model_or_404(model_id):
     return model
 
 
-def get_metrics_view():
-    settings = SystemSettings.get_settings()
+def get_metrics_view(request, *args, **kwargs):
+    settings = SystemSettings.get_settings(request.user)
 
     if settings.has_flag("use_new_model_stats"):
-        return SuperSetMetricsView
+        return SuperSetMetricsView.as_view()(request, *args, **kwargs)
     else:
-        return LegacyMetricsView
+        return LegacyMetricsView.as_view()(request, *args, **kwargs)
 
 
 def world_map_api(request):
@@ -276,13 +278,13 @@ def event_properties_api(request):
     })
 
 
-def get_metrics_api():
-    settings = SystemSettings.get_settings()
+def get_metrics_api(request, *args, **kwargs):
+    settings = SystemSettings.get_settings(request.user)
 
     if settings.has_flag("use_new_model_stats"):
-        return metrics_api
+        return metrics_api(request, *args, **kwargs)
     else:
-        return legacy_metrics_api
+        return legacy_metrics_api(request, *args, **kwargs)
 
 
 def metrics_api(request, question_set_id: str):
@@ -633,7 +635,7 @@ def _get_filter_params(request):
     date_from = request.GET.get("date_from", None) or None
     date_to = request.GET.get("date_to", None) or None
     node_only = bool(int(request.GET.get("node_only", "0")))
-    current_node = request.user.get_node() if request.user.is_authenticated else None
+    current_node = UserProfile.get_node(request.user) if request.user.is_authenticated else None
 
     return (
         event_type,

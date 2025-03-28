@@ -6,9 +6,8 @@ from django.urls import reverse
 from metrics.models import SystemSettings
 
 
-def get_metrics_tabs():
-    settings = SystemSettings.get_settings()
-    supersets = settings.get_metrics_sets()
+def get_metrics_tabs(request):
+    settings = SystemSettings.get_settings(request.user)
     set_ids = (
         [
             (superset.name, superset.slug)
@@ -45,7 +44,7 @@ def get_tabs(request, view_name=None):
         {"title": title, "url": reverse(name, kwargs=kwargs), "name": name}
         for title, name, kwargs in [
             ("World map", "world-map", {}),
-            *get_metrics_tabs(),
+            *get_metrics_tabs(request),
             ("Browse events", "event-list", {}),
             *user_input,
         ]
