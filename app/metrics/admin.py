@@ -6,6 +6,7 @@ from django.contrib.admin import ModelAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
+from django.db.models import Q
 
 from metrics.models import (
     Event,
@@ -79,6 +80,8 @@ class QuestionSetAdmin(ModelAdmin):
 
     list_display = (
         "name",
+        "slug",
+        "node",
         "user",
     )
 
@@ -88,13 +91,11 @@ class QuestionSetAdmin(ModelAdmin):
             return qs
 
         user_node = UserProfile.get_node(request.user)
+        query = Q(node__isnull=True)
         if user_node:
-            # Filter QuestionSets based on the node
-            return (
-                qs.filter(node=user_node).distinct() |
-                qs.filter(node=None).distinct()
-            )
-        return qs.none()
+            query = query | Q(node=user_node)
+
+        return qs.filter(query)
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -147,12 +148,11 @@ class QuestionSuperSetAdmin(ModelAdmin):
             return qs
 
         user_node = UserProfile.get_node(request.user)
+        query = Q(node__isnull=True) | Q(user=request.user)
         if user_node:
-            # Filter QuestionSuperSets based on the node
-            return (
-                qs.filter(node=user_node).distinct() |
-                qs.filter(node=None).distinct()
-            )
+            query = query | Q(node=user_node)
+
+        return qs.filter(query)
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -183,10 +183,13 @@ class AnswerAdmin(admin.TabularInline):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        # Filter QuestionSuperSets based on the user's node or allow them to view shared supersets (node=None)
-        return qs.filter(
-            user=request.user
-        ).distinct()
+
+        user_node = UserProfile.get_node(request.user)
+        query = Q(question__node__isnull=True) | Q(user=request.user)
+        if user_node:
+            query = query | Q(question__node=user_node)
+
+        return qs.filter(query)
 
     def get_prepopulated_fields(self, request, obj=None):
         return {"slug": ["text"]}
@@ -204,6 +207,7 @@ class QuestionAdmin(admin.ModelAdmin):
     list_display = (
         "text",
         "slug",
+        "node",
         "user",
     )
     inlines = [
@@ -216,9 +220,11 @@ class QuestionAdmin(admin.ModelAdmin):
             return qs
 
         user_node = UserProfile.get_node(request.user)
+        query = Q(node__isnull=True) | Q(user=request.user)
         if user_node:
-            return qs.filter(node=user_node)
-        return qs.none()  # No node
+            query = query | Q(node=user_node)
+
+        return qs.filter(query)
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -239,6 +245,13 @@ class QuestionAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
+
+    def has_change_permission(self, request, obj=None):
+        # Can only change sets from own node
+        return (
+            is_owner_of_object(request.user, obj)
+            and super().has_change_permission(request, obj=obj)
+        )
 
 
 class CustomUserAdmin(UserAdmin):
