@@ -130,6 +130,26 @@ class QuestionSetAdmin(ModelAdmin):
                 kwargs["queryset"] = Question.objects.none()
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+
+        return (
+            readonly_fields
+            if request.user.is_superuser
+            else
+            [*readonly_fields, "slug"]
+        )
+
+    def get_prepopulated_fields(self, request, obj=None):
+        prepopulated_fields = super().get_prepopulated_fields(request, obj)
+
+        return (
+            prepopulated_fields
+            if request.user.is_superuser
+            else
+            {}
+        )
+
 
 @admin.register(QuestionSuperSet)
 class QuestionSuperSetAdmin(ModelAdmin):
@@ -174,6 +194,26 @@ class QuestionSuperSetAdmin(ModelAdmin):
         if not request.user.is_superuser:
             fields = [field for field in fields if field not in COMMON_EXCLUDES]
         return fields
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+
+        return (
+            readonly_fields
+            if request.user.is_superuser
+            else
+            [*readonly_fields, "slug"]
+        )
+
+    def get_prepopulated_fields(self, request, obj=None):
+        prepopulated_fields = super().get_prepopulated_fields(request, obj)
+
+        return (
+            prepopulated_fields
+            if request.user.is_superuser
+            else
+            {}
+        )
 
 
 class AnswerAdmin(admin.TabularInline):
@@ -251,6 +291,26 @@ class QuestionAdmin(admin.ModelAdmin):
         return (
             is_owner_of_object(request.user, obj)
             and super().has_change_permission(request, obj=obj)
+        )
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+
+        return (
+            readonly_fields
+            if request.user.is_superuser
+            else
+            [*readonly_fields, "slug"]
+        )
+
+    def get_prepopulated_fields(self, request, obj=None):
+        prepopulated_fields = super().get_prepopulated_fields(request, obj)
+
+        return (
+            prepopulated_fields
+            if request.user.is_superuser
+            else
+            {}
         )
 
 
