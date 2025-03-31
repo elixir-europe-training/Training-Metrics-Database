@@ -10,7 +10,6 @@ from metrics.models import (
     Response,
     ResponseSet,
     QuestionSet,
-    EditTracking,
 )
 from metrics.forms import QuestionSetForm
 from metrics.import_utils import (

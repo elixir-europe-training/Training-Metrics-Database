@@ -10,10 +10,10 @@ class SystemSettings:
 
     def get_metrics_sets(self):
         return QuestionSuperSet.objects.filter(use_for_metrics=True).filter(self._get_node_query())
-    
+
     def get_upload_sets(self):
         return QuestionSuperSet.objects.filter(use_for_upload=True).filter(self._get_node_query())
-    
+
     def has_flag(self, flag):
         return flag in self._flags
 

@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 from metrics.models import (
     Event,
@@ -6,6 +6,7 @@ from metrics.models import (
     Quality,
     Impact,
 )
+
 
 class Command(BaseCommand):
     help = "Creates an initial value mapping csv"

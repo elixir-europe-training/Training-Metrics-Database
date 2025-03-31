@@ -21,7 +21,7 @@ from django.template.defaultfilters import slugify
 
 def get_data_sources(targetdir="example-data"):
     return {
-        Event:  f'raw-tmd-data/{targetdir}/tango_events.csv',
+        Event: f'raw-tmd-data/{targetdir}/tango_events.csv',
         Demographic: f'raw-tmd-data/{targetdir}/tango_demographics.csv',
         Quality: f'raw-tmd-data/{targetdir}/tango_qualities.csv',
         Impact: f'raw-tmd-data/{targetdir}/tango_impacts.csv',
@@ -267,7 +267,7 @@ class Command(BaseCommand):
             if not are_headers_in_model(csv_file_path, model):
                 raise Exception(
                     f'Some headers are not present for model {model.__name__} in {csv_file_path}')
-        
+
         loader_ids = set(options["loaders"]) if options["loaders"] else None
 
         items_to_load = [
@@ -285,5 +285,3 @@ class Command(BaseCommand):
                 print("------------------------")
                 for loader in loaders:
                     loader()
-
-

@@ -10,12 +10,11 @@ from metrics.models import (
     SystemSettings,
 )
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, F
+from django.db.models import Count
 from metrics.views.common import get_tabs
 from metrics.forms import MetricsFilterForm
 from django.urls import reverse
 from django.shortcuts import render
-from datetime import date
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.views import View
@@ -476,9 +475,9 @@ def get_event_properties(filterable_only=False):
         }
         for (field, options) in field_options
         if (
-            field.get_internal_type() not in {"ForeignKey", "ManyToManyField"}
-            and field.name not in {"id", "created", "modified", "code", "locked"}
-            and (not filterable_only or field.name in filterable_fields)
+            field.get_internal_type() not in {"ForeignKey", "ManyToManyField"} and
+            field.name not in {"id", "created", "modified", "code", "locked"} and
+            (not filterable_only or field.name in filterable_fields)
         )
     ]
 
@@ -615,13 +614,12 @@ def get_legacy_metrics_info(
     ]
 
 
-
 def _calculate_metrics(data, column):
     column_values = [d.get(column) for d in data]
     count = {}
     for value in column_values:
         if value is not None:
-            values = value if type(value) == list else [value]
+            values = value if type(value) is list else [value]
             for v in values:
                 count[v] = count.get(v, 0) + 1
     return count

@@ -1,12 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from metrics.views.common import get_tabs
 from django import forms
-from django.forms.widgets import FileInput, Select, CheckboxInput
-from django.shortcuts import get_object_or_404
+from django.forms.widgets import FileInput
 import re
 import csv
 import io
-import json
 from metrics import import_utils, models
 import traceback
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -30,19 +28,28 @@ UPLOAD_TYPES = {
             "id": "events",
             "title": "Events",
             "description": "",
-            "template_url": reverse_lazy("download_template", kwargs={"data_type": "event", "slug": "base"})
+            "template_url": reverse_lazy(
+                "download_template",
+                kwargs={"data_type": "event", "slug": "base"}
+            )
         },
         {
             "id": "demographic_quality_metrics",
             "title": "Demographic and quality metrics",
             "description": "",
-            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "demographic-quality"})
+            "template_url": reverse_lazy(
+                "download_template",
+                kwargs={"data_type": "metrics", "slug": "demographic-quality"}
+            )
         },
         {
             "id": "impact_metrics",
             "title": "Impact metrics",
             "description": "",
-            "template_url": reverse_lazy("download_template", kwargs={"data_type": "metrics", "slug": "impact"})
+            "template_url": reverse_lazy(
+                "download_template",
+                kwargs={"data_type": "metrics", "slug": "impact"}
+            )
         },
     ]
 }
@@ -54,11 +61,20 @@ class DataUploadForm(forms.Form):
         widget=FileInput(attrs={"class": "form-control"}),
     )
 
-    def __init__(self, *args, title=None, description=None, associated_templates=None, data_type=None, badge=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        title=None,
+        description=None,
+        associated_templates=None,
+        data_type=None,
+        badge=None,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
-        self.badge=badge
+        self.badge = badge
         self.data_type = data_type
-        self.associated_templates=associated_templates
+        self.associated_templates = associated_templates
 
         self.description = description
         self.title = title
@@ -166,7 +182,9 @@ def get_model_transform(model):
     field_multichoice_map = {
         field.name: isinstance(field, models.ChoiceArrayField)
         for field in metrics_fields
+
     }
+
     def _model_transform(entry):
         metrics_data = {
             field_name_map[field_name.lower()]: value
@@ -220,7 +238,9 @@ def get_question_import_context(super_set, user, node_main, event):
         if not current_event:
             try:
                 event_id = entry["event_id"]
-                current_event = models.Event.objects.filter(id=event_id).first()
+                current_event = models.Event.objects.filter(
+                    id=event_id
+                ).first()
             except (KeyError, ValueError) as e:
                 raise ValidationError(f"Failed to parse 'event_id': {e}")
 
@@ -229,7 +249,10 @@ def get_question_import_context(super_set, user, node_main, event):
                 f"Event with id '{event_id}', does not exist"
             )
 
-        if current_event.is_locked or UserProfile.get_node(user) != current_event.node_main:
+        if (
+            current_event.is_locked or
+            UserProfile.get_node(user) != current_event.node_main
+        ):
             raise ValidationError(
                 f"The metrics for the event {current_event.id} can not"
                 f" be updated by the current user: {user.username}"
@@ -262,7 +285,6 @@ def get_question_import_context(super_set, user, node_main, event):
 
 
 def legacy_upload(request, event):
-    node = UserProfile.get_node(request.user)
     upload_types = {
         key: value
         for key, value in UPLOAD_TYPES.items()
@@ -276,11 +298,14 @@ def legacy_upload(request, event):
             title=upload_type["title"],
             description=upload_type["description"],
             prefix=upload_type["id"],
-            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
+            associated_templates=[(
+                upload_type["title"],
+                str(upload_type["template_url"])
+            )]
         )
         for upload_type in upload_types.values()
     ]
-    file_match = f"^.+-{event.id}\\.csv$" if event else "^.+\\.csv$"
+    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
 
     if request.method == "POST":
         for form in forms:
@@ -290,7 +315,11 @@ def legacy_upload(request, event):
                 file = data["file"]
 
                 if not re.match(file_match, file.name):
-                    form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
+                    form.add_error(
+                        None,
+                        "Incorrect file name. The file name needs "
+                        f"to match the following regex: '{file_match}'"
+                    )
                 else:
                     node_main = UserProfile.get_node(request.user)
 
@@ -309,7 +338,11 @@ def legacy_upload(request, event):
                             entries.append(parser(row))
                         except ValidationError as e:
                             traceback.print_exc()
-                            form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+                            form.add_error(
+                                None,
+                                f"Failed to parse '{upload_type}' "
+                                f"row {index} : {e}"
+                            )
 
                     if len(form.errors) == 0:
                         items = []
@@ -319,14 +352,18 @@ def legacy_upload(request, event):
 
                             form.outputs = {
                                 key: view_transform(items)
-                                for key, view_transform in view_transforms.items()
+                                for key, view_transform
+                                in view_transforms.items()
                             }
                         except Exception as e:
                             traceback.print_exc()
-                            form.add_error(None, f"Failed to import '{upload_type}': {e}")
-    
+                            form.add_error(
+                                None,
+                                f"Failed to import '{upload_type}': {e}"
+                            )
+
     title = (
-        f"Upload data for event: {event.title}" 
+        f"Upload data for event: {event.title}"
         if event
         else "Upload data"
     )
@@ -354,7 +391,10 @@ def response_upload(request, event):
             title=upload_type["title"],
             description=upload_type["description"],
             prefix=upload_type["id"],
-            associated_templates=[(upload_type["title"], str(upload_type["template_url"]))]
+            associated_templates=[(
+                upload_type["title"],
+                str(upload_type["template_url"])
+            )]
         )
     forms = [
         *([event_upload_form] if event_upload_form else []),
@@ -369,13 +409,16 @@ def response_upload(request, event):
                 badge=None if super_set.node is None else super_set.node.name,
                 associated_templates=[(
                     super_set.name,
-                    reverse("download_template", kwargs={"data_type": "metrics", "slug": super_set.slug})
+                    reverse(
+                        "download_template",
+                        kwargs={"data_type": "metrics", "slug": super_set.slug}
+                    )
                 )]
             )
             for super_set in question_supersets
         ]
     ]
-    file_match = f"^.+-{event.id}\\.csv$" if event else r"^.+\\.csv$"
+    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
 
     if request.method == "POST":
         for form in forms:
@@ -385,7 +428,11 @@ def response_upload(request, event):
                 file = data["file"]
 
                 if not re.match(file_match, file.name):
-                    form.add_error(None, f"Incorrect file name. The file name needs to match the following regex: '{file_match}'")
+                    form.add_error(
+                        None,
+                        "Incorrect file name. The file name needs "
+                        f"to match the following regex: '{file_match}'"
+                    )
                 else:
                     node_main = UserProfile.get_node(request.user)
                     (parser, importer, view_transforms) = (
@@ -407,7 +454,10 @@ def response_upload(request, event):
                         csv_stream = io.StringIO(file.read().decode())
                         reader = csv.DictReader(csv_stream, delimiter=',')
                         compatiblity_model = (
-                            get_matching_legacy_model(reader.fieldnames, {upload_type.slug})
+                            get_matching_legacy_model(
+                                reader.fieldnames,
+                                {upload_type.slug}
+                            )
                             if isinstance(upload_type, QuestionSuperSet)
                             else None
                         )
@@ -428,17 +478,25 @@ def response_upload(request, event):
                                 entries.append(parser(entry))
                             except (ValidationError, ) as e:
                                 traceback.print_exc()
-                                form.add_error(None, f"Failed to parse '{upload_type}' row {index} : {e}")
+                                form.add_error(
+                                    None,
+                                    f"Failed to parse '{upload_type}' "
+                                    f"row {index} : {e}"
+                                )
 
                         if len(form.errors) == 0:
                             items = []
                             try:
                                 with transaction.atomic():
-                                    items = [importer(entry) for entry in entries]
+                                    items = [
+                                        importer(entry)
+                                        for entry in entries
+                                    ]
 
                                 form.outputs = {
                                     key: view_transform(items)
-                                    for key, view_transform in view_transforms.items()
+                                    for key, view_transform
+                                    in view_transforms.items()
                                 }
                                 if compatiblity_model is not None:
                                     form.outputs["summary"] = (
@@ -460,9 +518,8 @@ def response_upload(request, event):
                                 "and use the character encoding UTF-8."
                             )
 
-
     title = (
-        f"Upload data for event: {event.title}" 
+        f"Upload data for event: {event.title}"
         if event
         else "Upload data"
     )
@@ -484,11 +541,11 @@ def upload_data(request, event_id=None):
     event = get_object_or_404(models.Event, id=event_id) if event_id else None
 
     if not node:
-        raise PermissionDenied(f"You have to be associated with a node to upload data.")
+        raise PermissionDenied("You have to be associated with a node to upload data.")
 
     if event and (event.is_locked or node != event.node_main):
         raise PermissionDenied(f"You do not have permissions the upload data to event {event.id}")
-    
+
     if settings.has_flag("use_new_model_upload"):
         return response_upload(request, event)
     else:
@@ -526,7 +583,7 @@ def download_template(request, data_type, slug):
             'Url to event page/ agenda'
         ]
         return download_csv([event_metrics], "event-template")
-    
+
     elif data_type == "metrics":
         settings = SystemSettings.get_settings(request.user)
         if settings.has_flag("use_new_model_upload"):
@@ -545,7 +602,6 @@ def download_template(request, data_type, slug):
                     question_slugs.append(question.slug)
                     first_answer = question.answers.first()
                     question_sample.append(first_answer.slug if first_answer else None)
-            
 
             return download_csv([question_slugs, question_sample], f"metrics-{slug}-template")
         else:
@@ -568,7 +624,7 @@ def download_template(request, data_type, slug):
                     "What other topics would you like to see covered in the future?",
                     "Any other comments?",
                 ]
-                
+
             elif slug == "demographic-quality":
                 fields = [
                     "Which training event did you take part in?",

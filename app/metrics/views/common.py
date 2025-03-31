@@ -1,7 +1,3 @@
-from datetime import datetime
-from functools import lru_cache
-from itertools import groupby
-
 from django.urls import reverse
 from metrics.models import SystemSettings
 

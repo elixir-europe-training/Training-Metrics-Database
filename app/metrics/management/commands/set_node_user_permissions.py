@@ -1,7 +1,5 @@
 from django.contrib.auth.models import Group, Permission
-from django.contrib.contenttypes.models import ContentType
-from django.core.management.base import BaseCommand, CommandError
-from metrics.models import Question, QuestionSet, QuestionSuperSet
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -12,35 +10,35 @@ class Command(BaseCommand):
 
     def assign_group(self):
         # Current users in the system
-        node_users = ['be',
-                      'ch',
-                      'cz',
-                      'de',
-                      'dk',
-                      'ebi',
-                      'ee',
-                      'embl',
-                      'es',
-                      'fi',
-                      'fr',
-                      'gr',
-                      'hu',
-                      'hub',
-                      'ie',
-                      'il',
-                      'it',
-                      'lu',
-                      'nl',
-                      'no',
-                      'pt',
-                      'se',
-                      'si',
-                      'uk'
-                     ]
-
+        node_users = [
+            'be',
+            'ch',
+            'cz',
+            'de',
+            'dk',
+            'ebi',
+            'ee',
+            'embl',
+            'es',
+            'fi',
+            'fr',
+            'gr',
+            'hu',
+            'hub',
+            'ie',
+            'il',
+            'it',
+            'lu',
+            'nl',
+            'no',
+            'pt',
+            'se',
+            'si',
+            'uk'
+        ]
 
         # Create a new group
-        node_user_group, created = Group.objects.get_or_create(name= 'NodeUserGroup')
+        node_user_group, created = Group.objects.get_or_create(name='NodeUserGroup')
 
         # Define the permissions to add
         permissions = [
@@ -52,7 +50,7 @@ class Command(BaseCommand):
 
         # Assign permissions to the group
         for perm_name in permissions:
-            perm = Permission.objects.get(codename = perm_name)
+            perm = Permission.objects.get(codename=perm_name)
             node_user_group.permissions.add(perm)
 
         # Save the group to apply changes
@@ -61,7 +59,7 @@ class Command(BaseCommand):
         # Add a user to this group
         from django.contrib.auth.models import User
         for node_user in node_users:
-            user = User.objects.get(username = node_user)
+            user = User.objects.get(username=node_user)
             user.groups.add(node_user_group)
             user.is_staff = True
             user.save()

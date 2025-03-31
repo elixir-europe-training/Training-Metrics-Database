@@ -277,7 +277,6 @@ class Event(EditTracking):
         ])
     ))
 
-
     target_audience = ChoiceArrayField(base_field=models.TextField(
         choices=string_choices([
             "Academia/ Research Institution",
@@ -323,11 +322,9 @@ class Event(EditTracking):
 
     def __str__(self):
         return f"{self.title} ({self.id}) ({self.code})"
-    
 
     def get_absolute_url(self):
         return reverse("event-edit", kwargs={"pk": self.id})
-    
 
     @property
     def location(self):
@@ -335,14 +332,14 @@ class Event(EditTracking):
             self.location_city,
             self.location_country
         )
-    
+
     @property
     def date_period(self):
         return (
             self.date_start,
             self.date_end
         )
-    
+
     @property
     def is_locked(self):
         return (

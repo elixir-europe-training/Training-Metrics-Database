@@ -1,7 +1,5 @@
 from django.db import models
 from .common import ChoiceArrayField, string_choices, country_list, EditTracking
-from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
 
 
 class Demographic(EditTracking):

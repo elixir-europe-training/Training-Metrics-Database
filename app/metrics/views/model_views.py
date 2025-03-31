@@ -1,18 +1,15 @@
-from django.views.generic.edit import FormView, UpdateView, DeleteView, CreateView
+from django.views.generic.edit import UpdateView, DeleteView, CreateView
 from django.views.generic.list import ListView
 from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.utils.http import urlencode
-from metrics import forms, models
+from metrics import models
 from metrics.models import UserProfile, SystemSettings
-from django.core import serializers
-from collections.abc import Iterable
 from .common import get_tabs
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse
 import requests
-import re
 
 
 class GenericUpdateView(UpdateView):
@@ -27,7 +24,7 @@ class GenericUpdateView(UpdateView):
 
     def get_actions(self):
         return []
-    
+
     def get_stats(self):
         return None
 
@@ -50,7 +47,7 @@ class GenericUpdateView(UpdateView):
 
     def get_view_name(self):
         return self.view_name
-    
+
     def get_form(self):
         form = super().get_form()
         if not self.can_edit():
@@ -95,7 +92,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     @property
     def title(self):
         return f"Event: {self.object}"
-    
+
     def get_actions(self):
         settings = SystemSettings.get_settings(self.request.user)
         upload_action = (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics")
@@ -127,7 +124,7 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
                 ] if self.can_edit()
                 else []
             )
-    
+
     def can_edit(self):
         model_object = self.get_object()
         return (
@@ -207,7 +204,7 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
             context["tess_metadata"].pop(key, None)
         for key in list(context["tess_metadata"]):
             value = context["tess_metadata"][key]
-            if type(value) is not bool and type(value) != 0 and not value:  # Preserve False and 0
+            if type(value) is not bool and value != 0 and not value:  # Preserve False and 0
                 del context["tess_metadata"][key]
         context["tess_url"] = self.tess_url
         return context
@@ -216,7 +213,7 @@ class TessImportEventView(LoginRequiredMixin, CreateView):
         return True
 
     def form_valid(self, form):
-        obj = form.save(commit = False)
+        obj = form.save(commit=False)
         obj.user = self.request.user
         obj.node_main = UserProfile.get_node(self.request.user)
         return super().form_valid(form)
@@ -268,7 +265,7 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
     model = models.OrganisingInstitution
     fields = []
     view_name = "institution-list"
-    
+
     def get_stats(self):
         stat_fields = [
             "name",
@@ -295,7 +292,7 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
         result = super().form_valid(form)
         self.object.update_ror_data()
         self.object.save()
-        
+
         return result
 
     def get_event_stat(self):
@@ -378,7 +375,7 @@ class GenericListView(ListView):
 
     def get_values(self, entry):
         return [self.get_value(entry, fieldname) for fieldname in self.fields]
-    
+
     def get_value(self, entry, fieldname):
         value = self.parse_value(getattr(entry, fieldname))
         return (

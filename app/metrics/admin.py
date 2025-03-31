@@ -1,4 +1,3 @@
-from django.conf import settings
 from django import utils
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.urls import reverse
@@ -6,7 +5,6 @@ from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from metrics.models import Event, UserProfile
 from django.utils.html import format_html
 
 from metrics.models import (
@@ -92,9 +90,10 @@ class QuestionSetAdmin(ModelAdmin):
         user_node = UserProfile.get_node(request.user)
         if user_node:
             # Filter QuestionSets based on the node
-            return qs.filter(
-                    node=user_node
-            ).distinct() | qs.filter(node=None).distinct()
+            return (
+                qs.filter(node=user_node).distinct() |
+                qs.filter(node=None).distinct()
+            )
         return qs.none()
 
     def save_model(self, request, obj, form, change):
@@ -150,9 +149,10 @@ class QuestionSuperSetAdmin(ModelAdmin):
         user_node = UserProfile.get_node(request.user)
         if user_node:
             # Filter QuestionSuperSets based on the node
-            return qs.filter(
-                    node=user_node
-            ).distinct() | qs.filter(node=None).distinct()
+            return (
+                qs.filter(node=user_node).distinct() |
+                qs.filter(node=None).distinct()
+            )
 
     def save_model(self, request, obj, form, change):
         if 'user' in form.cleaned_data:
@@ -246,7 +246,7 @@ class CustomUserAdmin(UserAdmin):
         if request.user.is_superuser:
             return ('password_reset_link',)
         return ()
-    
+
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser and obj and obj.pk:
             return super().get_fieldsets(request, obj) + (
@@ -261,7 +261,6 @@ class CustomUserAdmin(UserAdmin):
             reset_url_args = {'uidb64': base64_encoded_id, 'token': token}
             reset_path = reverse('password_reset_confirm', kwargs=reset_url_args)
             return reset_path
-
 
     def password_reset_link(self, obj):
         if obj and obj.pk:

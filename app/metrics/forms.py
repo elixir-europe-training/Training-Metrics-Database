@@ -1,15 +1,12 @@
-import functools
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from metrics import models
 from django.forms import ModelForm
-from django.forms.widgets import CheckboxInput
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     Layout,
     Field,
-    Fieldset,
     Div,
     Submit,
 )
@@ -137,10 +134,10 @@ class QuestionSetForm(forms.Form):
         }
         if len(responses) != 0 and len(responses) != len(questions):
             for question in questions:
-                if not question.slug in responses:
+                if question.slug not in responses:
                     self.add_error(
                         question.slug,
-                        ValidationError(f"All responses need to be commited simultaneously"),
+                        ValidationError("All responses need to be commited simultaneously"),
                     )
 
         return responses
@@ -175,6 +172,7 @@ class QuestionSetForm(forms.Form):
             question.slug: QuestionSetForm._parse_field(question)
             for question in qs.questions.all()
         }
+
         class _Form(QuestionSetForm):
             question_set = qs
             question_set_fields = fields
