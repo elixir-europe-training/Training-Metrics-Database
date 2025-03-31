@@ -284,6 +284,20 @@ def get_question_import_context(super_set, user, node_main, event):
     )
 
 
+def parse_csv_to_dict(file, event):
+    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
+    if not re.match(file_match, file.name):
+        raise ValidationError(
+            None,
+            "Incorrect file name. The file name needs "
+            f"to match the following regex: '{file_match}'"
+        )
+    csv_stream = io.StringIO(file.read().decode())
+    dialect = csv.Sniffer().sniff(csv_stream.readline(), delimiters=[",", ";"])
+    csv_stream.seek(0)
+    return csv.DictReader(csv_stream, dialect=dialect)
+
+
 def legacy_upload(request, event):
     upload_types = {
         key: value
@@ -305,24 +319,16 @@ def legacy_upload(request, event):
         )
         for upload_type in upload_types.values()
     ]
-    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
 
     if request.method == "POST":
         for form in forms:
             if form.has_changed() and form.is_valid():
                 data = form.cleaned_data
                 upload_type = form.data_type
-                file = data["file"]
 
-                if not re.match(file_match, file.name):
-                    form.add_error(
-                        None,
-                        "Incorrect file name. The file name needs "
-                        f"to match the following regex: '{file_match}'"
-                    )
-                else:
+                try:
                     node_main = UserProfile.get_node(request.user)
-
+                    reader = parse_csv_to_dict(data["file"], event)
                     (parser, importer, view_transforms) = get_import_context(
                         upload_type,
                         request.user,
@@ -330,8 +336,6 @@ def legacy_upload(request, event):
                         event
                     )
 
-                    csv_stream = io.StringIO(file.read().decode())
-                    reader = csv.DictReader(csv_stream, delimiter=',')
                     entries = []
                     for (index, row) in enumerate(reader):
                         try:
@@ -346,21 +350,24 @@ def legacy_upload(request, event):
 
                     if len(form.errors) == 0:
                         items = []
-                        try:
-                            with transaction.atomic():
-                                items = [importer(entry) for entry in entries]
+                        with transaction.atomic():
+                            items = [importer(entry) for entry in entries]
 
-                            form.outputs = {
-                                key: view_transform(items)
-                                for key, view_transform
-                                in view_transforms.items()
-                            }
-                        except Exception as e:
-                            traceback.print_exc()
-                            form.add_error(
-                                None,
-                                f"Failed to import '{upload_type}': {e}"
-                            )
+                        form.outputs = {
+                            key: view_transform(items)
+                            for key, view_transform
+                            in view_transforms.items()
+                        }
+                except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
+                    traceback.print_exc()
+                    form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                    if isinstance(e, UnicodeDecodeError):
+                        form.add_error(
+                            None,
+                            "Make sure that the file is of the right format. "
+                            "The file needs to be a CSV (comma separated values) "
+                            "and use the character encoding UTF-8."
+                        )
 
     title = (
         f"Upload data for event: {event.title}"
@@ -418,23 +425,16 @@ def response_upload(request, event):
             for super_set in question_supersets
         ]
     ]
-    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
 
     if request.method == "POST":
         for form in forms:
             if form.has_changed() and form.is_valid():
                 data = form.cleaned_data
                 upload_type = form.data_type
-                file = data["file"]
 
-                if not re.match(file_match, file.name):
-                    form.add_error(
-                        None,
-                        "Incorrect file name. The file name needs "
-                        f"to match the following regex: '{file_match}'"
-                    )
-                else:
+                try:
                     node_main = UserProfile.get_node(request.user)
+                    reader = parse_csv_to_dict(data["file"], event)
                     (parser, importer, view_transforms) = (
                         get_import_context(
                             upload_type,
@@ -450,73 +450,68 @@ def response_upload(request, event):
                             event,
                         )
                     )
-                    try:
-                        csv_stream = io.StringIO(file.read().decode())
-                        reader = csv.DictReader(csv_stream, delimiter=',')
-                        compatiblity_model = (
-                            get_matching_legacy_model(
-                                reader.fieldnames,
-                                {upload_type.slug}
+
+                    compatiblity_model = (
+                        get_matching_legacy_model(
+                            reader.fieldnames,
+                            {upload_type.slug}
+                        )
+                        if isinstance(upload_type, QuestionSuperSet)
+                        else None
+                    )
+                    compatibility_transform = (
+                        None
+                        if compatiblity_model is None
+                        else get_model_transform(compatiblity_model)
+                    )
+
+                    entries = []
+                    for (index, row) in enumerate(reader):
+                        try:
+                            entry = (
+                                row
+                                if compatibility_transform is None
+                                else compatibility_transform(row)
                             )
-                            if isinstance(upload_type, QuestionSuperSet)
-                            else None
-                        )
-                        compatibility_transform = (
-                            None
-                            if compatiblity_model is None
-                            else get_model_transform(compatiblity_model)
-                        )
-
-                        entries = []
-                        for (index, row) in enumerate(reader):
-                            try:
-                                entry = (
-                                    row
-                                    if compatibility_transform is None
-                                    else compatibility_transform(row)
-                                )
-                                entries.append(parser(entry))
-                            except (ValidationError, ) as e:
-                                traceback.print_exc()
-                                form.add_error(
-                                    None,
-                                    f"Failed to parse '{upload_type}' "
-                                    f"row {index} : {e}"
-                                )
-
-                        if len(form.errors) == 0:
-                            items = []
-                            try:
-                                with transaction.atomic():
-                                    items = [
-                                        importer(entry)
-                                        for entry in entries
-                                    ]
-
-                                form.outputs = {
-                                    key: view_transform(items)
-                                    for key, view_transform
-                                    in view_transforms.items()
-                                }
-                                if compatiblity_model is not None:
-                                    form.outputs["summary"] = (
-                                        f"Using compatiblity model {compatiblity_model._meta.verbose_name}: "
-                                        f"{form.outputs.get('summary', '')}"
-                                    )
-                            except Exception as e:
-                                traceback.print_exc()
-                                form.add_error(None, f"Failed to import '{upload_type}': {e}")
-                        if compatiblity_model and form.errors:
-                            form.add_error(None, f"Using compatiblity model {compatiblity_model._meta.verbose_name}")
-                    except (UnicodeDecodeError, csv.Error) as e:
-                        form.add_error(None, f"Failed to import '{upload_type}': {e}")
-                        if isinstance(e, UnicodeDecodeError):
+                            entries.append(parser(entry))
+                        except (ValidationError, ) as e:
+                            traceback.print_exc()
                             form.add_error(
                                 None,
-                                "Make sure that the file is of the right format. "
-                                "The file needs to be a CSV (comma separated values) "
-                                "and use the character encoding UTF-8."
+                                f"Failed to parse '{upload_type}' "
+                                f"row {index} : {e}"
                             )
+
+                    if len(form.errors) == 0:
+                        items = []
+                        with transaction.atomic():
+                            items = [
+                                importer(entry)
+                                for entry in entries
+                            ]
+
+                        form.outputs = {
+                            key: view_transform(items)
+                            for key, view_transform
+                            in view_transforms.items()
+                        }
+                        if compatiblity_model is not None:
+                            form.outputs["summary"] = (
+                                f"Using compatiblity model {compatiblity_model._meta.verbose_name}: "
+                                f"{form.outputs.get('summary', '')}"
+                            )
+                    if compatiblity_model and form.errors:
+                        form.add_error(None, f"Using compatiblity model {compatiblity_model._meta.verbose_name}")
+
+                except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
+                    form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                    if isinstance(e, UnicodeDecodeError):
+                        form.add_error(
+                            None,
+                            "Make sure that the file is of the right format. "
+                            "The file needs to be a CSV (comma separated values) "
+                            "and use the character encoding UTF-8."
+                        )
 
     title = (
         f"Upload data for event: {event.title}"
