@@ -358,6 +358,15 @@ def legacy_upload(request, event):
                             for key, view_transform
                             in view_transforms.items()
                         }
+                    else:
+                        dialect = reader.dialect
+                        form.add_error(
+                            None,
+                            "Using dialect: "
+                            f"delimiter [{dialect.delimiter}], "
+                            f"quotechar [{dialect.quotechar}], "
+                            f"doublequote [{dialect.doublequote}]"
+                        )
                 except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
                     traceback.print_exc()
                     form.add_error(None, f"Failed to import '{upload_type}': {e}")
@@ -500,8 +509,17 @@ def response_upload(request, event):
                                 f"Using compatiblity model {compatiblity_model._meta.verbose_name}: "
                                 f"{form.outputs.get('summary', '')}"
                             )
-                    if compatiblity_model and form.errors:
-                        form.add_error(None, f"Using compatiblity model {compatiblity_model._meta.verbose_name}")
+                    else:
+                        dialect = reader.dialect
+                        form.add_error(
+                            None,
+                            "Using dialect: "
+                            f"delimiter [{dialect.delimiter}], "
+                            f"quotechar [{dialect.quotechar}], "
+                            f"doublequote [{dialect.doublequote}]"
+                        )
+                        if compatiblity_model:
+                            form.add_error(None, f"Using compatiblity model {compatiblity_model._meta.verbose_name}")
 
                 except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
                     form.add_error(None, f"Failed to import '{upload_type}': {e}")
