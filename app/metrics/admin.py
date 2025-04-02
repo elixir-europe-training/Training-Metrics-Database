@@ -135,7 +135,7 @@ class QuestionSetAdmin(ModelAdmin):
 
         return (
             readonly_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             [*readonly_fields, "slug"]
         )
@@ -145,7 +145,7 @@ class QuestionSetAdmin(ModelAdmin):
 
         return (
             prepopulated_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             {}
         )
@@ -200,7 +200,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
 
         return (
             readonly_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             [*readonly_fields, "slug"]
         )
@@ -210,7 +210,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
 
         return (
             prepopulated_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             {}
         )
@@ -298,7 +298,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
         return (
             readonly_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             [*readonly_fields, "slug"]
         )
@@ -308,7 +308,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
         return (
             prepopulated_fields
-            if request.user.is_superuser
+            if request.user.is_superuser or obj is None
             else
             {}
         )
