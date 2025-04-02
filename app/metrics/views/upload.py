@@ -292,7 +292,7 @@ def parse_csv_to_dict(file, event):
             "Incorrect file name. The file name needs "
             f"to match the following regex: '{file_match}'"
         )
-    csv_stream = io.StringIO(file.read().decode())
+    csv_stream = io.StringIO(file.read().decode("utf-8-sig"))
     dialect = csv.Sniffer().sniff(csv_stream.readline(), delimiters=[",", ";"])
     csv_stream.seek(0)
     return csv.DictReader(csv_stream, dialect=dialect)
