@@ -66,6 +66,9 @@ class MetricsView(View):
     def get_download_label(self):
         return "Download metrics"
 
+    def get_title(self):
+        return getattr(self, "title", "Metrics")
+
     def get(self, request, *args, **kwargs):
         (
             event_type,
@@ -86,7 +89,7 @@ class MetricsView(View):
             date_to=date_to,
             date_from=date_from,
         )
-        title = getattr(self, "title", "Metrics")
+        title = self.get_title()
         data_csv = self.metrics_to_csv(metrics)
         data_url = self.csv_to_base64_url(data_csv)
         filename = f"{self.get_download_name()}.csv"
@@ -117,6 +120,9 @@ class EventMetricsView(MetricsView):
     def get_download_label(self):
         return "Download event metrics"
 
+    def get_title(self):
+        return f"Event Metrics"
+
     def get_metrics(
         self,
         **kwargs
@@ -133,6 +139,9 @@ class SuperSetMetricsView(MetricsView):
 
     def get_download_label(self):
         return f"Download {self.superset.name} metrics"
+
+    def get_title(self):
+        return f"{self.superset.name} Metrics"
 
     def get_metrics(
         self,
@@ -158,6 +167,9 @@ class LegacyMetricsView(MetricsView):
 
     def get_download_label(self):
         return f"Download {self.model._meta.verbose_name} metrics"
+
+    def get_title(self):
+        return f"{self.model._meta.verbose_name} Metrics"
 
     def get_metrics(
         self,
@@ -212,6 +224,7 @@ def world_map_event_count(request):
         request,
         "metrics/world-map.html",
         context={
+            "title": "Training Metrics Database",
             **get_tabs(request),
             "data_url": reverse("world-map-api")
         }
