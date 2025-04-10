@@ -1,25 +1,9 @@
 {% load static %}
 
-<link
-  rel="stylesheet"
-  href="{% static 'vendor/bootstrap-icons.css' %}"
-/>
-<link
-  href="{% static 'vendor/bootstrap.min.css' %}"
-  rel="stylesheet"
-/>
-<link
-  href="{% static 'vendor/tess-widget.css' %}"
-  rel="stylesheet"
-/>
-<link rel="stylesheet" href="{% static 'vendor/flatpickr.min.css' %}">
-<script
-  src="{% static 'vendor/bootstrap.bundle.min.js' %}"
-></script>
-<script
-  src="{% static 'vendor/tess-widget-standalone.js' %}"
-></script>
-<script src="{% static 'vendor/flatpickr.min.js' %}"></script>
+<link href="{% static 'vendor/bootstrap.min.css' %}" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'vendor/bootstrap-icons.css' %}" />
+<script src="{% static 'vendor/bootstrap.bundle.min.js' %}"></script>
+
 
 <style>
   /* css file for TMD */
@@ -92,11 +76,3 @@
   }
 </style>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-      flatpickr('.datepicker', {
-          dateFormat: 'Y-m-d',  // Set the date format
-          enableTime: false     // Disable time picker if needed
-      });
-  });
-</script>

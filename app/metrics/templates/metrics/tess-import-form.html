@@ -1,4 +1,9 @@
 {% extends "common/base.html" %}
+{% load static %}
+{% block header %}
+<script src="{% static 'vendor/tess-widget-standalone.js' %}"></script>
+<link href="{% static 'vendor/tess-widget.css' %}" rel="stylesheet" />
+{% endblock %}
 {% block content %}
     <h1>{{title}}</h1>
     {% include 'common/tabs.html' %}
