@@ -2,7 +2,6 @@
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
-    {% include 'metrics/data-warning.html' %}
     {% for form in forms %}
     <h2>{{form.title}}{% if form.badge %} <span class="badge bg-primary">{{form.badge}}</span>{% endif %}</h2>
     {{ form.description | linebreaks }}

@@ -1,0 +1,8 @@
+[
+    {
+        "type": "danger",
+        "title": "Experimental functionality",
+        "content": "Please note that this functionality is experimental and we can't guarantee that the data will be saved. Make sure to keep a local backup of all uploaded data until further notice.",
+        "match": "/(upload-data|tess-import|event|institution)/?.*"
+    }
+]

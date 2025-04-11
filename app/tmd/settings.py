@@ -10,7 +10,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -86,7 +90,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
 
-                'metrics.context_processors.get_navigation'
+                "metrics.context_processors.apply_static_messages",
+                "metrics.context_processors.get_navigation"
             ],
         },
     },
@@ -174,3 +179,20 @@ STORAGES = {
 }
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+# Load static messages to display on the site
+try:
+    STATIC_MESSAGES_DATA = os.environ.get("TMD_STATIC_MESSAGES", None)
+    STATIC_MESSAGES_PATH = os.environ.get("TMD_STATIC_MESSAGES_PATH", None)
+    if STATIC_MESSAGES_DATA is None:
+        if STATIC_MESSAGES_PATH is None:
+            STATIC_MESSAGES_DATA = "[]"
+        else:
+            with open(STATIC_MESSAGES_PATH, "r") as f:
+                STATIC_MESSAGES_DATA = f.read()
+
+    STATIC_MESSAGES = json.loads(STATIC_MESSAGES_DATA)
+    assert isinstance(STATIC_MESSAGES, list), "STATIC_MESSAGES must be a list"
+except Exception as e:
+    STATIC_MESSAGES = []
+    logger.error(f"Failed to load STATIC_MESSAGES: {e}")

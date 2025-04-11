@@ -1,4 +1,23 @@
 from django.urls import reverse
+from django.conf import settings
+import re
+
+
+def apply_static_messages(request):
+    static_messages = settings.STATIC_MESSAGES
+    path = request.get_full_path()
+    messages = [
+        {
+            "type": message.get("type", "info"),
+            "title": message.get("title", "Message"),
+            "content": message.get("content"),
+        }
+        for message in static_messages
+        if "match" not in message or re.match(message["match"], path)
+    ]
+    return {
+        "static_messages": messages
+    }
 
 
 def get_navigation(request):
