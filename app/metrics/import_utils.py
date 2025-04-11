@@ -361,7 +361,7 @@ def legacy_to_current_event_dict(data: dict) -> dict:
         }
         return {
             **{
-                target_id: data[source_id]
+                target_id: data[source_id].strip()
                 for source_id, target_id in mapping.items()
                 if target_id is not None
             },

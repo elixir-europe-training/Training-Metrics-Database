@@ -351,7 +351,15 @@ def legacy_upload(request, event):
                     if len(form.errors) == 0:
                         items = []
                         with transaction.atomic():
-                            items = [importer(entry) for entry in entries]
+                            for index, entry in enumerate(entries):
+                                try:
+                                    items.append(importer(entry))
+                                except ValidationError as e:
+                                    traceback.print_exc()
+                                    raise ValidationError([
+                                        ValidationError(f"Error for entry[{index}]: {e}"),
+                                        e
+                                    ])
 
                         form.outputs = {
                             key: view_transform(items)
@@ -494,10 +502,15 @@ def response_upload(request, event):
                     if len(form.errors) == 0:
                         items = []
                         with transaction.atomic():
-                            items = [
-                                importer(entry)
-                                for entry in entries
-                            ]
+                            for index, entry in enumerate(entries):
+                                try:
+                                    items.append(importer(entry))
+                                except ValidationError as e:
+                                    traceback.print_exc()
+                                    raise ValidationError([
+                                        ValidationError(f"Error for entry[{index}]: {e}"),
+                                        e
+                                    ])
 
                         form.outputs = {
                             key: view_transform(items)
@@ -523,6 +536,7 @@ def response_upload(request, event):
 
                 except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
                     form.add_error(None, f"Failed to import '{upload_type}': {e}")
+                    traceback.print_exc()
                     if isinstance(e, UnicodeDecodeError):
                         form.add_error(
                             None,
