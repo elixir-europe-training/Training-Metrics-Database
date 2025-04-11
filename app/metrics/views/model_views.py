@@ -399,11 +399,10 @@ class GenericListView(ListView):
         return ", ".join([str(v) for v in value_list])
 
 
-class EventListView(LoginRequiredMixin, GenericListView):
+class EventListView(GenericListView):
     model = models.Event
     paginate_by = 30
     fields = [
-        "code",
         "id",
         "title",
         "node",
@@ -459,13 +458,17 @@ class EventListView(LoginRequiredMixin, GenericListView):
     def get_entry_extras(self, entry):
         user_node = UserProfile.get_node(self.request.user)
         can_edit = user_node == entry.node_main and not entry.is_locked
-        return [
-            ("Edit" if can_edit else "View", entry.get_absolute_url()),
-            (
-                "Upload metrics",
-                reverse("upload-data-event", kwargs={"event_id": entry.id})
-            ) if can_edit else ("", None),
-        ]
+        return (
+            []
+            if self.request.user.is_anonymous
+            else [
+                ("Edit" if can_edit else "View", entry.get_absolute_url()),
+                (
+                    "Upload metrics",
+                    reverse("upload-data-event", kwargs={"event_id": entry.id})
+                ) if can_edit else ("", None),
+            ]
+        )
 
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):
