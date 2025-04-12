@@ -121,7 +121,7 @@ class EventMetricsView(MetricsView):
         return "Download event metrics"
 
     def get_title(self):
-        return f"Event Metrics"
+        return "Event Metrics"
 
     def get_metrics(
         self,
@@ -169,7 +169,7 @@ class LegacyMetricsView(MetricsView):
         return f"Download {self.model._meta.verbose_name} metrics"
 
     def get_title(self):
-        return f"{self.model._meta.verbose_name} Metrics"
+        return f"{self.model._meta.verbose_name.title()} Metrics"
 
     def get_metrics(
         self,
