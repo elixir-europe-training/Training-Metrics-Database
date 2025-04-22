@@ -3,8 +3,8 @@
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
     {% for form in forms %}
-    <h2>{{form.title}}</h2>
-    {% if form.description %}{% for paragraph in form.description %}<p>{{ paragraph }}</p>{%endfor%}{% endif %}
+    <h2>{{form.title}}{% if form.badge %} <span class="badge bg-primary">{{form.badge}}</span>{% endif %}</h2>
+    {{ form.description | linebreaks }}
     {% if form.non_field_errors %}{% for error in form.non_field_errors %}
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         {{error}}

@@ -1,0 +1,16 @@
+services:
+  tmd-static:
+    build:
+      context: ..
+      dockerfile: ./maintenance/Dockerfile
+      args:
+        PAGE_CONTENT: $TMD_PAGE_CONTENT
+    restart: on-failure
+    ports:
+      - 127.0.0.1:8000:80
+    networks:
+      - tmd-network
+
+networks:
+  tmd-network:
+    driver: bridge

@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 })
                 for row in test_data:
                     writer.writerow(row)
-    
+
     def get_institutions(self):
         institutions = [
             "https://ror.org/0576by029",
@@ -93,7 +93,7 @@ class Command(BaseCommand):
             "https://ror.org/03xrhmk39",
         ]
 
-        return ",".join(random.choices(institutions, k=random.randint(1,3)))
+        return ",".join(random.choices(institutions, k=random.randint(1, 3)))
 
     def get_location(self):
         return "Neverland, Queenstown"

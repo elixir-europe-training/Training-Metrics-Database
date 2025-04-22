@@ -10,6 +10,9 @@ from metrics.models import (
     Node,
     OrganisingInstitution,
     ChoiceArrayField,
+    country_mapping,
+    EditTracking,
+    UserProfile,
 )
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -95,7 +98,17 @@ class ImportContext:
         self._institutions[ror_id] = new_inst
         return new_inst
 
-    def demographic_from_dict(self, data: dict):
+    def responses_from_dict(self, question_set_id, data: dict):
+        if question_set_id == "demographic":
+            return self._demographic_from_dict(data)
+        elif question_set_id == "impact":
+            return self._impact_from_dict(data)
+        elif question_set_id == "quality":
+            return self._quality_from_dict(data)
+        else:
+            raise ValidationError(f"Missing question set '{question_set_id}'")
+
+    def _demographic_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         demographic = Demographic.objects.create(
@@ -112,7 +125,7 @@ class ImportContext:
         demographic.full_clean()
         return demographic
 
-    def quality_from_dict(self, data: dict):
+    def _quality_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         quality = Quality.objects.create(
@@ -130,7 +143,7 @@ class ImportContext:
         quality.full_clean()
         return quality
 
-    def impact_from_dict(self, data: dict):
+    def _impact_from_dict(self, data: dict):
         (created, modified) = self.timestamps_from_data(data)
         (user, event) = self.get_user_and_event(data)
         impact = Impact.objects.create(
@@ -191,9 +204,12 @@ class LegacyImportContext(ImportContext):
 
     def quality_or_demographic_from_dict(self, data: dict):
         return (
-            self.quality_from_dict(data),
-            self.demographic_from_dict(data)
+            self.responses_from_dict("quality", data),
+            self.responses_from_dict("demographic", data)
         )
+
+    def impact_from_dict(self, data: dict):
+        return self.responses_from_dict("impact", data)
 
     def get_institutions(self, ror_ids):
         return [
@@ -218,7 +234,7 @@ class LegacyImportContext(ImportContext):
         return self._timestamps
 
     def assert_can_change_data(self, user, event):
-        if not event.is_locked and user.get_node() != event.node_main:
+        if not event.is_locked and UserProfile.get_node(user) != event.node_main:
             raise PermissionDenied(
                 f"The metrics for the event {event.id}, {event.code} can not"
                 f" be updated by the current user: {user.username}"
@@ -345,7 +361,7 @@ def legacy_to_current_event_dict(data: dict) -> dict:
         }
         return {
             **{
-                target_id: data[source_id]
+                target_id: data[source_id].strip()
                 for source_id, target_id in mapping.items()
                 if target_id is not None
             },
@@ -503,3 +519,72 @@ def update_table_rows(
             new_row[alias] = generator()
         new_data.append(new_row)
     return new_data
+
+
+def get_field_id(model, field_name):
+    model_name = slugify(model._meta.verbose_name)
+    return f"{model_name}-{field_name}"
+
+
+def parse_legacy_entry_data(entry_data, model):
+    return {
+        get_field_id(model, field_name): (
+            [
+                map_response(value)
+                for value in value_or_list
+            ]
+            if isinstance(value_or_list, list)
+            else map_response(value_or_list)
+        )
+        for field_name, value_or_list in entry_data.items()
+    }
+
+
+@functools.cache
+def get_response_map():
+    country_base_map = country_mapping
+
+    country_map = {
+        slugify(key): value
+        for key, value in country_base_map.items()
+    }
+    response_map = {
+        "": "no-response",
+        "iran-islamic-republic-of": "ir",
+        "republic-of-korea": "kr",
+        "to-learn-something-new-to-aid-me-in-my-current-researchwork": "to-learn-something-new-to-aid-me-in-my-current-research-work",  # noqa: E501
+        "to-build-on-existing-knowledge-to-aid-me-in-my-current-researchwork": "to-build-on-existing-knowledge-to-aid-me-in-my-current-research-work",  # noqa: E501
+        "by-using-training-materialsnotes-from-the-training-event": "by-using-training-materials-notes-from-the-training-event",  # noqa: E501
+        "it-did-not-help-as-i-do-not-use-the-toolsresources-covered-in-the-training-event": "it-did-not-help-as-i-do-not-use-the-tools-resources-covered-in-the-training-event",  # noqa: E501
+        "it-improved-communication-with-the-bioinformaticianstatistician-analyzing-my-data": "it-improved-communication-with-the-bioinformatician-statistician-analyzing-my-data",  # noqa: E501
+        "submission-of-my-dissertationthesis-for-degree-purposes": "submission-of-my-dissertation-thesis-for-degree-purposes",  # noqa: E501
+        "useful-collaborations-with-other-participantstrainers-from-the-training-event": "useful-collaborations-with-other-participants-trainers-from-the-training-event"  # noqa: E501
+    }
+
+    return {
+        **country_map,
+        **response_map
+    }
+
+
+def map_response(response: str):
+    slug_response = slugify(response)
+    response_map = get_response_map()
+
+    return response_map.get(slug_response, slug_response)
+
+
+def get_metrics_fields(model):
+    ignored_fields = {
+        "id",
+        "event",
+        *{
+            field.name
+            for field in EditTracking._meta.get_fields()
+        }
+    }
+    return [
+        field
+        for field in model._meta.get_fields()
+        if field.name not in ignored_fields
+    ]

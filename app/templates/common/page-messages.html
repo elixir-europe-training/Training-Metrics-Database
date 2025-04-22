@@ -1,0 +1,8 @@
+{% if static_messages %}
+{% for msg in static_messages %}
+<div class="alert alert-{{msg.type}} alert-dismissible fade show" role="alert">
+    <h4>{{ msg.title }}</h4>
+    <p>{{ msg.content }}</p>
+</div>
+{% endfor %}
+{% endif %}

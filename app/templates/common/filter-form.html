@@ -1,0 +1,18 @@
+
+{% if filter_form %}
+{% load crispy_forms_tags %}
+<div class="accordion">
+    <details class="accordion-item" {% if filter_params and filter_params.urlencode %}open{% endif %}>
+        <summary class="accordion-button">
+        <div class="accordion-header">
+            Event Filters
+        </div>
+        </summary>
+    
+        <div class="accordion-body">
+        {% crispy filter_form %}
+        </div>
+    </details>
+</div>
+<hr />
+{% endif %}

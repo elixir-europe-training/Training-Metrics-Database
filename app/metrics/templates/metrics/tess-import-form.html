@@ -1,0 +1,43 @@
+{% extends "common/base.html" %}
+{% load static %}
+{% block header %}
+<script src="{% static 'vendor/tess-widget-standalone.js' %}"></script>
+<link href="{% static 'vendor/tess-widget.css' %}" rel="stylesheet" />
+{% endblock %}
+{% block content %}
+    <h1>{{title}}</h1>
+    {% include 'common/tabs.html' %}
+    <div class="mb-3 row">
+        <div class="col-sm-8">
+            <h2>Event</h2>
+            {{form.errors}}
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3 row">
+                        <label for="{{field.html_name}}" class="col-sm-2 col-form-label">{{field.label}}</label>
+                        <div class="col-sm-10">
+                            {{field}}
+                        </div>
+                    </div>
+                {%endfor%}
+                <hr />
+                {% if form.fields and can_edit %}<button type="submit" class="btn btn-success">Import</button>{% endif %}
+            </form>
+        </div>
+        <div class="col-sm-4">
+            <h2>TeSS Metadata</h2>
+            <div class="tess-metadata">
+                {% if tess_url %}
+                    <a href="{{ tess_url }}" target="_blank">Go to TeSS entry</a><br/>
+                {% endif %}
+                <dl>
+                {% for key, value in tess_metadata.items %}
+                    <dt>{{ key|title }}:</dt>
+                    <dd>{{ value }}</dd>
+                {% endfor %}
+                </dl>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -10,16 +10,20 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = Path(BASE_DIR, 'templates')
-LOGIN_URL="login"
+LOGIN_URL = "login"
 
 # Setup static files
-STATIC_ROOT=os.environ.get("TMD_STATIC_ROOT", "/opt/tmd/static")
-STATIC_URL="static/"
+STATIC_ROOT = os.environ.get("TMD_STATIC_ROOT", "/opt/tmd/static")
+STATIC_URL = "static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
@@ -55,8 +59,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "metrics",
-    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
-    "dash_app",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -72,9 +74,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_plotly_dash.middleware.BaseMiddleware",
-    "django_plotly_dash.middleware.ExternalRedirectionMiddleware",
-    "metrics.middleware.metrics_middleware"
 ]
 
 ROOT_URLCONF = "tmd.urls"
@@ -91,7 +90,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
 
-                'metrics.context_processors.get_navigation'
+                "metrics.context_processors.apply_static_messages",
+                "metrics.context_processors.get_navigation"
             ],
         },
     },
@@ -120,16 +120,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",  # noqa: E501
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",  # noqa: E501
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",  # noqa: E501
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",  # noqa: E501
     },
 ]
 
@@ -158,3 +158,41 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Load field value aliases from CSV
 VALUE_ALIASES_PATH = "tmd/value-aliases-spec.csv"
+
+# Parse feature flags
+FEATURE_FLAGS = [
+    flag
+    for flag in [
+        segment.strip()
+        for segment in os.environ.get("TMD_FEATURE_FLAGS", "").split(",")
+    ]
+    if flag
+]
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+# Load static messages to display on the site
+try:
+    STATIC_MESSAGES_DATA = os.environ.get("TMD_STATIC_MESSAGES", None)
+    STATIC_MESSAGES_PATH = os.environ.get("TMD_STATIC_MESSAGES_PATH", None)
+    if STATIC_MESSAGES_DATA is None:
+        if STATIC_MESSAGES_PATH is None:
+            STATIC_MESSAGES_DATA = "[]"
+        else:
+            with open(STATIC_MESSAGES_PATH, "r") as f:
+                STATIC_MESSAGES_DATA = f.read()
+
+    STATIC_MESSAGES = json.loads(STATIC_MESSAGES_DATA)
+    assert isinstance(STATIC_MESSAGES, list), "STATIC_MESSAGES must be a list"
+except Exception as e:
+    STATIC_MESSAGES = []
+    logger.error(f"Failed to load STATIC_MESSAGES: {e}")

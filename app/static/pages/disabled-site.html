@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>Training Metrics Database</title>
+    <link href="/vendor/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/bootstrap-icons.css">
+    <script src="/vendor/bootstrap.bundle.min.js"></script>
+<style>
+  /* css file for TMD */
+  body {
+    color: #353535;
+    font-family: arial, sans-serif;
+    font-size: 14px;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+  }
+
+  body,
+  [data-bs-theme="dark"],
+  [data-bs-theme="light"] {
+    --bs-link-color-rgb: 229, 131, 58;
+    --bs-link-hover-color-rgb: 160, 79, 18;
+    --bs-link-active-color-rgb: 160, 79, 18;
+    --bs-link-visited-color-rgb: 229, 131, 58;
+    --bs-link-opacity: 1;
+    --bs-bg-opacity: 1;
+  }
+
+  h1 {
+    font-size: 35px;
+    font-weight: normal;
+    color: #e5833a;
+    margin-top: 5px;
+  }
+
+  .divider {
+    border-bottom: solid 1px var(--bs-navbar-color);
+  }
+
+  nav {
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+  }
+
+  footer {
+    flex-grow: 0;
+    flex-shrink: 0;
+    color: var(--bs-body-color);
+    background-color: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity));
+  }
+
+  .DateInput_input {
+    font-size: 14px;
+  }
+
+  .table-container {
+    max-height: calc(10 * 38px);
+    overflow: auto;
+    margin-bottom: 1rem;
+  }
+  .table-container > table {
+    margin-bottom: 0;
+  }
+  .table-container > table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark">
+  <div class="navbar-expand container">
+    <a class="navbar-brand" href="/">
+      <img src="/img/white-orange-logo.png" alt="TMD" height="40px">
+    </a>
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="/"><i class="bi bi- me-2"></i>TMD - a new version of the Training Metrics Database</a>
+      </li>
+    </ul>
+    <ul class="navbar-nav ms-auto">
+    </ul>
+  </div>
+</nav>
+    <article class="container main-content p-3">
+      <h1>Site disabled for maintenance</h1>
+      <p>The site is currently disable for maintenance and will be back shortly.</p>
+      {{page_content}}
+    </article>
+    <footer data-bs-theme="dark">
+  <div class="container">
+    <div class="row pt-4 pb-4">
+      <div class="col-2">
+        <h4>
+          <b>TMD</b>
+        </h4>
+      </div>
+      <div class="col">
+        <ul class="list-unstyled">
+          <li>
+            <a href="https://github.com/elixir-europe-training/Training-Metrics-Database#readme" class="fa fa-instagram">About and source code</a>
+          </li>
+          <li>
+            <a href="https://github.com/elixir-europe-training/Training-Metrics-Database/wiki">Guides and documentation</a>
+          </li>
+        </ul>
+      </div>
+      <div class="col">
+        <ul class="list-unstyled">
+          <li>
+            <a href="https://github.com/elixir-europe-training/Training-Metrics-Database/issues/new?assignees=&amp;labels=bug&amp;projects=&amp;template=bug_report.md&amp;title=">Report a bug</a>
+          </li>
+          <li>
+            <a href="https://github.com/elixir-europe-training/Training-Metrics-Database/issues/new?assignees=&amp;labels=enhancement&amp;projects=&amp;template=feature_request.md&amp;title=">Request a feature</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

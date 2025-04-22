@@ -1,0 +1,186 @@
+{% extends "common/base.html" %}
+{% load static %}
+{% block header %}
+<script src="{% static 'vendor/tess-widget-standalone.js' %}"></script>
+<link href="{% static 'vendor/tess-widget.css' %}" rel="stylesheet" />
+{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% include 'common/tabs.html' %}
+    <link rel="stylesheet" property="stylesheet" href="https://elixirtess.github.io/TeSS_widgets/css/tess-widget.css"/>
+    <div id="tess-container" class="tess-widget row">
+        <div id="tess-controls" class="col-sm-3">
+            <div class="form-group mb-2">
+                <label>Filter:</label>
+                <input id="tess-filter-q" class="form-control" type="text" placeholder="Keywords etc.">
+            </div>
+            <div class="form-group mb-2">
+                <label>From:</label>
+                <input id="tess-filter-from" class="form-control" type="date" placeholder="YYYY-MM-DD">
+            </div>
+            <div class="form-group mb-2">
+                <label>To:</label>
+                <input id="tess-filter-to" class="form-control" type="date" placeholder="YYYY-MM-DD">
+            </div>
+
+            <button id="tess-filter-confirm" class="btn btn-primary">Update</button>
+        </div>
+        <div id="tess-event-list-container" class="col-sm-9">
+            <div id="tess-event-list"></div>
+            <div id="tess-pagination" class="tess-pagination"></div>
+        </div>
+    </div>
+    <script>
+    function initTeSSWidgets() {
+        const urlBase = "{% url 'tess-import' %}"
+
+        // Convenience function for making HTML elements
+        const n = function (type, htmlPropsOrFirstChild, ...children) {
+            const element = document.createElement(type);
+
+            if (htmlPropsOrFirstChild) {
+                if (htmlPropsOrFirstChild.constructor === Object) {
+                    if (htmlPropsOrFirstChild.data) {
+                        Object.entries(htmlPropsOrFirstChild.data).forEach(
+                            ([key, value]) => {
+                                element.setAttribute(('data-' + key), value)
+                            }
+                        );
+                    }
+
+                    Object.assign(element, htmlPropsOrFirstChild);
+                } else {
+                    children.unshift(htmlPropsOrFirstChild);
+                }
+            }
+
+            children.forEach((child) => {
+                element.appendChild((child instanceof Node) ? child : document.createTextNode(child));
+            });
+
+            return element;
+        }
+
+        class TMDEventImportRenderer {
+            constructor (widget, element, options) {
+                this.widget = widget;
+                this.element = element;
+            }
+
+            initialize () {
+                const widget = this.widget;
+                this.list = document.getElementById('tess-event-list');
+                this.pagination = document.getElementById('tess-pagination');
+                this.pagination.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    if (event.target.hasAttribute('data-tess-page')) {
+                        widget.setPage(event.target.getAttribute('data-tess-page'));
+                    }
+                });
+                this.query = document.getElementById('tess-filter-q');
+                this.dateFrom = document.getElementById('tess-filter-from');
+                this.dateTo = document.getElementById('tess-filter-to');
+                this.updateBtn = document.getElementById('tess-filter-confirm');
+                const renderer = this;
+                this.updateBtn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    let dateFilter = '';
+                    if (renderer.checkDate(renderer.dateFrom)) {
+                        dateFilter += renderer.dateFrom.value + '/';
+                    }
+                    if (renderer.checkDate(renderer.dateTo)) {
+                        dateFilter += renderer.dateTo.value;
+                    }
+
+                    if (dateFilter) {
+                        // This currently doesn't work because of a missing line in TeSS' API spec
+                        widget.setFacet('start', dateFilter);
+                    } else {
+                        widget.clearFacet('start');
+                    }
+
+                    if (renderer.query.value) {
+                        widget.search(renderer.query.value);
+                    }
+
+                    return false;
+                });
+            }
+
+            render (errors, data, response) {
+                this.list.innerHTML = ''; // Clear out old events.
+                data.data.forEach((event) => {
+                    const link = 'https://tess.elixir-europe.org' + event.links.self;
+                    const eventElement = n('div', { className: 'mb-3' })
+                    const importButton = n('a', { target: '_blank',
+                                                  className: 'btn btn-sm btn-success',
+                                                  style: 'float: right',
+                                                  href: urlBase + '/' + event.id }, 'Import');
+                    eventElement.appendChild(importButton);
+                    eventElement.appendChild(n('a', { href: link, target: '_blank' }, event.attributes.title));
+                    eventElement.appendChild(n('br'));
+                    let info = this.formatDate(event.attributes.start);
+
+                    if (event.attributes.presence === 'online') {
+                        info += ' @ Online';
+                    } else {
+                        info += ' @ ' + [event.attributes.country, event.attributes.city].filter(n => n).join(', ');
+                    }
+                    eventElement.appendChild(document.createTextNode(info));
+                    this.list.appendChild(eventElement);
+                });
+
+                // FIXME: Pagination is not working (JS API client does not recognize links)
+                this.pagination.innerHTML = ''; // Clear out old pagination.
+                if (data.links.first || data.links.prev || data.links.next || data.links.last)
+                    this.pagination.appendChild(document.createTextNode('Page: '));
+
+                if (data.links.first)
+                    this.pagination.appendChild(this.pageLink('First', data.links.first));
+                if (data.links.prev)
+                    this.pagination.appendChild(this.pageLink('Previous', data.links.prev));
+                if (data.links.next)
+                    this.pagination.appendChild(this.pageLink('Next', data.links.next));
+                if (data.links.last)
+                    this.pagination.appendChild(this.pageLink('Last', data.links.last));
+            }
+
+            pageLink (title, path) {
+                // Strip the actual page number out from the path
+                const page = (path.match(/page%5Bnumber%5D=([0-9]+)/) || path.match(/page_number=([0-9]+)/))[1];
+                return n('a', { href: '#', className: 'tess-pagination-link', data: { 'tess-page' : page } }, title);
+            }
+
+            formatDate (date, dateFormat) {
+                return new Date(date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+
+            checkDate (element) {
+                if (element.value) {
+                    if (element.value.match(/\d{4}-\d{2}-\d{2}/)) {
+                        element.classList.remove('is-invalid');
+                        return true;
+                    } else {
+                        element.classList.add('is-invalid');
+                        return 'err';
+                    }
+                }
+                element.classList.remove('is-invalid');
+                return false;
+            }
+        }
+
+        TessWidget.Events(document.getElementById('tess-event-list'), TMDEventImportRenderer, {
+            opts: { },
+            params: {
+                pageSize: 15,
+                includeExpired: true,
+                sort: 'early',
+                node: ['{{ node }}']
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", initTeSSWidgets);
+    </script>
+{% endblock %}

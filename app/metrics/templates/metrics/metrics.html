@@ -1,0 +1,45 @@
+{% extends "common/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% block header %}
+<script src="{% static 'vendor/flatpickr.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'vendor/flatpickr.min.css' %}" />
+<script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8"></script>
+<script src="{% static 'js/mount-plots.js' %}" charset="utf-8"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr('.datepicker', {
+            dateFormat: 'Y-m-d',  // Set the date format
+            enableTime: false     // Disable time picker if needed
+        });
+        mountPlots(document.getElementsByClassName('data-view'));
+    });
+</script>
+{% endblock %}
+{% block content %}
+    <h1>Reports</h1>
+    {% include 'common/tabs.html' %}
+    {% include 'common/filter-form.html' %}
+    {% for entry in metrics %}
+    <h3>{{ entry.label }}</h3>
+    <div class="table-container">
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th>Option</th><th>Number of responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for option in entry.options %}
+                <tr>
+                    <td>{{ option.label }}</td><td width="20%">{{ option.count }}</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="data-view" id="{{entry.id}}-view" data-value-id="{{entry.id}}" data-chart-type="{{chart_type}}"></div>
+    {{ entry | json_script:entry.id }}
+    {% endfor %}
+    <hr>
+    <a href="{{ download.href }}" download="{{ download.filename }}" class="btn btn-primary">{{ download.label }}</a>
+{% endblock %}
