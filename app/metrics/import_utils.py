@@ -550,6 +550,8 @@ def get_response_map():
     }
     response_map = {
         "": "no-response",
+        "iran-islamic-republic-of": "ir",
+        "republic-of-korea": "kr",
         "to-learn-something-new-to-aid-me-in-my-current-researchwork": "to-learn-something-new-to-aid-me-in-my-current-research-work",  # noqa: E501
         "to-build-on-existing-knowledge-to-aid-me-in-my-current-researchwork": "to-build-on-existing-knowledge-to-aid-me-in-my-current-research-work",  # noqa: E501
         "by-using-training-materialsnotes-from-the-training-event": "by-using-training-materials-notes-from-the-training-event",  # noqa: E501
