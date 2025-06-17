@@ -14,6 +14,9 @@ In an effort to achieve the above aims, the subtask, in collaboration with the [
 
 The most up to date documentation is available in [Wiki](https://github.com/elixir-europe-training/Training-Metrics-Database/wiki).
 
+### Citation
+Gurwitz KT, Singh Gaur P, Bellis LJ, Larcombe L, Alloza E, et al. (2020) A framework to assess the quality and impact of bioinformatics training across ELIXIR. PLOS Computational Biology 16(7): e1007976. [https://doi.org/10.1371/journal.pcbi.1007976](https://doi.org/10.1371/journal.pcbi.1007976)
+
 ## Getting started
 Make sure to create instances of the following files:
 - `env/django.env`
