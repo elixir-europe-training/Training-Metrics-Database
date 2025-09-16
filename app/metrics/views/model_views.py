@@ -309,8 +309,8 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
 
 class GenericListView(ListView):
     template_name = "metrics/model-list.html"
-    paginate_by = 10
-    max_paginate_by = 50
+    paginate_by = 20
+    max_paginate_by = 200
     min_paginate_by = 10
 
     @property
