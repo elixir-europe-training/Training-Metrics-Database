@@ -432,7 +432,7 @@ class EventListView(GenericListView):
             return super().get_field_label(field)
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by("-id")
+        queryset = super().get_queryset().order_by("-date_start")
         filter_form = self.get_filter_form()
         filter_params = self.get_filter_params(filter_form)
         if filter_form and filter_form.is_valid():
