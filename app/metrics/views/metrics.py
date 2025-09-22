@@ -164,29 +164,6 @@ class SuperSetMetricsView(MetricsView):
         )
 
 
-class LegacyMetricsView(MetricsView):
-    def get_download_name(self):
-        question_set_id = self.kwargs["question_set_id"]
-        return f"{question_set_id}-metrics"
-
-    def get_download_label(self):
-        return f"Download {self.model._meta.verbose_name} metrics"
-
-    def get_title(self):
-        return f"{self.model._meta.verbose_name.title()} Metrics"
-
-    def get_metrics(
-        self,
-        **kwargs
-    ):
-        question_set_id = self.kwargs["question_set_id"]
-        self.model = get_metrics_model_or_404(question_set_id)
-        return get_legacy_metrics_info(
-            self.model,
-            **kwargs
-        )
-
-
 def get_metrics_model_or_404(model_id):
     model = {
         "quality": Quality,
@@ -201,10 +178,7 @@ def get_metrics_model_or_404(model_id):
 def get_metrics_view(request, *args, **kwargs):
     settings = SystemSettings.get_settings(request.user)
 
-    if settings.has_flag("use_new_model_stats"):
-        return SuperSetMetricsView.as_view()(request, *args, **kwargs)
-    else:
-        return LegacyMetricsView.as_view()(request, *args, **kwargs)
+    return SuperSetMetricsView.as_view()(request, *args, **kwargs)
 
 
 def world_map_api(request):
@@ -297,10 +271,7 @@ def event_properties_api(request):
 def get_metrics_api(request, *args, **kwargs):
     settings = SystemSettings.get_settings(request.user)
 
-    if settings.has_flag("use_new_model_stats"):
-        return metrics_api(request, *args, **kwargs)
-    else:
-        return legacy_metrics_api(request, *args, **kwargs)
+    return metrics_api(request, *args, **kwargs)
 
 
 def parse_csv(csv_str):
@@ -406,10 +377,6 @@ def get_questions(questionset_ids, question_ids, current_node):
     )
 
     return set([*question_set_questions, *questions])
-
-
-def legacy_metrics_api(request):
-    raise Http404(f"API not implemented for legacy model")
 
 
 def get_event_info(
@@ -618,80 +585,6 @@ def parse_options(question, summary, normalized=False):
         }
         for answer in all_answers
     ], key=lambda v: -v["count"])
-
-
-def get_question_query(questions):
-    return (
-        Q()
-        if questions is None or len (questions) == 0
-        else Q(slug__in=questions)
-    )
-
-
-def get_legacy_metrics_info(
-    metrics_type,
-    event_type=None,
-    event_funding=None,
-    event_target_audience=None,
-    event_additional_platforms=None,
-    event_node=None,
-    date_to=None,
-    date_from=None,
-):
-    field_options = _get_model_field_options(metrics_type)
-    mapped_options = {
-        field.name: options
-        for field, options in field_options
-    }
-    query = metrics_type.objects.all()
-    query = query.filter(get_event_filter_query(
-        event_type,
-        event_funding,
-        event_target_audience,
-        event_additional_platforms,
-        event_node,
-        date_to,
-        date_from,
-        prefix="event__"
-    ))
-
-    ignored_fields = {
-        "id",
-        "event",
-        "user",
-        "event_id",
-        "user_id",
-        "created",
-        "modified"
-    }
-
-    result = {}
-    for value in query.values():
-        for key, value in value.items():
-            if key not in ignored_fields:
-                result[key] = result.get(key, {})
-                values = value if isinstance(value, list) else [value]
-                for v in values:
-                    result[key][v] = result[key].get(v, 0) + 1
-
-    return [
-        {
-            "label": metrics_type._meta.get_field(key).verbose_name,
-            "id": key,
-            "options": sorted(list(
-                {
-                    option: {
-                        "label": label,
-                        "id": option,
-                        "count": result.get(key, {}).get(option, 0)
-                    }
-                    for label, option in options
-                }.values()
-            ), key=lambda v: -v["count"])
-        }
-        for key, options in mapped_options.items()
-        if key not in ignored_fields
-    ]
 
 
 def _calculate_metrics(data, column):

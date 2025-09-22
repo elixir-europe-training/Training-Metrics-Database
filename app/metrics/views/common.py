@@ -7,18 +7,10 @@ from metrics.models import SystemSettings
 
 def get_metrics_tabs(request):
     settings = SystemSettings.get_settings(request.user)
-    set_ids = (
-        [
-            (superset.name, superset.slug)
-            for superset in settings.get_metrics_sets()
-        ]
-        if settings.has_flag("use_new_model_stats")
-        else [
-            ("Impact metrics", "impact"),
-            ("Demographic metrics", "demographic"),
-            ("Quality metrics", "quality")
-        ]
-    )
+    set_ids = [
+        (superset.name, superset.slug)
+        for superset in settings.get_metrics_sets()
+    ]
     set_tabs = [
         (label, "metrics-set-report", {"question_set_id": set_id})
         for (label, set_id) in set_ids
