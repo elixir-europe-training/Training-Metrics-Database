@@ -17,8 +17,10 @@ from django.utils.http import urlencode
 from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet, ResponseSet, Response
 from django.http import HttpResponseNotFound
-from metrics.forms import QuestionSetForm
+from metrics.forms import QuestionSetForm, MyForm
 from metrics.models import UserProfile, SystemSettings
+from django.forms import formset_factory, BaseFormSet
+import json
 
 
 UPLOAD_TYPES = {
@@ -217,18 +219,131 @@ def get_question_import_context(super_set, user, node_main, event):
     )
 
 
-def parse_csv_to_dict(file, event):
+def require_valid_file_name(file_path, event):
     file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
-    if not re.match(file_match, file.name):
+    if not re.match(file_match, file_path):
         raise ValidationError(
             None,
             "Incorrect file name. The file name needs "
             f"to match the following regex: '{file_match}'"
         )
+
+
+def parse_csv_to_dict(file):
     csv_stream = io.StringIO(file.read().decode("utf-8-sig"))
     dialect = csv.Sniffer().sniff(csv_stream.readline(), delimiters=[",", ";"])
     csv_stream.seek(0)
     return csv.DictReader(csv_stream, dialect=dialect)
+
+
+class MyFormSet(forms.BaseFormSet):
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        print("fields", list(form.fields.keys()))
+
+
+@login_required
+def submit_entries(request, question_set_id: str, event_id=None):
+    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
+    node = UserProfile.get_node(request.user)
+    upload_form = DataUploadForm(
+        request.POST if request.method == "POST" else None,
+        request.FILES if request.method == "POST" else None,
+        data_type=superset,
+        title=superset.name,
+        prefix=superset.slug,
+        description=superset.description,
+        badge=None if superset.node is None else superset.node.name,
+        associated_templates=[(
+            superset.name,
+            reverse(
+                "download_template",
+                kwargs={"data_type": "metrics", "slug": superset.slug}
+            )
+        )]
+    )
+    if (superset.node is not None and superset.node != current_node):
+        raise PermissionDenied("This set is not publicly available")
+
+    if not node:
+        raise PermissionDenied("You have to be associated with a node to upload data.")
+
+    _BaseForm = QuestionSetForm.from_question_sets(
+        superset.question_sets.all(),
+        hidden=True,
+        additional_fields={
+            "event_id": forms.ModelChoiceField(queryset = models.Event.objects.all())
+        }
+    )
+    _FormSet = formset_factory(_BaseForm, extra=0)
+
+    entries = []
+    initial_data = []
+    values = None
+    formset = None
+    if upload_form.has_changed() and upload_form.is_valid():
+        event = None
+        data = upload_form.cleaned_data
+        node_main = UserProfile.get_node(request.user)
+
+        reader = parse_csv_to_dict(data["file"])
+        require_valid_file_name(data["file"].name, event)
+        compatiblity_model = get_matching_legacy_model(
+            reader.fieldnames,
+            {superset.slug}
+        )
+        compatibility_transform = (
+            None
+            if compatiblity_model is None
+            else get_model_transform(compatiblity_model)
+        )
+        for (index, row) in enumerate(reader):
+            try:
+                entry = (
+                    row
+                    if compatibility_transform is None
+                    else compatibility_transform(row)
+                )
+                entries.append((entry, None))
+            except (ValidationError, ) as e:
+                traceback.print_exc()
+                error_message = f"On row {index} : {e}"
+                entries.append((
+                    None,
+                    (index, error_message)
+                ))
+        initial_data = [entry for (entry, error) in entries if error is None]
+        values = {
+            "form-TOTAL_FORMS": len(initial_data),
+            "form-INITIAL_FORMS": len(initial_data),
+            **{
+                f"form-{index}-{key}": value
+                for index, entry in enumerate(initial_data)
+                for key, value in entry.items()
+            }
+        }
+    else:
+        values = request.POST if request.method == "POST" else None
+
+    if values:
+        formset = _FormSet(values)
+        formset.is_valid()
+
+    title = "Upload data: " + superset.name
+    return render(
+        request,
+        'metrics/submit-entries.html',
+        context={
+            "title": title,
+            **get_tabs(request, view_name="upload-data"),
+            "upload_form": upload_form,
+            "formset": formset,
+            "initial_data": json.dumps({
+                "has_changed": upload_form.has_changed(),
+                "values": values
+            }, indent=4)
+        }
+    )
 
 
 def response_upload(request, event):
@@ -280,10 +395,10 @@ def response_upload(request, event):
 
                 try:
                     node_main = UserProfile.get_node(request.user)
-                    reader = parse_csv_to_dict(data["file"], event)
+                    require_valid_file_name(data["file"].name, event)
+                    reader = parse_csv_to_dict(data["file"])
                     (parser, importer, view_transforms) = (
-                        get_import_context(
-                            upload_type,
+                        get_event_import_context(
                             request.user,
                             node_main,
                             event
@@ -390,9 +505,62 @@ def response_upload(request, event):
     )
 
 
+def get_matching_legacy_model(headers, model_ids=None):
+    legacy_models = [
+        models.legacy.Demographic,
+        models.legacy.Impact,
+        models.legacy.Quality,
+    ]
+    legacy_models = (
+        legacy_models
+        if model_ids is None
+        else [
+            model
+            for model in legacy_models
+            if slugify(model._meta.verbose_name) in model_ids
+        ]
+    )
+    headers = set(header.lower() for header in headers)
+    for model in legacy_models:
+        fields = set(
+            field.verbose_name.lower()
+            for field in import_utils.get_metrics_fields(model)
+        )
+        if fields.issubset(headers):
+            return model
+
+    return None
+
+
+def get_event_import_context(user, node_main, event):
+    current_time = datetime.datetime.now()
+    import_context = import_utils.LegacyImportContext(
+        user=user,
+        node_main=node_main,
+        timestamps=(
+            current_time,
+            current_time
+        ),
+        fixed_event=event
+    )
+    return (
+        import_utils.legacy_to_current_event_dict,
+        import_context.event_from_dict,
+        {
+            "summary": summary_output,
+            "table": table_output({
+                "id": "Event Code",
+                "title": "Title",
+                "date_start": "Start date",
+                "date_end": "End date"
+            }),
+            "actions": events_actions_output
+        }
+    )
+
+
 @login_required
 def upload_data(request, event_id=None):
-    settings = SystemSettings.get_settings(request.user)
     node = UserProfile.get_node(request.user)
     event = get_object_or_404(models.Event, id=event_id) if event_id else None
 

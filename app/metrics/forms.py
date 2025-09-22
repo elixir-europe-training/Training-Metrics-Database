@@ -12,6 +12,12 @@ from crispy_forms.layout import (
 )
 from crispy_forms.bootstrap import InlineCheckboxes, InlineRadios
 from django.utils.text import slugify
+import copy
+
+
+class MyForm(forms.Form):
+    first = forms.ChoiceField(choices=(("", "---"), ("herp", "Herp"), ("derp", "Derp")))
+    second = forms.CharField()
 
 
 class UserLoginForm(AuthenticationForm):
@@ -114,18 +120,25 @@ class MetricsFilterForm(EventFilterForm):
 class QuestionSetForm(forms.Form):
     def __init__(self, values=None, *args, **kwargs):
         fields = self.question_set_fields
-        values = {
-            field_id: (
-                self._parse_list(field_id, value)
-                if isinstance(fields[field_id], forms.MultipleChoiceField)
-                else self._parse_item(field_id, value)
-            )
-            for field_id, value in (values or {}).items()
-            if field_id in fields
-        }
-        super().__init__(values, *args, **kwargs)
-        for key, field in fields.items():
-            self.fields[key] = field
+        values = (
+            None
+            if values is None
+            else {
+                field_id: (
+                    self._parse_list(field_id, value)
+                    if isinstance(fields[field_id], forms.MultipleChoiceField)
+                    else self._parse_item(field_id, value)
+                )
+                for field_id, value in (values or {}).items()
+                if field_id in fields
+            }
+        )
+        super().__init__(*args, **kwargs)
+        for name, field in fields.items():
+            current_field = copy.deepcopy(field)
+            self.fields[name] = current_field
+            if name in self.initial:
+                self.fields[name].initial = self.initial.get(name)
 
     def _parse_list(self, field_id, value):
         return [
@@ -171,7 +184,6 @@ class QuestionSetForm(forms.Form):
             else forms.ChoiceField(
                 label=label,
                 choices=[
-                    ("", "---------"),
                     *choices
                 ],
                 required=True,
@@ -180,18 +192,28 @@ class QuestionSetForm(forms.Form):
         )
 
     @staticmethod
-    def from_question_set(qs):
-        return QuestionSetForm.from_question_set((qs,))
+    def from_question_set(qs, **kwargs):
+        return QuestionSetForm.from_question_set((qs,), **kwargs)
 
     @staticmethod
-    def from_question_sets(qss):
+    def from_question_sets(qss, disabled=False, hidden=False, widget_attrs=None, additional_fields=None):
         fields = {
             question.slug: QuestionSetForm._parse_field(question)
             for qs in qss
             for question in qs.questions.all()
         }
+        if additional_fields:
+            fields.update(additional_fields)
+        widget_attrs = (
+            {"class": "form-control"}
+            if widget_attrs is None
+            else widget_attrs
+        )
         for field in fields.values():
-            field.widget.attrs.update({"class": "form-control"})
+            field.disabled = disabled
+            if hidden:
+                field.widget = field.hidden_widget()
+            field.widget.attrs.update(widget_attrs)
 
         class _Form(QuestionSetForm):
             question_set_fields = fields
