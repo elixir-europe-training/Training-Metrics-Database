@@ -58,7 +58,7 @@ UPLOAD_TYPES = {
 class DataUploadForm(forms.Form):
     file = forms.FileField(
         label="CSV batch file",
-        widget=FileInput(attrs={"class": "form-control"}),
+        widget=FileInput(attrs={"class": "form-control", "accept": ".csv"}),
     )
 
     def __init__(
