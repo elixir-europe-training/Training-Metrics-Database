@@ -112,9 +112,7 @@ class MetricsFilterForm(EventFilterForm):
 
 
 class QuestionSetForm(forms.Form):
-    question_set = None
-
-    def __init__(self, values, *args, **kwargs):
+    def __init__(self, values=None, *args, **kwargs):
         fields = self.question_set_fields
         values = {
             field_id: (
@@ -122,7 +120,7 @@ class QuestionSetForm(forms.Form):
                 if isinstance(fields[field_id], forms.MultipleChoiceField)
                 else self._parse_item(field_id, value)
             )
-            for field_id, value in values.items()
+            for field_id, value in (values or {}).items()
             if field_id in fields
         }
         super().__init__(values, *args, **kwargs)
@@ -153,21 +151,8 @@ class QuestionSetForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        questions = list(self.question_set.questions.all())
-        responses = {
-            question.slug: QuestionSetForm._clean_value(question, cleaned_data[question.slug])
-            for question in questions
-            if question.slug in cleaned_data and cleaned_data[question.slug]
-        }
-        if len(responses) != 0 and len(responses) != len(questions):
-            for question in questions:
-                if question.slug not in responses:
-                    self.add_error(
-                        question.slug,
-                        ValidationError("All responses need to be commited simultaneously"),
-                    )
 
-        return responses
+        return cleaned_data
 
     @staticmethod
     def _parse_field(question):
@@ -190,18 +175,25 @@ class QuestionSetForm(forms.Form):
                     *choices
                 ],
                 required=True,
+                
             )
         )
 
     @staticmethod
     def from_question_set(qs):
+        return QuestionSetForm.from_question_set((qs,))
+
+    @staticmethod
+    def from_question_sets(qss):
         fields = {
             question.slug: QuestionSetForm._parse_field(question)
+            for qs in qss
             for question in qs.questions.all()
         }
+        for field in fields.values():
+            field.widget.attrs.update({"class": "form-control"})
 
         class _Form(QuestionSetForm):
-            question_set = qs
             question_set_fields = fields
             label_value_map = {
                 field_id: {
