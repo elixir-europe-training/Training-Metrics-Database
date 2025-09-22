@@ -1,0 +1,67 @@
+{% extends "common/base.html" %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% include 'common/tabs.html' %}
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for field in upload_form %}
+        {% if not field.field.disabled %}
+        <div class="mb-3 row">
+            <label for="{{field.html_name}}" class="col-sm-2 col-form-label">{{field.label}}</label>
+            <div class="col-sm-10">
+                {{field}}
+            </div>
+        </div>
+        {% else %}
+        {{field}}
+        {% endif %}
+        {%endfor%}
+        <button type="submit" class="btn btn-success">Upload</button>
+        {% for label, url in form.associated_templates %}
+            <a href="{{url}}" class="btn btn-success ms-2" style="background-color:#87c265;">Download {{label}} template</a>
+        {% endfor %}
+    </form>
+    <hr/>
+    {% if formset %}
+    <div class="mb-3 row">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ formset.management_form }}
+            <table class="table">
+                <thead>
+                    {% with formset.empty_form as form %}
+                    <tr>
+                    {% for field in form %}
+                        <th scope="col">
+                            {{ field.label }}
+                        </th>
+                    {% endfor %}
+                    </tr>
+                    {% endwith %}
+                </thead>
+                <tbody>
+                {% for form in formset %}
+                    <tr>
+                    {% for field in form %}
+                        <td>
+                            {{field.value}}
+                            {{field}}
+                            {% if field.errors %}
+                            <ul class="errorlist">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <button class="btn btn-success" type="submit">Continue</button>
+        </form>
+    </div>
+    {% endif %}
+    <pre>{{initial_data}}</pre>
+{% endblock %}
