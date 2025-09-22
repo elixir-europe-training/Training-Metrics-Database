@@ -99,34 +99,23 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
     def get_actions(self):
         settings = SystemSettings.get_settings(self.request.user)
         upload_action = (reverse("upload-data-event", kwargs={"event_id": self.object.id}), "Upload metrics")
-        if settings.has_flag("use_new_model_upload"):
-            supersets = settings.get_upload_sets()
-            return (
-                [
-                    upload_action,
-                    *[
-                        (
-                            reverse(
-                                "superset-delete-responses",
-                                kwargs={"pk": self.object.id, "superset_slug": superset.slug}
-                            ),
-                            f"Delete {superset.name}"
-                        )
-                        for superset in supersets
-                    ]
-                ] if self.can_edit()
-                else []
-            )
-        else:
-            return (
-                [
-                    upload_action,
-                    (reverse("quality-delete-metrics", kwargs={"pk": self.object.id}), "Delete quality metrics"),
-                    (reverse("impact-delete-metrics", kwargs={"pk": self.object.id}), "Delete impact metrics"),
-                    (reverse("demographic-delete-metrics", kwargs={"pk": self.object.id}), "Delete demographic metrics"),
-                ] if self.can_edit()
-                else []
-            )
+        supersets = settings.get_upload_sets()
+        return (
+            [
+                upload_action,
+                *[
+                    (
+                        reverse(
+                            "superset-delete-responses",
+                            kwargs={"pk": self.object.id, "superset_slug": superset.slug}
+                        ),
+                        f"Delete {superset.name}"
+                    )
+                    for superset in supersets
+                ]
+            ] if self.can_edit()
+            else []
+        )
 
     def can_edit(self):
         model_object = self.get_object()
@@ -627,15 +616,6 @@ def get_metrics_counts(event, user):
                 ))
             )
             for superset in settings.get_upload_sets()
-        ]
-        if settings.has_flag("use_new_model_upload")
-        else [
-            (name, related.count())
-            for name, related in [
-                ("Quality metrics", event.quality),
-                ("Impact metrics", event.impact),
-                ("Demographic metrics", event.demographic)
-            ]
         ]
     )
 
