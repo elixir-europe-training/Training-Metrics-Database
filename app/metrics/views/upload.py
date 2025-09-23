@@ -71,6 +71,7 @@ class DataUploadForm(forms.Form):
         associated_templates=None,
         data_type=None,
         badge=None,
+        action=None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -80,6 +81,7 @@ class DataUploadForm(forms.Form):
 
         self.description = description
         self.title = title
+        self.action = action
 
 
 def summary_output(items: list):
@@ -254,6 +256,10 @@ def submit_entries(request, question_set_id: str, event_id=None):
         prefix=superset.slug,
         description=superset.description,
         badge=None if superset.node is None else superset.node.name,
+        action=reverse(
+            "submit_entries",
+            kwargs={"question_set_id": superset.slug}
+        ),
         associated_templates=[(
             superset.name,
             reverse(
@@ -336,7 +342,6 @@ def submit_entries(request, question_set_id: str, event_id=None):
         context={
             "title": title,
             **get_tabs(request, view_name="upload-data"),
-            "upload_form": upload_form,
             "formset": formset,
             "initial_data": json.dumps({
                 "has_changed": upload_form.has_changed(),
@@ -370,20 +375,24 @@ def response_upload(request, event):
             DataUploadForm(
                 request.POST if request.method == "POST" else None,
                 request.FILES if request.method == "POST" else None,
-                data_type=super_set,
-                title=super_set.name,
-                prefix=super_set.slug,
-                description=super_set.description,
-                badge=None if super_set.node is None else super_set.node.name,
+                data_type=superset,
+                title=superset.name,
+                prefix=superset.slug,
+                description=superset.description,
+                badge=None if superset.node is None else superset.node.name,
+                action=reverse(
+                    "submit_entries",
+                    kwargs={"question_set_id": superset.slug}
+                ),
                 associated_templates=[(
-                    super_set.name,
+                    superset.name,
                     reverse(
                         "download_template",
-                        kwargs={"data_type": "metrics", "slug": super_set.slug}
+                        kwargs={"data_type": "metrics", "slug": superset.slug}
                     )
                 )]
             )
-            for super_set in question_supersets
+            for superset in question_supersets
         ]
     ]
 

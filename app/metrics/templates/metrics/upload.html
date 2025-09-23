@@ -12,7 +12,7 @@
     </div>
     {% endfor %}{% endif %}
     <div class="mb-3 row">
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" {% if form.action %}action="{{ form.action }}"{% endif %}>
             {% csrf_token %}
             {% for field in form %}
             {% if not field.field.disabled %}
