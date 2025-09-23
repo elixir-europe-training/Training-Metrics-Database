@@ -2,26 +2,6 @@
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        {% for field in upload_form %}
-        {% if not field.field.disabled %}
-        <div class="mb-3 row">
-            <label for="{{field.html_name}}" class="col-sm-2 col-form-label">{{field.label}}</label>
-            <div class="col-sm-10">
-                {{field}}
-            </div>
-        </div>
-        {% else %}
-        {{field}}
-        {% endif %}
-        {%endfor%}
-        <button type="submit" class="btn btn-success">Upload</button>
-        {% for label, url in form.associated_templates %}
-            <a href="{{url}}" class="btn btn-success ms-2" style="background-color:#87c265;">Download {{label}} template</a>
-        {% endfor %}
-    </form>
-    <hr/>
     {% if formset %}
     <div class="mb-3 row">
         <form method="POST" enctype="multipart/form-data">

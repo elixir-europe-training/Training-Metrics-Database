@@ -30,7 +30,7 @@ urlpatterns = [
     ),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('upload-data', upload_data, name='upload-data'),
-    path('upload-data/<str:question_set_id>', submit_entries, name='submit-entries'),
+    path('upload-data/<str:question_set_id>', submit_entries, name='submit_entries'),
     path('tess-import', tess_import, name='tess-import'),
     path('tess-import/<int:tess_id>', tess_import, name='tess-import'),
     path('download-template/<str:data_type>/<str:slug>', download_template, name='download_template'),
