@@ -12,6 +12,7 @@ from .common import get_tabs
 from metrics.forms import EventFilterForm
 from django.urls import reverse
 import requests
+import math
 
 
 class GenericUpdateView(UpdateView):
@@ -309,8 +310,8 @@ class InstitutionView(LoginRequiredMixin, GenericUpdateView):
 
 class GenericListView(ListView):
     template_name = "metrics/model-list.html"
-    paginate_by = 10
-    max_paginate_by = 50
+    paginate_by = 20
+    max_paginate_by = 200
     min_paginate_by = 10
 
     @property
@@ -323,6 +324,20 @@ class GenericListView(ListView):
             return self.model._meta.get_field(field).verbose_name.title()
         except FieldDoesNotExist:
             return field
+    
+    def get_page_size_options(self):
+        base_page_size = min(max(1, self.min_paginate_by), self.max_paginate_by)
+        page_size_options = tuple(
+            int(math.pow(2, i) * base_page_size)
+            for i in range(math.floor(math.log(self.max_paginate_by / base_page_size) / math.log(2)))
+        )
+        if self.max_paginate_by not in page_size_options:
+            page_size_options = (
+                *page_size_options,
+                self.max_paginate_by
+            )
+
+        return page_size_options
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -336,6 +351,8 @@ class GenericListView(ListView):
             if len(extras_list) > 0
             else 0
         )
+
+        context["page_size_options"] = self.get_page_size_options()
         context["table_headings"] = self.get_headers(max_extras)
         context["table_items"] = [
             [
@@ -411,7 +428,7 @@ class GenericListView(ListView):
 
 class EventListView(GenericListView):
     model = models.Event
-    paginate_by = 30
+    paginate_by = 40
     fields = [
         "id",
         "title",
@@ -432,7 +449,7 @@ class EventListView(GenericListView):
             return super().get_field_label(field)
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by("-id")
+        queryset = super().get_queryset().order_by("-date_start")
         filter_form = self.get_filter_form()
         filter_params = self.get_filter_params(filter_form)
         if filter_form and filter_form.is_valid():
@@ -499,7 +516,7 @@ class EventListView(GenericListView):
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):
     model = models.OrganisingInstitution
-    paginate_by = 30
+    paginate_by = 40
     ordering = ['name']
     fields = [
         "name",
