@@ -384,7 +384,7 @@ class OrganisingInstitution(models.Model):
     def update_ror_data(self):
         try:
             ror_id_base = re.match("^https://ror.org/(.+)$", self.ror_id)[0]
-            ror_url = f"https://api.ror.org/organizations/{ror_id_base}"
+            ror_url = f"https://api.ror.org/v1/organizations/{ror_id_base}"
             response = requests.get(ror_url, allow_redirects=True)
             if response.status_code == 200:
                 data = response.json()
