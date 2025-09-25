@@ -1,4 +1,5 @@
 {% extends "common/base.html" %}
+{% load form_utils %}
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
@@ -24,15 +25,22 @@
                     <tr>
                     {% for field in form %}
                         <td>
-                            {{field.value}}
-                            {{field}}
+                            <div class="value-inspector">
                             {% if field.errors %}
-                            <ul class="errorlist">
-                                {% for error in field.errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
-                            </ul>
+                                <span class="badge rounded-pill bg-danger status-badge">Errors</span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-success status-badge">Validated</span>
                             {% endif %}
+                                <div class="content" data-has-error="{%if field.errors %}true{% else %}false{% endif %}">
+                                    {% if field.errors %}
+                                    {% for error in field.errors %}
+                                        <div class="alert alert-primary" role="alert">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endif %}
+                                    {% for value in field.value|use_list %}<div><span class="badge rounded-pill {% if field.errors %}bg-danger{% else %}bg-primary{% endif %}">{{ value }}</span></div>{% endfor %}
+                                    {{field}}
+                                </div>
+                            </div>
                         </td>
                     {% endfor %}
                     </tr>
