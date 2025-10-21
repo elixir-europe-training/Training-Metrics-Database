@@ -1,10 +1,11 @@
 {% extends "common/base.html" %}
 {% load form_utils %}
+{% load crispy_forms_tags %}
 {% block content %}
     <h1>{{ title }}</h1>
     {% include 'common/tabs.html' %}
     {% if formset %}
-    <div class="mb-3 row">
+    <div class="mb-3">
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             {{ formset.management_form }}
@@ -47,7 +48,9 @@
                 {% endfor %}
                 </tbody>
             </table>
-            <button class="btn btn-success" type="submit">Continue</button>
+            <div class="row">
+                {% crispy submission_options %}
+            </div>
         </form>
     </div>
     {% endif %}

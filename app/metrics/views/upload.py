@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from metrics.views.common import get_tabs
 from django import forms
 from django.forms.widgets import FileInput
@@ -17,7 +17,7 @@ from django.utils.http import urlencode
 from django.http import HttpResponse
 from metrics.models.questions import QuestionSuperSet, ResponseSet, Response
 from django.http import HttpResponseNotFound
-from metrics.forms import QuestionSetForm, MyForm
+from metrics.forms import QuestionSetForm, SubmissionOptions
 from metrics.models import UserProfile, SystemSettings
 from django.forms import formset_factory, BaseFormSet
 import json
@@ -152,6 +152,18 @@ def get_model_transform(model):
     return _model_transform
 
 
+def import_data_for_question_set(qs, event, user, data):
+    rs = ResponseSet(user=user, event=event, question_set=qs)
+    rs.save()
+    questions = qs.questions.all()
+    for question in questions:
+        answer = data[question.slug]
+        all_answers = answer if isinstance(answer, list) else [answer]
+        for a in all_answers:
+            r = Response(response_set=rs, answer=a)
+            r.save()
+
+
 def get_question_import_context(super_set, user, node_main, event):
     forms = [
         QuestionSetForm.from_question_set(qs)
@@ -238,12 +250,6 @@ def parse_csv_to_dict(file):
     return csv.DictReader(csv_stream, dialect=dialect)
 
 
-class MyFormSet(forms.BaseFormSet):
-    def add_fields(self, form, index):
-        super().add_fields(form, index)
-        print("fields", list(form.fields.keys()))
-
-
 @login_required
 def submit_entries(request, question_set_id: str, event_id=None):
     superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
@@ -274,23 +280,28 @@ def submit_entries(request, question_set_id: str, event_id=None):
     if not node:
         raise PermissionDenied("You have to be associated with a node to upload data.")
 
+    event = get_object_or_404(models.Event, id=event_id) if event_id else None
+
+    question_sets = tuple(superset.question_sets.all())
     _BaseForm = QuestionSetForm.from_question_sets(
-        superset.question_sets.all(),
+        question_sets,
         hidden=True,
-        additional_fields={
-            "event_id": forms.ModelChoiceField(queryset = models.Event.objects.all())
-        }
+        additional_fields=(
+            {
+                "event_id": forms.ModelChoiceField(queryset=models.Event.objects.filter(node_main=node))
+            } if event_id is None
+            else {}
+        )
     )
     _FormSet = formset_factory(_BaseForm, extra=0)
+    submission_options = SubmissionOptions(request.POST if request.method == "POST" else None)
 
     entries = []
     initial_data = []
     values = None
     formset = None
     if upload_form.has_changed() and upload_form.is_valid():
-        event = None
         data = upload_form.cleaned_data
-        node_main = UserProfile.get_node(request.user)
 
         reader = parse_csv_to_dict(data["file"])
         require_valid_file_name(data["file"].name, event)
@@ -333,7 +344,16 @@ def submit_entries(request, question_set_id: str, event_id=None):
 
     if values:
         formset = _FormSet(values)
-        formset.is_valid()
+        if formset.is_valid() and submission_options.is_valid() and formset.has_changed() and submission_options.has_changed():
+            with transaction.atomic():
+                options = submission_options.cleaned_data
+                if options["submission_method"] == "replace":
+                    ResponseSet.objects.filter(user=request.user, event=event, question_set__in=question_sets).delete()
+                for entry_form in formset:
+                    for qs in question_sets:
+                        import_data_for_question_set(qs, event, request.user, entry_form.cleaned_data)
+
+            return redirect("upload-data")
 
     title = "Upload data: " + superset.name
     return render(
@@ -343,9 +363,11 @@ def submit_entries(request, question_set_id: str, event_id=None):
             "title": title,
             **get_tabs(request, view_name="upload-data"),
             "formset": formset,
+            "submission_options": submission_options,
             "initial_data": json.dumps({
                 "POST": dict(request.POST) if request.method == "POST" else None,
-                "has_changed": upload_form.has_changed(),
+                "has_changed": (upload_form.has_changed(), formset and formset.has_changed()),
+                "is_valid": (upload_form.is_valid(), formset and formset.is_valid()),
                 "values": values
             }, indent=4)
         }
@@ -381,9 +403,16 @@ def response_upload(request, event):
                 prefix=superset.slug,
                 description=superset.description,
                 badge=None if superset.node is None else superset.node.name,
-                action=reverse(
-                    "submit_entries",
-                    kwargs={"question_set_id": superset.slug}
+                action=(
+                    reverse(
+                        "submit_entries",
+                        kwargs={"question_set_id": superset.slug}
+                    )
+                    if event is None
+                    else reverse(
+                        "submit_event_entries",
+                        kwargs={"question_set_id": superset.slug, "event_id": event.id}
+                    )
                 ),
                 associated_templates=[(
                     superset.name,
