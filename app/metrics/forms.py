@@ -15,9 +15,27 @@ from django.utils.text import slugify
 import copy
 
 
-class MyForm(forms.Form):
-    first = forms.ChoiceField(choices=(("", "---"), ("herp", "Herp"), ("derp", "Derp")))
-    second = forms.CharField()
+class SubmissionOptions(forms.Form):
+    submission_method = forms.ChoiceField(choices=(("", "---"), ("add", "Add responses"), ("replace", "Replace responses")))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.required = False
+
+        self.helper = FormHelper(self)
+        self.helper.form_method = "GET"
+        self.helper.form_class = "row"
+        self.helper.wrapper_class = "col-lg-4"
+        self.helper.disable_csrf = True
+        self.helper.layout = Layout(
+            "submission_method",
+            Div(css_class="col-lg-6"),
+            Div(
+                Submit("submit", "Continue", css_class="col-lg-12"),
+                css_class="col-lg-2"
+            ),
+        )
 
 
 class UserLoginForm(AuthenticationForm):
@@ -170,8 +188,25 @@ class QuestionSetForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+        questions = [
+            question
+            for qs in self.question_sets
+            for question in qs.questions.all()
+        ]
+        responses = {
+            question.slug: QuestionSetForm._clean_value(question, cleaned_data[question.slug])
+            for question in questions
+            if question.slug in cleaned_data and cleaned_data[question.slug]
+        }
+        if len(responses) != 0 and len(responses) != len(questions):
+            for question in questions:
+                if question.slug not in responses:
+                    self.add_error(
+                        question.slug,
+                        ValidationError("All responses need to be commited simultaneously"),
+                    )
 
-        return cleaned_data
+        return responses
 
     @staticmethod
     def _parse_field(question):
@@ -223,6 +258,7 @@ class QuestionSetForm(forms.Form):
 
         class _Form(QuestionSetForm):
             question_set_fields = fields
+            question_sets = qss
             label_value_map = {
                 field_id: {
                     slugify(label): value

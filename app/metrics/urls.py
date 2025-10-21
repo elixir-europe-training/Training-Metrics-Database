@@ -36,6 +36,7 @@ urlpatterns = [
     path('download-template/<str:data_type>/<str:slug>', download_template, name='download_template'),
     path('event/<int:pk>', EventView.as_view(), name='event-edit'),
     path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
+    path('event/<int:event_id>/upload-data/<str:question_set_id>', submit_entries, name='submit_event_entries'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
     path('institution/list', InstitutionListView.as_view(), name='institution-list'),
