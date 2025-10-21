@@ -123,16 +123,11 @@ class QuestionSetForm(forms.Form):
         values = (
             None
             if values is None
-            else {
-                field_id: (
-                    self._parse_list(field_id, value)
-                    if isinstance(fields[field_id], forms.MultipleChoiceField)
-                    else self._parse_item(field_id, value)
-                )
-                for field_id, value in (values or {}).items()
-                if field_id in fields
-            }
+            else self._parse_values(values)
         )
+        if "initial" in kwargs:
+            kwargs["initial"] = self._parse_values(kwargs["initial"])
+
         super().__init__(*args, **kwargs)
         for name, field in fields.items():
             current_field = copy.deepcopy(field)
@@ -140,13 +135,24 @@ class QuestionSetForm(forms.Form):
             if name in self.initial:
                 self.fields[name].initial = self.initial.get(name)
 
+    def _parse_values(values):
+        return {
+            field_id: (
+                self._parse_list(field_id, value)
+                if isinstance(fields[field_id], forms.MultipleChoiceField)
+                else self._parse_item(field_id, value)
+            )
+            for field_id, value in values.items()
+            if field_id in fields
+        }
+
     def _parse_list(self, field_id, value):
         return [
             self._parse_item(field_id, v)
             for v in (
-                value
+                list(set(value))
                 if isinstance(value, list)
-                else value.split(",")
+                else list(set(value.split(",")))
             )
         ]
 
