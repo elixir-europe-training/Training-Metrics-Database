@@ -355,7 +355,14 @@ def submit_entries(request, question_set_id: str, event_id=None):
                         for qs in question_sets:
                             import_data_for_question_set(qs, event, request.user, entry_form.cleaned_data)
 
-                return redirect("upload-data")
+                return (
+                    redirect("upload-data")
+                    if event is None
+                    else redirect(
+                        "upload-data-event",
+                        event_id=event.id
+                    )
+                )
 
     title = "Upload data: " + superset.name
     return render(
