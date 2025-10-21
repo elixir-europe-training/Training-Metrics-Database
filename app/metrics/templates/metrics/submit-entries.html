@@ -48,10 +48,16 @@
                 {% endfor %}
                 </tbody>
             </table>
-            <div class="row">
+            {%if submission_options %}<div class="row">
                 {% crispy submission_options %}
-            </div>
+            </div>{% endif %}
         </form>
+        {% if messages %}{% for type, message in messages %}
+        <div class="alert alert-{{type}} alert-dismissible fade show" role="alert">
+            {{message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}{% endif %}
     </div>
     {% endif %}
     <pre>{{initial_data}}</pre>
