@@ -344,6 +344,7 @@ def submit_entries(request, question_set_id: str, event_id=None):
             **get_tabs(request, view_name="upload-data"),
             "formset": formset,
             "initial_data": json.dumps({
+                "POST": dict(request.POST) if request.method == "POST" else None,
                 "has_changed": upload_form.has_changed(),
                 "values": values
             }, indent=4)
