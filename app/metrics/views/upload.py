@@ -294,17 +294,17 @@ def submit_entries(request, question_set_id: str, event_id=None):
         )
     )
     _FormSet = formset_factory(_BaseForm, extra=0)
-    submission_options = SubmissionOptions(request.POST if request.method == "POST" else None)
 
     entries = []
     initial_data = []
     values = None
     formset = None
+    submission_options = None
     if upload_form.has_changed() and upload_form.is_valid():
         data = upload_form.cleaned_data
 
         reader = parse_csv_to_dict(data["file"])
-        require_valid_file_name(data["file"].name, event)
+        #require_valid_file_name(data["file"].name, event)
         compatiblity_model = get_matching_legacy_model(
             reader.fieldnames,
             {superset.slug}
@@ -344,16 +344,18 @@ def submit_entries(request, question_set_id: str, event_id=None):
 
     if values:
         formset = _FormSet(values)
-        if formset.is_valid() and submission_options.is_valid() and formset.has_changed() and submission_options.has_changed():
-            with transaction.atomic():
-                options = submission_options.cleaned_data
-                if options["submission_method"] == "replace":
-                    ResponseSet.objects.filter(user=request.user, event=event, question_set__in=question_sets).delete()
-                for entry_form in formset:
-                    for qs in question_sets:
-                        import_data_for_question_set(qs, event, request.user, entry_form.cleaned_data)
+        if formset.is_valid():
+            submission_options = SubmissionOptions(request.POST if request.method == "POST" else None)
+            if submission_options.is_valid() and submission_options.has_changed():
+                with transaction.atomic():
+                    options = submission_options.cleaned_data
+                    if options["submission_method"] == "replace":
+                        ResponseSet.objects.filter(user=request.user, event=event, question_set__in=question_sets).delete()
+                    for entry_form in formset:
+                        for qs in question_sets:
+                            import_data_for_question_set(qs, event, request.user, entry_form.cleaned_data)
 
-            return redirect("upload-data")
+                return redirect("upload-data")
 
     title = "Upload data: " + superset.name
     return render(
@@ -364,6 +366,11 @@ def submit_entries(request, question_set_id: str, event_id=None):
             **get_tabs(request, view_name="upload-data"),
             "formset": formset,
             "submission_options": submission_options,
+            "messages": (
+                ()
+                if formset.is_valid()
+                else (("warning", "The data set contains one or more errors. Please adjust your data and try again."),)
+            ),
             "initial_data": json.dumps({
                 "POST": dict(request.POST) if request.method == "POST" else None,
                 "has_changed": (upload_form.has_changed(), formset and formset.has_changed()),
