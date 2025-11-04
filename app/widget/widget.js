@@ -72,7 +72,24 @@
   }
 
   /**
-   * Generate an accessible colour palette for the chart segments.
+   * Default colourway borrowed from Plotly (used by the in-app reports) so the widget matches
+   * the styling on `/report/set/<question-set>`.
+   */
+  const DEFAULT_COLORWAY = [
+    '#1f77b4',
+    '#ff7f0e',
+    '#2ca02c',
+    '#d62728',
+    '#9467bd',
+    '#8c564b',
+    '#e377c2',
+    '#7f7f7f',
+    '#bcbd22',
+    '#17becf',
+  ];
+
+  /**
+   * Cycle through the Plotly colourway to generate chart colours.
    *
    * @param {number} size
    * @returns {string[]}
@@ -84,8 +101,7 @@
 
     const palette = [];
     for (let index = 0; index < size; index += 1) {
-      const hue = Math.round((index / size) * 360);
-      palette.push(`hsl(${hue}, 65%, 60%)`);
+      palette.push(DEFAULT_COLORWAY[index % DEFAULT_COLORWAY.length]);
     }
     return palette;
   }
