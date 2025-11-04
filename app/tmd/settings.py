@@ -26,6 +26,7 @@ STATIC_ROOT = os.environ.get("TMD_STATIC_ROOT", "/opt/tmd/static")
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
+    ("widgets", BASE_DIR / "widget"),
 ]
 
 # Quick-start development settings - unsuitable for production

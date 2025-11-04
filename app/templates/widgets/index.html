@@ -1,0 +1,25 @@
+{% extends 'common/base.html' %}
+{% load static %}
+
+{% block content %}
+  <h1 class="mb-3">Training Metrics Widget (Test Harness)</h1>
+  <p class="text-muted">
+    This page renders the widget using the public quality question set endpoint. Use it to verify
+    behaviour while developing locally.
+  </p>
+
+  <div class="tmd-widget" id="tmd-widget-container"></div>
+
+  <script src="{% static 'widgets/widget.js' %}"></script>
+  <script>
+    TMDWidget({
+      container: '#tmd-widget-container',
+      questionSet: 'quality',
+      questions: ["quality-used_resources_before"],
+      chartType: 'pie',
+      endpoint: '{% url "widgets-data" "quality" %}'
+    }).catch((error) => {
+      console.error('TMDWidget failed to initialise', error);
+    });
+  </script>
+{% endblock %}

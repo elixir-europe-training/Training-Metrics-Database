@@ -2,11 +2,13 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
+from django.views.generic import TemplateView
 
 from metrics.forms import UserLoginForm
 from metrics.views.tess_import import tess_import
 from metrics.views.upload import upload_data, download_template
 from metrics.views import metrics
+from metrics.views import widget as widget_views
 from metrics.views.model_views import (
     EventView,
     InstitutionView,
@@ -72,4 +74,6 @@ urlpatterns = [
 
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset_done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path('widgets/', TemplateView.as_view(template_name='widgets/index.html'), name='widgets'),
+    path('widgets/data/<str:question_set_slug>', widget_views.proxy_question_set, name='widgets-data'),
 ]
