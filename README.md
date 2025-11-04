@@ -35,6 +35,14 @@ Seed the database with test data:
 docker compose exec tmd-dj python manage.py load_data
 ```
 
+A super user is helpful if you want to manage your data and try adding other users. A super user can be created as follows:
+
+```shell
+docker compose exec tmd-dj python manage.py createsuperuser
+```
+
+
+
 ### Running with production Docker 
 
 ```shell
