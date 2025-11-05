@@ -181,6 +181,12 @@ STORAGES = {
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
+# Widget configuration
+TMD_WIDGET_SCRIPT_URL = os.environ.get(
+    "TMD_WIDGET_SCRIPT_URL",
+    "https://elixir-europe-training.github.io/Training-Metrics-Database/widget.js",
+)
+
 # Load static messages to display on the site
 try:
     STATIC_MESSAGES_DATA = os.environ.get("TMD_STATIC_MESSAGES", None)
