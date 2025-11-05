@@ -40,6 +40,9 @@ def proxy_question_set(request, question_set_slug: str):
         return _set_cors_headers(HttpResponse(status=204))
 
     endpoint = f"{TMD_METRICS_BASE_URL}{quote(question_set_slug)}"
+    query_string = request.META.get("QUERY_STRING")
+    if query_string:
+        endpoint = f"{endpoint}?{query_string}"
     try:
         with urlrequest.urlopen(endpoint) as response:
             payload = response.read()

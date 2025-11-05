@@ -1,8 +1,7 @@
-{% extends 'common/base.html' %}
 {% load static %}
 
 {% block content %}
-  <h1 class="mb-3">Training Metrics Widget (Test Harness)</h1>
+  <h1 class="mb-3">Training Metrics Widget</h1>
   <p class="text-muted">
     This page renders the widget using the public quality question set endpoint. Use it to verify
     behaviour while developing locally.
@@ -10,15 +9,14 @@
 
   <div class="tmd-widget" id="tmd-widget-container"></div>
 
-  <script src="https://elixir-europe-training.github.io/Training-Metrics-Database/widget.js"></script>
+  <script src="{{ widget_script_url }}"></script>
   <script>
     TMDWidget({
       container: '#tmd-widget-container',
-      questionSet: 'quality',
-      questions: ["quality-used_resources_before"],
+      questions: ['quality-course_rating', 'impact-followup_shared'],
       chartType: 'pie',
       colors: ['#f47d20', '#005472', '#7fb800', '#ffd400'],
-      endpoint: 'http://localhost:8000/widgets/data/quality'
+      endpoint: 'http://localhost:8001/metrics'
     }).catch((error) => {
       console.error('TMDWidget failed to initialise', error);
     });

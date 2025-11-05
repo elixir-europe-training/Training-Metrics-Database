@@ -10,9 +10,9 @@
    * Default configuration for the widget. Settings can be overridden via the `TMDWidget` factory function.
    */
   const DEFAULT_OPTIONS = {
-    questionSet: 'quality',
-    chartType: 'bar',
+    questionSets: null,
     questions: null,
+    chartType: 'pie',
     dataScope: 'all',
     endpoint: null,
     colors: null,
@@ -41,35 +41,30 @@
    * Normalise the API payload into an array of questions with aggregated counts.
    *
    * @param {unknown} payload
-   * @param {Set<string> | null} questionFilter
    * @returns {Array<{ id: string, label: string, aggregated: Record<string, number> }>}
    */
-  function normalisePayload(payload, questionFilter) {
+  function normalisePayload(payload) {
     const values = Array.isArray(payload?.values) ? payload.values : [];
-    return values.reduce((acc, entry) => {
-      const id = entry?.id || entry?.slug || entry?.label;
-      if (!id || (questionFilter && !questionFilter.has(id))) {
-        return acc;
-      }
+    return values
+      .filter((entry) => entry?.id)
+      .map((entry) => {
+        const id = entry.id;
+        const options = Array.isArray(entry?.options) ? entry.options : [];
+        const aggregated = options
+          .filter((option) => option?.id)
+          .reduce((map, option) => {
+            const optionLabel = option.id;
+            const count = Number(option?.count ?? 0);
+            map[optionLabel] = Number.isFinite(count) ? count : 0;
+            return map;
+          }, {});
 
-      const options = Array.isArray(entry?.options) ? entry.options : [];
-      const aggregated = options.reduce((map, option) => {
-        const optionLabel = option?.label || option?.id;
-        if (!optionLabel) {
-          return map;
-        }
-        const count = Number(option?.count ?? 0);
-        map[optionLabel] = Number.isFinite(count) ? count : 0;
-        return map;
-      }, {});
-
-      acc.push({
-        id,
-        label: entry?.label || entry?.title || id,
-        aggregated,
+        return {
+          id,
+          label: entry?.label || entry?.title || id,
+          aggregated,
+        };
       });
-      return acc;
-    }, []);
   }
 
   /**
@@ -114,6 +109,43 @@
   }
 
   let chartJsLoader = null;
+
+  function buildRequestUrl(settings) {
+    const fallbackSet =
+      settings.questionSet ||
+      (Array.isArray(settings.questionSets) && settings.questionSets.length > 0
+        ? settings.questionSets[0]
+        : null);
+
+    const base =
+      settings.endpoint ||
+      DEFAULT_BASE_URL;
+
+    let url;
+    try {
+      url = new URL(base, base.startsWith('http') ? undefined : global.location?.origin);
+    } catch (error) {
+      return base;
+    }
+
+    const hasQuestionSets = Array.isArray(settings.questionSets) && settings.questionSets.length > 0;
+    const hasQuestions = Array.isArray(settings.questions) && settings.questions.length > 0;
+
+    // Rule: questionSets take precedence if both exist
+    if (hasQuestionSets) {
+      url.searchParams.set('question_sets', settings.questionSets.join(','));
+    } else if (hasQuestions) {
+      url.searchParams.set('questions', settings.questions.join(','));
+    }
+
+
+    // Include data scope
+    if (settings.dataScope && !url.searchParams.has('data_scope')) {
+      url.searchParams.set('data_scope', settings.dataScope);
+    }
+
+    return url.toString();
+  }
 
   /**
    * Ensure Chart.js is available globally, loading it from the CDN if necessary.
@@ -257,8 +289,8 @@
    * @param {Object} options
    * @param {string | HTMLElement} options.container - Selector or element that will host the widget.
    * @param {'all' | 'node'} [options.dataScope] - Scope of data to request; currently only `all` is supported.
-   * @param {string} [options.questionSet] - Question set slug to request.
-   * @param {string[]} [options.questions] - Optional subset of question IDs to include.
+   * @param {string[]} [options.questionSets] - Optional list of question sets to request (passed through to the API).
+   * @param {string[]} [options.questions] - Optional list of question slugs to request (passed through to the API).
    * @param {'bar' | 'pie'} [options.chartType] - Desired chart type.
    * @param {string} [options.endpoint] - Full endpoint override; otherwise derived from question set.
    * @param {string[]} [options.colors] - Optional array of CSS colour strings applied cyclically to chart segments.
@@ -273,16 +305,20 @@
       throw new Error('TMDWidget requires a valid container element.');
     }
 
+    if (
+      !settings.endpoint &&
+      !settings.questionSet &&
+      !(
+        Array.isArray(settings.questionSets) &&
+        settings.questionSets.length > 0
+      )
+    ) {
+      throw new Error('TMDWidget requires either "questionSet", "questionSets", or a custom "endpoint".');
+    }
+
     showMessage(container, 'Loading metrics…');
 
-    const questionFilter =
-      Array.isArray(settings.questions) && settings.questions.length > 0
-        ? new Set(settings.questions)
-        : null;
-
-    const requestUrl =
-      settings.endpoint ||
-      `${DEFAULT_BASE_URL}${encodeURIComponent(settings.questionSet)}`;
+    const requestUrl = buildRequestUrl(settings);
 
     let response;
     try {
@@ -298,7 +334,7 @@
     }
 
     const payload = await response.json();
-    const questions = normalisePayload(payload, questionFilter);
+    const questions = normalisePayload(payload);
     if (questions.length === 0) {
       showMessage(container, 'No metrics available for the requested configuration.');
       return;
@@ -310,15 +346,9 @@
     container._tmdCharts = [];
     container.innerHTML = '';
 
-    questions.forEach((question) => {
-      const chartInstance = renderQuestionChart(
-        container,
-        question,
-        settings.chartType,
-        settings.colors
-      );
-      container._tmdCharts.push(chartInstance);
-    });
+    container._tmdCharts = questions.map((question) =>
+      renderQuestionChart(container, question, settings.chartType, settings.colors)
+    );
   }
 
   global.TMDWidget = TMDWidget;
