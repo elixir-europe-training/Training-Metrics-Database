@@ -10,7 +10,7 @@ from metrics.models import (
     SystemSettings,
 )
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
+from django.db.models import Count, Q
 from metrics.views.common import get_tabs, get_event_filter_query, dict_to_querydict
 from metrics.forms import MetricsFilterForm
 from django.urls import reverse
@@ -77,7 +77,8 @@ class MetricsView(View):
             date_from,
             date_to,
             node_only,
-            current_node
+            current_node,
+            _questions
         ) = _get_filter_params(request)
         metrics = self.get_metrics(
             event_type=event_type,
@@ -241,7 +242,8 @@ def event_api(request):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
+        _questions
     ) = _get_filter_params(request)
 
     result = get_event_info(
@@ -268,14 +270,15 @@ def question_api(request, question_set_id: str):
         _date_from,
         _date_to,
         _node_only,
-        current_node
+        current_node,
+        questions,
     ) = _get_filter_params(request)
 
     superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
     if (superset.node is not None and superset.node != current_node):
         raise PermissionDenied("This set is not publicly available")
 
-    result = get_question_info(superset)
+    result = get_question_info(superset, questions)
 
     return JsonResponse({
         "values": result
@@ -309,7 +312,8 @@ def metrics_api(request, question_set_id: str):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
+        questions
     ) = _get_filter_params(request)
 
     superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
@@ -325,6 +329,7 @@ def metrics_api(request, question_set_id: str):
         event_node=node_only and current_node,
         date_to=date_to,
         date_from=date_from,
+        questions=questions
     )
 
     return JsonResponse({
@@ -341,7 +346,8 @@ def legacy_metrics_api(request, question_set_id: str):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
+        _questions
     ) = _get_filter_params(request)
 
     metrics_type = get_metrics_model_or_404(question_set_id)
@@ -426,7 +432,8 @@ def get_event_info(
     ]
 
 
-def get_question_info(question_superset):
+def get_question_info(question_superset, questions=None):
+    questions_query = get_question_query(questions)
     return [
         {
             "label": question.text,
@@ -440,7 +447,7 @@ def get_question_info(question_superset):
             ]
         }
         for question_set in question_superset.question_sets.all()
-        for question in question_set.questions.all()
+        for question in question_set.questions.filter(questions_query)
     ]
 
 
@@ -498,11 +505,13 @@ def get_metrics_info(
     event_node=None,
     date_to=None,
     date_from=None,
+    questions=None
 ):
+    questions_query = get_question_query(questions)
     questions = {
         q.slug: q
         for qs in question_superset.question_sets.all()
-        for q in qs.questions.all()
+        for q in qs.questions.filter(questions_query)
     }
 
     query = Response.objects.filter(answer__question__in=questions.values())
@@ -544,6 +553,14 @@ def get_metrics_info(
         }
         for question in questions.values()
     ]
+
+
+def get_question_query(questions):
+    return (
+        Q()
+        if questions is None or len (questions) == 0
+        else Q(slug__in=questions)
+    )
 
 
 def get_legacy_metrics_info(
@@ -632,6 +649,7 @@ def _get_filter_params(request):
     date_to = request.GET.get("date_to", None) or None
     node_only = bool(int(request.GET.get("node_only", "0")))
     current_node = UserProfile.get_node(request.user) if request.user.is_authenticated else None
+    questions = request.GET.getlist("questions", None)
 
     return (
         event_type,
@@ -641,7 +659,8 @@ def _get_filter_params(request):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
+        questions
     )
 
 
