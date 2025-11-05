@@ -15,6 +15,7 @@
     questions: null,
     dataScope: 'all',
     endpoint: null,
+    colors: null,
   };
 
   /**
@@ -46,16 +47,16 @@
   function normalisePayload(payload, questionFilter) {
     const values = Array.isArray(payload?.values) ? payload.values : [];
     return values.reduce((acc, entry) => {
-      const id = entry?.id;
+      const id = entry?.id || entry?.slug || entry?.label;
       if (!id || (questionFilter && !questionFilter.has(id))) {
         return acc;
       }
 
       const options = Array.isArray(entry?.options) ? entry.options : [];
       const aggregated = options.reduce((map, option) => {
-        const optionLabel = option?.id;
+        const optionLabel = option?.label || option?.id;
         if (!optionLabel) {
-            return map;
+          return map;
         }
         const count = Number(option?.count ?? 0);
         map[optionLabel] = Number.isFinite(count) ? count : 0;
@@ -64,7 +65,7 @@
 
       acc.push({
         id,
-        label: entry?.label,
+        label: entry?.label || entry?.title || id,
         aggregated,
       });
       return acc;
@@ -92,16 +93,22 @@
    * Cycle through the Plotly colourway to generate chart colours.
    *
    * @param {number} size
+   * @param {string[] | null} overrideColors
    * @returns {string[]}
    */
-  function buildPalette(size) {
+  function buildPalette(size, overrideColors) {
     if (size <= 0) {
       return [];
     }
 
+    const source =
+      Array.isArray(overrideColors) && overrideColors.length > 0
+        ? overrideColors
+        : DEFAULT_COLORWAY;
+
     const palette = [];
     for (let index = 0; index < size; index += 1) {
-      palette.push(DEFAULT_COLORWAY[index % DEFAULT_COLORWAY.length]);
+      palette.push(source[index % source.length]);
     }
     return palette;
   }
@@ -151,9 +158,10 @@
    * @param {HTMLElement} container
    * @param {{ id: string, label: string, aggregated: Record<string, number> }} question
    * @param {'bar' | 'pie'} chartType
+   * @param {string[] | null} colors
    * @returns {Chart}
    */
-  function renderQuestionChart(container, question, chartType) {
+  function renderQuestionChart(container, question, chartType, colors) {
     const labels = Object.keys(question.aggregated);
     const values = labels.map((label) => question.aggregated[label]);
 
@@ -173,7 +181,7 @@
     wrapper.appendChild(canvasWrapper);
     container.appendChild(wrapper);
 
-    const palette = buildPalette(labels.length);
+    const palette = buildPalette(labels.length, colors);
     const isPie = chartType === 'pie';
 
     return new Chart(canvas.getContext('2d'), {
@@ -253,6 +261,7 @@
    * @param {string[]} [options.questions] - Optional subset of question IDs to include.
    * @param {'bar' | 'pie'} [options.chartType] - Desired chart type.
    * @param {string} [options.endpoint] - Full endpoint override; otherwise derived from question set.
+   * @param {string[]} [options.colors] - Optional array of CSS colour strings applied cyclically to chart segments.
    * @returns {Promise<void>}
    */
   async function TMDWidget(options) {
@@ -302,7 +311,12 @@
     container.innerHTML = '';
 
     questions.forEach((question) => {
-      const chartInstance = renderQuestionChart(container, question, settings.chartType);
+      const chartInstance = renderQuestionChart(
+        container,
+        question,
+        settings.chartType,
+        settings.colors
+      );
       container._tmdCharts.push(chartInstance);
     });
   }
