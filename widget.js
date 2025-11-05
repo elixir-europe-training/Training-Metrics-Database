@@ -1,7 +1,7 @@
 (function (global) {
   /**
    * Base endpoint for question set summary statistics.
-   * The request URL is composed as `${DEFAULT_BASE_URL}${questionSet}` unless a custom `endpoint` is provided.
+   * Consumers can override this by providing a full `endpoint` option.
    */
   const DEFAULT_BASE_URL = 'https://tmd.elixir-europe.org/metrics/set/';
   const CHART_JS_CDN = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -111,15 +111,7 @@
   let chartJsLoader = null;
 
   function buildRequestUrl(settings) {
-    const fallbackSet =
-      settings.questionSet ||
-      (Array.isArray(settings.questionSets) && settings.questionSets.length > 0
-        ? settings.questionSets[0]
-        : null);
-
-    const base =
-      settings.endpoint ||
-      DEFAULT_BASE_URL;
+    const base = settings.endpoint || DEFAULT_BASE_URL;
 
     let url;
     try {
@@ -131,7 +123,7 @@
     const hasQuestionSets = Array.isArray(settings.questionSets) && settings.questionSets.length > 0;
     const hasQuestions = Array.isArray(settings.questions) && settings.questions.length > 0;
 
-    // Rule: questionSets take precedence if both exist
+    // Rule: questionSets take precedence if both exist; when both are missing request all data
     if (hasQuestionSets) {
       url.searchParams.set('question_sets', settings.questionSets.join(','));
     } else if (hasQuestions) {
@@ -305,15 +297,8 @@
       throw new Error('TMDWidget requires a valid container element.');
     }
 
-    if (
-      !settings.endpoint &&
-      !settings.questionSet &&
-      !(
-        Array.isArray(settings.questionSets) &&
-        settings.questionSets.length > 0
-      )
-    ) {
-      throw new Error('TMDWidget requires either "questionSet", "questionSets", or a custom "endpoint".');
+    if (!settings.endpoint && !Array.isArray(settings.questionSets) && !Array.isArray(settings.questions)) {
+      console.warn('TMDWidget: no question filters provided; returning all available data.');
     }
 
     showMessage(container, 'Loading metrics…');
@@ -343,7 +328,6 @@
     if (Array.isArray(container._tmdCharts)) {
       container._tmdCharts.forEach((chartInstance) => chartInstance.destroy());
     }
-    container._tmdCharts = [];
     container.innerHTML = '';
 
     container._tmdCharts = questions.map((question) =>
