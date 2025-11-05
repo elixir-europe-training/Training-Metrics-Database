@@ -10,7 +10,7 @@
 
   <div class="tmd-widget" id="tmd-widget-container"></div>
 
-  <script src="{{ widget_script_url }}"></script>
+  <script src="https://elixir-europe-training.github.io/Training-Metrics-Database/widget.js"></script>
   <script>
     TMDWidget({
       container: '#tmd-widget-container',
@@ -18,7 +18,7 @@
       questions: ["quality-used_resources_before"],
       chartType: 'pie',
       colors: ['#f47d20', '#005472', '#7fb800', '#ffd400'],
-      endpoint: 'https://tmd.elixir-europe.org/widgets/data/quality'
+      endpoint: 'http://localhost:8000/widgets/data/quality'
     }).catch((error) => {
       console.error('TMDWidget failed to initialise', error);
     });
