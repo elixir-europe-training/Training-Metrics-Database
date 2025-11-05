@@ -18,6 +18,18 @@ from metrics.views.model_views import (
     SuperSetMetricsDeleteView,
 )
 
+
+def public_api(func):
+    def _public_api(*args, **kwargs):
+        response = func(*args, **kwargs)
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
+    return _public_api
+
+
 urlpatterns = [
     path('', lambda request: redirect('world-map', permanent=True)),
     path(
@@ -60,10 +72,10 @@ urlpatterns = [
     ),
 
     path('metrics/world-map', metrics.world_map_api, name="world-map-api"),
-    path('metrics/event', metrics.event_api, name="event-api"),
-    path('metrics/set/<str:question_set_id>', metrics.get_metrics_api, name="metrics-api"),
-    path('properties/set/<str:question_set_id>', metrics.question_api, name="properties-set-api"),
-    path('properties/event', metrics.event_properties_api, name="properties-event-api"),
+    path('metrics/event', public_api(metrics.event_api), name="event-api"),
+    path('metrics/set/<str:question_set_id>', public_api(metrics.get_metrics_api), name="metrics-api"),
+    path('properties/set/<str:question_set_id>', public_api(metrics.question_api), name="properties-set-api"),
+    path('properties/event', public_api(metrics.event_properties_api), name="properties-event-api"),
 
     path('world-map', metrics.world_map_event_count, name='world-map'),
 
