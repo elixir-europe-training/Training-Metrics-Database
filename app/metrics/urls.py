@@ -73,10 +73,8 @@ urlpatterns = [
 
     path('metrics/world-map', metrics.world_map_api, name="world-map-api"),
     path('metrics/event', public_api(metrics.event_api), name="event-api"),
-    path('metrics/questions', public_api(metrics.metrics_question_api), name="metrics-question-api"),
-    path('metrics/sets', public_api(metrics.get_metrics_api), name="metrics-api"),
-    path('properties/sets', public_api(metrics.properties_api), name="properties-set-api"),
-    path('properties/questions', public_api(metrics.properties_question_api), name="properties-questions-api"),
+    path('metrics', public_api(metrics.get_metrics_api), name="metrics-api"),
+    path('properties', public_api(metrics.properties_api), name="properties-api"),
     path('properties/event', public_api(metrics.event_properties_api), name="properties-event-api"),
 
     path('world-map', metrics.world_map_event_count, name='world-map'),
