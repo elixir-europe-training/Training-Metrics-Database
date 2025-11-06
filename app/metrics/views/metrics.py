@@ -271,42 +271,12 @@ def properties_api(request):
         _node_only,
         current_node,
     ) = _get_filter_params(request)
-    superset_ids = request.GET.getlist("ids", None)
+    questionset_ids = parse_csv(request.GET.get("question_sets", ""))
+    question_ids = parse_csv(request.GET.get("questions", ""))
 
-    supersets = list(QuestionSuperSet.objects.filter(
-        Q(slug__in=superset_ids, use_for_metrics=True)
-        & (Q(node__isnull=True) | Q(node=current_node))
-    ))
+    questions = get_questions(questionset_ids, question_ids, current_node)
 
-    result = get_question_info(
-        get_superset_questions(supersets)
-    )
-
-    return JsonResponse({
-        "values": result
-    })
-
-
-def properties_question_api(request):
-    (
-        _event_type,
-        _funding,
-        _target_audience,
-        _additional_platforms,
-        _date_from,
-        _date_to,
-        _node_only,
-        current_node,
-    ) = _get_filter_params(request)
-    question_ids = request.GET.getlist("ids", None)
-
-    question_list = list(
-        Question.objects.filter(
-            Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
-        )
-    )
-
-    result = get_question_info(question_list)
+    result = get_question_info(questions)
 
     return JsonResponse({
         "values": result
@@ -331,6 +301,18 @@ def get_metrics_api(request, *args, **kwargs):
         return legacy_metrics_api(request, *args, **kwargs)
 
 
+def parse_csv(csv_str):
+    items = [
+        item.strip()
+        for item in csv_str.split(",")
+    ]
+    return [
+        item
+        for item in items
+        if item != ""
+    ]
+
+
 def metrics_api(request):
     (
         event_type,
@@ -342,15 +324,13 @@ def metrics_api(request):
         node_only,
         current_node,
     ) = _get_filter_params(request)
-    superset_ids = request.GET.getlist("ids", None)
+    questionset_ids = parse_csv(request.GET.get("question_sets", ""))
+    question_ids = parse_csv(request.GET.get("questions", ""))
 
-    supersets = list(QuestionSuperSet.objects.filter(
-        Q(slug__in=superset_ids, use_for_metrics=True)
-        & (Q(node__isnull=True) | Q(node=current_node))
-    ))
+    questions = get_questions(questionset_ids, question_ids, current_node)
 
     result = get_metrics_info(
-        get_superset_questions(supersets),
+        questions,
         event_type=event_type,
         event_funding=funding,
         event_target_audience=target_audience,
@@ -358,6 +338,7 @@ def metrics_api(request):
         event_node=node_only and current_node,
         date_to=date_to,
         date_from=date_from,
+        normalized=True
     )
 
     return JsonResponse({
@@ -365,39 +346,21 @@ def metrics_api(request):
     })
 
 
-def metrics_question_api(request):
-    (
-        event_type,
-        funding,
-        target_audience,
-        additional_platforms,
-        date_from,
-        date_to,
-        node_only,
-        current_node,
-    ) = _get_filter_params(request)
-    question_ids = request.GET.getlist("ids", None)
-
-    question_list = list(
-        Question.objects.filter(
-            Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
+def get_questions(questionset_ids, question_ids, current_node):
+    return (
+        get_superset_questions(
+            list(QuestionSuperSet.objects.filter(
+                Q(slug__in=questionset_ids, use_for_metrics=True)
+                & (Q(node__isnull=True) | Q(node=current_node))
+            ))
+        )
+        if len(questionset_ids) > 0
+        else list(
+            Question.objects.filter(
+                Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
+            )
         )
     )
-
-    result = get_metrics_info(
-        question_list,
-        event_type=event_type,
-        event_funding=funding,
-        event_target_audience=target_audience,
-        event_additional_platforms=additional_platforms,
-        event_node=node_only and current_node,
-        date_to=date_to,
-        date_from=date_from,
-    )
-
-    return JsonResponse({
-        "values": result,
-    })
 
 
 def legacy_metrics_api(request, question_set_id: str):
@@ -574,6 +537,7 @@ def get_metrics_info(
     event_node=None,
     date_to=None,
     date_from=None,
+    normalized=False
 ):
     questions = {
         q.slug: q
@@ -608,17 +572,27 @@ def get_metrics_info(
         {
             "label": question.text,
             "id": question.slug,
-            "options": sorted([
-                {
-                    "label": answer.text,
-                    "id": answer.slug,
-                    "count": summary.get(answer.id, 0)
-                }
-                for answer in question.answers.all()
-            ], key=lambda v: -v["count"])
+            "options": parse_options(question, summary, normalized)
         }
         for question in questions.values()
     ]
+
+
+def parse_options(question, summary, normalized=False):
+    all_answers = list(question.answers.all())
+    answer_sum = (
+        sum([summary.get(answer.id, 0) for answer in all_answers])
+        if normalized
+        else 1
+    )
+    return sorted([
+        {
+            "label": answer.text,
+            "id": answer.slug,
+            "count": summary.get(answer.id, 0) / answer_sum
+        }
+        for answer in all_answers
+    ], key=lambda v: -v["count"])
 
 
 def get_question_query(questions):
