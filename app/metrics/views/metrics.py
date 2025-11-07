@@ -583,13 +583,19 @@ def parse_options(question, summary, normalized=False):
     answer_sum = (
         sum([summary.get(answer.id, 0) for answer in all_answers])
         if normalized
-        else 1
+        else None
     )
+    def _normalize(value):
+        return (
+            value / answer_sum
+            if normalized
+            else value
+        )
     return sorted([
         {
             "label": answer.text,
             "id": answer.slug,
-            "count": summary.get(answer.id, 0) / answer_sum
+            "count": _normalize(summary.get(answer.id, 0))
         }
         for answer in all_answers
     ], key=lambda v: -v["count"])
