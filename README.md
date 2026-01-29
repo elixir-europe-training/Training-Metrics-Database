@@ -33,7 +33,19 @@ Seed the database with test data:
 
 ```shell
 docker compose exec tmd-dj python manage.py load_data
+
+# NOTE: Currently the load_data command loads the metric data into a legacy model that
+# is no longer exposed by default in the UI. In order to get the data in the right place
+# run the following command to migrate the metrics data:
+docker compose exec tmd-dj ./manage.py migrate_metrics
 ```
+
+A super user is helpful if you want to manage your data and try adding other users. A super user can be created as follows:
+
+```shell
+docker compose exec tmd-dj python manage.py createsuperuser
+```
+
 
 ### Running with production Docker 
 

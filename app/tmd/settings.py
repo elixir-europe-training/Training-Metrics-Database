@@ -180,6 +180,30 @@ STORAGES = {
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console'],
+        },
+    },
+}
+
+
 # Load static messages to display on the site
 try:
     STATIC_MESSAGES_DATA = os.environ.get("TMD_STATIC_MESSAGES", None)

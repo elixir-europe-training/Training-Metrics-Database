@@ -1,0 +1,13 @@
+<nav aria-label="Page navigation" class="d-flex flex-row justify-content-between">
+    <ul class="pagination">
+        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_previous %}href="?{{ filter_params.urlencode }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"{% endif %}>Previous</a></li>
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}"><a class="page-link" {% if page_obj.has_next %}href="?{{ filter_params.urlencode }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}"{% endif %}>Next</a></li>
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span></li>
+    </ul>
+    <ul class="pagination">
+        <li class="page-item disabled"><span class="page-link">Page size:</span></li>
+        {% for page_size_option in page_size_options %}
+        <li class="page-item {% if page_size == page_size_option %} active{% endif %}"><a class="page-link" href="?{{ filter_params.urlencode }}&page_size={{ page_size_option }}">{{page_size_option}}</a></li>
+        {% endfor %}
+    </ul>
+</nav>

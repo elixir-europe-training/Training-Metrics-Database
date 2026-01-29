@@ -12,8 +12,6 @@ ARG TMDSTATICDIR
 ARG UID
 ARG GID
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 ENV TMD_STATIC_ROOT="${TMDSTATICDIR}"
 
 RUN apt update
@@ -41,6 +39,9 @@ COPY app/entrypoint "${TMDDIR}/"
 COPY app/manage.py "${TMDDIR}/"
 RUN chmod +x "${TMDDIR}/entrypoint"
 
+# Precompile 
+RUN python -m compileall -b "${TMDDIR}"
+
 RUN python manage.py collectstatic
 
 USER python
@@ -49,6 +50,10 @@ ENTRYPOINT ./entrypoint
 
 # Dev setup
 FROM base AS dev
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 COPY app/utils/dev-requirements.txt "${TMDDIR}/"
 RUN pip install -r dev-requirements.txt
 
