@@ -347,20 +347,19 @@ def metrics_api(request):
 
 
 def get_questions(questionset_ids, question_ids, current_node):
-    return (
-        get_superset_questions(
-            list(QuestionSuperSet.objects.filter(
-                Q(slug__in=questionset_ids, use_for_metrics=True)
-                & (Q(node__isnull=True) | Q(node=current_node))
-            ))
-        )
-        if len(questionset_ids) > 0
-        else list(
-            Question.objects.filter(
-                Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
-            )
+    question_set_questions = get_superset_questions(
+        list(QuestionSuperSet.objects.filter(
+            Q(slug__in=questionset_ids, use_for_metrics=True)
+            & (Q(node__isnull=True) | Q(node=current_node))
+        ))
+    )
+    questions = list(
+        Question.objects.filter(
+            Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
         )
     )
+
+    return set([*question_set_questions, *questions])
 
 
 def legacy_metrics_api(request, question_set_id: str):
