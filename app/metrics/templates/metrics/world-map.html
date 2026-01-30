@@ -1,9 +1,7 @@
 {% extends "common/base.html" %}
 {% load static %}
 {% block content %}
-
-    <br>
-    <br>
+    <h1>Welcome to the Training Metrics Database!</h1>
     {% include 'common/tabs.html' %}
     <div id="world-map"></div>
     <script>
@@ -48,7 +46,6 @@
         }
     </script>
     <script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8" onload="mountPlot()"></script>
-    <h1>Welcome to the Training Metrics Database!</h1>
     <div>
         
         The Training Metrics Database is an effort to streamline data collection, storage, and visualisation for the Quality and Impact of the ELIXIR Training Platform services.
