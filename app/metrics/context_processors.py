@@ -23,7 +23,7 @@ def apply_static_messages(request):
 def get_navigation(request):
     return {
         "nav_items": [
-            {"title": "TMD - a new version of the Training Metrics Database", "icon": "", "url": reverse("world-map"), "type": "main"},
+            {"title": "TMD - Training Metrics Database", "icon": "", "url": reverse("world-map"), "type": "main"},
             *[
                 {"title": title, "icon": icon, "url": url, "type": "user"}
                 for title, icon, url in (

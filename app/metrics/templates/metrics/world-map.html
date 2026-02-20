@@ -1,7 +1,7 @@
 {% extends "common/base.html" %}
 {% load static %}
 {% block content %}
-    <h1>Reports</h1>
+    <h1>TMD - Training Metrics Database</h1>
     {% include 'common/tabs.html' %}
     <div id="world-map"></div>
     <script>
@@ -24,7 +24,7 @@
             }];
 
             const layout = {
-                title: {text: "Event count per region"},
+                title: {text: "Number of training events per node/country where it is held for the current year"},
                 geo: {
                     bgcolor: "white",
                     landcolor: "#E5ECF6",

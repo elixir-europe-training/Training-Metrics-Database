@@ -1,6 +1,7 @@
 from django.http import JsonResponse, Http404
 from metrics.models import (
     Event,
+    Question,
     QuestionSuperSet,
     Response,
     Quality,
@@ -10,7 +11,7 @@ from metrics.models import (
     SystemSettings,
 )
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
+from django.db.models import Count, Q
 from metrics.views.common import get_tabs, get_event_filter_query, dict_to_querydict
 from metrics.forms import MetricsFilterForm
 from django.urls import reverse
@@ -77,7 +78,7 @@ class MetricsView(View):
             date_from,
             date_to,
             node_only,
-            current_node
+            current_node,
         ) = _get_filter_params(request)
         metrics = self.get_metrics(
             event_type=event_type,
@@ -156,7 +157,7 @@ class SuperSetMetricsView(MetricsView):
             raise PermissionDenied("This set is not publicly available")
 
         return get_metrics_info(
-            superset,
+            get_superset_questions([superset]),
             **kwargs
         )
 
@@ -241,7 +242,7 @@ def event_api(request):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
     ) = _get_filter_params(request)
 
     result = get_event_info(
@@ -259,7 +260,7 @@ def event_api(request):
     })
 
 
-def question_api(request, question_set_id: str):
+def properties_api(request):
     (
         _event_type,
         _funding,
@@ -268,14 +269,14 @@ def question_api(request, question_set_id: str):
         _date_from,
         _date_to,
         _node_only,
-        current_node
+        current_node,
     ) = _get_filter_params(request)
+    questionset_ids = parse_csv(request.GET.get("question_sets", ""))
+    question_ids = parse_csv(request.GET.get("questions", ""))
 
-    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
-    if (superset.node is not None and superset.node != current_node):
-        raise PermissionDenied("This set is not publicly available")
+    questions = get_questions(questionset_ids, question_ids, current_node)
 
-    result = get_question_info(superset)
+    result = get_question_info(questions)
 
     return JsonResponse({
         "values": result
@@ -300,7 +301,19 @@ def get_metrics_api(request, *args, **kwargs):
         return legacy_metrics_api(request, *args, **kwargs)
 
 
-def metrics_api(request, question_set_id: str):
+def parse_csv(csv_str):
+    items = [
+        item.strip()
+        for item in csv_str.split(",")
+    ]
+    return [
+        item
+        for item in items
+        if item != ""
+    ]
+
+
+def metrics_api(request):
     (
         event_type,
         funding,
@@ -309,15 +322,15 @@ def metrics_api(request, question_set_id: str):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
     ) = _get_filter_params(request)
+    questionset_ids = parse_csv(request.GET.get("question_sets", ""))
+    question_ids = parse_csv(request.GET.get("questions", ""))
 
-    superset = get_object_or_404(QuestionSuperSet, slug=question_set_id, use_for_metrics=True)
-    if (superset.node is not None and superset.node != current_node):
-        raise PermissionDenied("This set is not publicly available")
+    questions = get_questions(questionset_ids, question_ids, current_node)
 
     result = get_metrics_info(
-        superset,
+        questions,
         event_type=event_type,
         event_funding=funding,
         event_target_audience=target_audience,
@@ -325,11 +338,28 @@ def metrics_api(request, question_set_id: str):
         event_node=node_only and current_node,
         date_to=date_to,
         date_from=date_from,
+        normalized=True
     )
 
     return JsonResponse({
         "values": result,
     })
+
+
+def get_questions(questionset_ids, question_ids, current_node):
+    question_set_questions = get_superset_questions(
+        list(QuestionSuperSet.objects.filter(
+            Q(slug__in=questionset_ids, use_for_metrics=True)
+            & (Q(node__isnull=True) | Q(node=current_node))
+        ))
+    )
+    questions = list(
+        Question.objects.filter(
+            Q(slug__in=question_ids) & (Q(node__isnull=True) | Q(node=current_node))
+        )
+    )
+
+    return set([*question_set_questions, *questions])
 
 
 def legacy_metrics_api(request, question_set_id: str):
@@ -341,7 +371,7 @@ def legacy_metrics_api(request, question_set_id: str):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
     ) = _get_filter_params(request)
 
     metrics_type = get_metrics_model_or_404(question_set_id)
@@ -426,7 +456,7 @@ def get_event_info(
     ]
 
 
-def get_question_info(question_superset):
+def get_question_info(question_list):
     return [
         {
             "label": question.text,
@@ -439,8 +469,7 @@ def get_question_info(question_superset):
                 for answer in question.answers.all()
             ]
         }
-        for question_set in question_superset.question_sets.all()
-        for question in question_set.questions.all()
+        for question in question_list
     ]
 
 
@@ -489,8 +518,17 @@ def get_event_properties(filterable_only=False):
     ]
 
 
+def get_superset_questions(supersets):
+    return [
+        q
+        for superset in supersets
+        for qs in superset.question_sets.all()
+        for q in qs.questions.all()
+    ]
+
+
 def get_metrics_info(
-    question_superset,
+    question_list,
     event_type=None,
     event_funding=None,
     event_target_audience=None,
@@ -498,11 +536,11 @@ def get_metrics_info(
     event_node=None,
     date_to=None,
     date_from=None,
+    normalized=False
 ):
     questions = {
         q.slug: q
-        for qs in question_superset.question_sets.all()
-        for q in qs.questions.all()
+        for q in question_list
     }
 
     query = Response.objects.filter(answer__question__in=questions.values())
@@ -533,17 +571,41 @@ def get_metrics_info(
         {
             "label": question.text,
             "id": question.slug,
-            "options": sorted([
-                {
-                    "label": answer.text,
-                    "id": answer.slug,
-                    "count": summary.get(answer.id, 0)
-                }
-                for answer in question.answers.all()
-            ], key=lambda v: -v["count"])
+            "options": parse_options(question, summary, normalized)
         }
         for question in questions.values()
     ]
+
+
+def parse_options(question, summary, normalized=False):
+    all_answers = list(question.answers.all())
+    answer_sum = (
+        sum([summary.get(answer.id, 0) for answer in all_answers])
+        if normalized
+        else None
+    )
+    def _normalize(value):
+        return (
+            value / answer_sum
+            if normalized
+            else value
+        )
+    return sorted([
+        {
+            "label": answer.text,
+            "id": answer.slug,
+            "count": _normalize(summary.get(answer.id, 0))
+        }
+        for answer in all_answers
+    ], key=lambda v: -v["count"])
+
+
+def get_question_query(questions):
+    return (
+        Q()
+        if questions is None or len (questions) == 0
+        else Q(slug__in=questions)
+    )
 
 
 def get_legacy_metrics_info(
@@ -641,7 +703,7 @@ def _get_filter_params(request):
         date_from,
         date_to,
         node_only,
-        current_node
+        current_node,
     )
 
 

@@ -7,6 +7,7 @@ import re
 import requests
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
+from django.conf import settings
 
 
 def string_choices(choices):
@@ -383,17 +384,51 @@ class OrganisingInstitution(models.Model):
 
     def update_ror_data(self):
         try:
-            ror_id_base = re.match("^https://ror.org/(.+)$", self.ror_id)[0]
-            ror_url = f"https://api.ror.org/v1/organizations/{ror_id_base}"
-            response = requests.get(ror_url, allow_redirects=True)
-            if response.status_code == 200:
-                data = response.json()
-                self.name = data["name"]
-                self.country = data.get("country", {}).get("country_name", "")
-            else:
-                raise ValidationError(f"Could not fetch ROR data for: {self.ror_id}, {ror_url}, {response.status_code}")
+            data = OrganisingInstitution.get_ror_data(self.ror_id)
+            self.name = OrganisingInstitution.get_preferred_ror_name(data)
+            self.country = OrganisingInstitution.get_ror_country(data)
         except TypeError:
             raise ValidationError(f"Not a valid ror id: {self.ror_id}")
+
+    @staticmethod
+    def get_ror_data(ror_id):
+        ror_id_base = re.match("^https://ror.org/(.+)$", ror_id)[0]
+        ror_url = f"https://api.ror.org/v2/organizations/{ror_id_base}"
+        response = requests.get(ror_url, allow_redirects=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise ValidationError(f"Could not fetch ROR data for: {ror_id}, {ror_url}, {response.status_code}")
+
+    @staticmethod
+    def get_preferred_ror_name(data):
+        priority_lang = getattr(settings, "ROR_PRIORITY_LANG", "en")
+        return (
+            OrganisingInstitution.get_ror_name(data, types={"ror_display"})
+            or OrganisingInstitution.get_ror_name(data, priority_lang=priority_lang, types={"label"})
+            or OrganisingInstitution.get_ror_name(data, types={"label"})
+            or OrganisingInstitution.get_ror_name(data, priority_lang=priority_lang, types={"alias"})
+            or OrganisingInstitution.get_ror_name(data, types={"alias"})
+            or OrganisingInstitution.get_ror_name(data)
+        )
+    
+    @staticmethod
+    def get_ror_name(data, priority_lang=None, types=None):
+        return next((
+            name["value"]
+            for name in data.get("names", [])
+            if (
+                (priority_lang is None or name.get("lang") == priority_lang)
+                and (types is None or frozenset(name.get("types", [])).intersection(types))
+            )
+        ), None)
+
+    @staticmethod
+    def get_ror_country(data):
+        return ", ".join([
+            loc.get("geonames_details", {}).get("country_name")
+            for loc in data.get("locations", [])
+        ])
 
 
 class UserProfile(models.Model):
