@@ -9,6 +9,7 @@ from metrics.models import (
     Demographic,
     UserProfile,
     SystemSettings,
+    Dataset,
 )
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
@@ -18,6 +19,7 @@ from django.urls import reverse
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.views import View
+from django.utils.dateparse import parse_date
 import csv
 import io
 import base64
@@ -326,6 +328,37 @@ def metrics_api(request):
     ) = _get_filter_params(request)
     questionset_ids = parse_csv(request.GET.get("question_sets", ""))
     question_ids = parse_csv(request.GET.get("questions", ""))
+    dataset_id = request.GET.get("dataset")
+    dataset = (
+        None
+        if dataset_id is None
+        else get_object_or_404(Dataset.objects.filter(uuid=dataset_id))
+    )
+
+    if dataset is not None:
+        node_only = True
+        current_node = dataset.node
+        date_to = (
+            dataset.date_to
+            if date_to is None
+            else date_to
+        )
+        date_to = (
+            date_to
+            if dataset.date_to is None
+            else min(date_to, dataset.date_to)
+        )
+
+        date_from = (
+            dataset.date_from
+            if date_from is None
+            else date_from
+        )
+        date_from = (
+            date_from
+            if dataset.date_from is None
+            else max(date_from, dataset.date_from)
+        )
 
     questions = get_questions(questionset_ids, question_ids, current_node)
 
@@ -362,34 +395,8 @@ def get_questions(questionset_ids, question_ids, current_node):
     return set([*question_set_questions, *questions])
 
 
-def legacy_metrics_api(request, question_set_id: str):
-    (
-        event_type,
-        funding,
-        target_audience,
-        additional_platforms,
-        date_from,
-        date_to,
-        node_only,
-        current_node,
-    ) = _get_filter_params(request)
-
-    metrics_type = get_metrics_model_or_404(question_set_id)
-
-    result = get_legacy_metrics_info(
-        metrics_type,
-        event_type=event_type,
-        event_funding=funding,
-        event_target_audience=target_audience,
-        event_additional_platforms=additional_platforms,
-        event_node=node_only and current_node,
-        date_to=date_to,
-        date_from=date_from,
-    )
-
-    return JsonResponse({
-        "values": result,
-    })
+def legacy_metrics_api(request):
+    raise Http404(f"API not implemented for legacy model")
 
 
 def get_event_info(
@@ -586,7 +593,7 @@ def parse_options(question, summary, normalized=False):
     )
     def _normalize(value):
         return (
-            value / answer_sum
+            (value / answer_sum if answer_sum > 0 else 0)
             if normalized
             else value
         )
@@ -690,8 +697,10 @@ def _get_filter_params(request):
     funding = request.GET.getlist("funding", None)
     target_audience = request.GET.getlist("target_audience", None)
     additional_platforms = request.GET.getlist("additional_platforms", None)
-    date_from = request.GET.get("date_from", None) or None
-    date_to = request.GET.get("date_to", None) or None
+    date_from_str = request.GET.get("date_from", None) or None
+    date_from = parse_date(date_from_str) if date_from_str else None
+    date_to_str = request.GET.get("date_to", None) or None
+    date_to = parse_date(date_to_str) if date_to_str else None
     node_only = bool(int(request.GET.get("node_only", "0")))
     current_node = UserProfile.get_node(request.user) if request.user.is_authenticated else None
 
