@@ -42,10 +42,22 @@ class Command(BaseCommand):
 
         # Define the permissions to add
         permissions = [
-            'view_question', 'add_question', 'change_question',
-            'view_questionset', 'add_questionset', 'change_questionset',
-            'view_questionsuperset', 'add_questionsuperset', 'change_questionsuperset',
-            'view_answer', 'add_answer', 'change_answer'
+            'view_question',
+            'add_question',
+            'change_question',
+            'view_questionset',
+            'add_questionset',
+            'change_questionset',
+            'view_questionsuperset',
+            'add_questionsuperset',
+            'change_questionsuperset',
+            'view_answer',
+            'add_answer',
+            'change_answer'
+            'view_dataset',
+            'add_dataset',
+            'change_dataset',
+            'delete_dataset',
         ]
 
         # Assign permissions to the group
