@@ -361,6 +361,7 @@ def metrics_api(request):
         )
 
     questions = get_questions(questionset_ids, question_ids, current_node)
+    event_node = node_only and current_node
 
     result = get_metrics_info(
         questions,
@@ -368,13 +369,25 @@ def metrics_api(request):
         event_funding=funding,
         event_target_audience=target_audience,
         event_additional_platforms=additional_platforms,
-        event_node=node_only and current_node,
+        event_node=event_node,
         date_to=date_to,
         date_from=date_from,
         normalized=True
     )
 
     return JsonResponse({
+        "_meta": _params_to_meta(
+            dataset=dataset_id,
+            questions=question_ids,
+            question_sets=questionset_ids,
+            event_type=event_type,
+            funding=funding,
+            target_audience=target_audience,
+            additional_platforms=additional_platforms,
+            date_from=date_from,
+            date_to=date_to,
+            event_node=event_node,
+        ),
         "values": result,
     })
 
@@ -714,6 +727,19 @@ def _get_filter_params(request):
         node_only,
         current_node,
     )
+
+
+def _params_to_meta(**kwargs):
+    serializer = {
+        "date_from": lambda d: d.isoformat(),
+        "date_to": lambda d: d.isoformat(),
+        "event_node": lambda n: n.name,
+    }
+    return {
+        key: serializer[key](value) if key in serializer else value
+        for key, value in kwargs.items()
+        if value
+    }
 
 
 def _value_group(responses):
