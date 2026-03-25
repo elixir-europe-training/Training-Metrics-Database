@@ -17,7 +17,8 @@ from metrics.models import (
     Response,
     ResponseSet,
     UserProfile,
-    Node
+    Node,
+    Dataset
 )
 
 
@@ -242,7 +243,7 @@ class AnswerAdmin(admin.TabularInline):
 
 
 @admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
+class QuestionAdmin(ModelAdmin):
     prepopulated_fields = {"slug": ["text"]}
     list_display = (
         "text",
@@ -312,6 +313,43 @@ class QuestionAdmin(admin.ModelAdmin):
             else
             {}
         )
+
+
+@admin.register(Dataset)
+class DatasetAdmin(ModelAdmin):
+    exclude = ["user"]
+    list_display = (
+        "node",
+        "name",
+        "uuid",
+    )
+    readonly_fields =[
+        "node"
+    ]
+
+    def save_model(self, request, obj, form, change):
+        user_node = UserProfile.get_node(request.user)
+        obj.node = user_node
+        obj.user = request.user
+
+        return super().save_model(request, obj, form, change)
+    
+    def has_change_permission(self, request, obj=None):
+        # Can only change sets from own node
+        return (
+            is_owner_of_object(request.user, obj)
+            and super().has_change_permission(request, obj=obj)
+        )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+
+        user_node = UserProfile.get_node(request.user)
+        query = Q(node=user_node)
+
+        return qs.filter(query)
 
 
 class CustomUserAdmin(UserAdmin):

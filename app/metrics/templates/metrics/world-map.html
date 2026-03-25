@@ -1,7 +1,7 @@
 {% extends "common/base.html" %}
 {% load static %}
 {% block content %}
-    <h1>TMD - Training Metrics Database</h1>
+    <h1>Welcome to the Training Metrics Database!</h1>
     {% include 'common/tabs.html' %}
     <div id="world-map"></div>
     <script>
@@ -32,12 +32,12 @@
                     showland: true,
                     showlakes: true,
                     lakecolor: "white",
-                    projection: {type: "equirectangular"},
+                    projection: {type: "equirectangular", scale: 3.5},
                     showframe: false,
                     showcoastlines: false,
                     showcountries: true,
                     countrywidth: 0.2,
-                    lataxis_range: [-60, 90],
+                    center: {lon:20, lat:50},
                 },
                 height: 600,
             };
@@ -46,4 +46,32 @@
         }
     </script>
     <script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8" onload="mountPlot()"></script>
+    <div>
+        
+        The Training Metrics Database is an effort to streamline data collection, storage, and visualisation for the Quality and Impact of the ELIXIR Training Platform services.
+    </div>
+    <br>
+    <div>
+
+        The TMD contains data describing the audience demographic being reached by ELIXIR training events in addition to assessing the quality of ELIXIR training events from the users perspective.
+        
+        It also contains data evaluating the longer term impact that ELIXIR training events have had on the work of training participants.
+
+        Most of the data presented here is collected in shape of post workshop feedback surveys (immediately after the training or about half a year after the training) and registration data. 
+
+    </div>
+    <br>
+    <div>
+
+        Please note that data entry may be delayed and is under the responsibility of the ELIXIR Nodes training coordinator. This also means that the TMD showing 0 events for a node, does not mean that they do not do training. 
+
+    </div>
+    <br>
+    <div>
+
+
+        Further information (calendar, training material) about the trainings can be found on  <a href="https://tess.elixir-europe.org/">ELIXIR TeSS</a>. 
+
+
+    </div>
 {% endblock %}
