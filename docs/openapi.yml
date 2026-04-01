@@ -1,0 +1,182 @@
+openapi: 3.1.0
+info:
+  title: Training Metrics Database Public API Specification
+  description: |
+    The public API will allow fetching of publicly available statistics 
+    related to events registered in the TMD system.
+  version: 0.1.0
+servers:
+  - url: https://tmd-test.elixir-hpc.si
+    description: Test
+  - url: https://tmd.elixir-europe.org
+    description: Production
+paths: 
+  /metrics:
+    get:
+      tags:
+      - Metrics
+      summary: Get normalized metrics for events in the database
+      description: Retrieves the normalized metrics related to events matching the given filter parameters.
+      parameters:
+      - name: question_sets
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: A comma separated list of question set ids determining which questions to get metrics for
+      - name: questions
+        in: query
+        schema:
+          type: string
+        description: A comma separated list of question ids for which to get metrics
+      - name: dataset
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: A dataset id (UUID) which allows the user to fetch public node specific data 
+      - name: type
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: Filter metrics results on event type
+      - name: funding
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: Filter metrics on event funding
+      - name: target_audience
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: Filter metrics on event target audience
+      - name: additional_platforms
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: Filter metrics on additional platforms related to event
+      - name: date_from
+        in: query
+        schema:
+          $ref: "#/components/schemas/Date"
+        description: Filter metrics on event first allowed date
+      - name: date_to
+        in: query
+        schema:
+          $ref: "#/components/schemas/Date"
+        description: Filter metrics on event last allowed date
+
+      responses:
+        "200":
+          description: Normalized metrics response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _meta:
+                    type: object
+                    description: An object summarizing properties of the query
+                    properties:
+                      dataset:
+                        type: string
+                      questions:
+                        type: array
+                        items:
+                          type: string
+                      question_sets:
+                        type: array
+                        items:
+                          type: string
+                      event_type:
+                        type: array
+                        items:
+                          type: string
+                      funding:
+                        type: array
+                        items:
+                          type: string
+                      target_audience:
+                        type: array
+                        items:
+                          type: string
+                      additional_platforms:
+                        type: array
+                        items:
+                          type: string
+                      date_from:
+                        type: date
+                      date_to:
+                        type: date
+                      event_node:
+                        type: string
+                  values:
+                    type: array
+                    description: The normalized metrics results
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        id:
+                          type: string
+                        options:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              label:
+                                type: string
+                              id:
+                                type: string
+                              count:
+                                type: number
+  /properties:
+    get:
+      tags:
+      - Metrics
+      summary: Get a list of questions with ids and labels
+      description: Retrieves a list of questions with presentation labels and ids
+      parameters:
+      - name: question_sets
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: A comma separated list of question set ids determining which questions to get metrics for
+      - name: questions
+        in: query
+        schema:
+          $ref: "#/components/schemas/CommaSeparatedString"
+        description: A comma separated list of question ids for which to get metrics
+      responses:
+        "200":
+          description: Question properties response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  values:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        id:
+                          type: string
+                        options:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              label:
+                                type: string
+                              id:
+                                type: string
+components:
+  schemas:
+    CommaSeparatedString:
+      type: string
+      description: A comma separated string
+    Date:
+      type: string
+      fomrat: date
