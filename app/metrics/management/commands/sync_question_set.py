@@ -101,7 +101,6 @@ class Command(BaseCommand):
                 slug=answer_slug
             )
 
-
     def handle(self, *args, filename, setid, username, **options):
         logger.info(f"Updating question set: {setid}")
         with open(filename, "r") as f:

@@ -17,7 +17,6 @@ import math
 
 class GenericUpdateView(UpdateView):
     template_name = "metrics/model-form.html"
-    model = models.Quality
     view_name = None
 
     @property
@@ -324,7 +323,7 @@ class GenericListView(ListView):
             return self.model._meta.get_field(field).verbose_name.title()
         except FieldDoesNotExist:
             return field
-    
+
     def get_page_size_options(self):
         base_page_size = min(max(1, self.min_paginate_by), self.max_paginate_by)
         page_size_options = tuple(
@@ -594,50 +593,21 @@ class SuperSetMetricsDeleteView(
         return HttpResponseRedirect(success_url)
 
 
-class QualityMetricsDeleteView(
-    GenericEventMetricsDeleteView
-):
-    metrics_model = models.Quality
-
-
-class ImpactMetricsDeleteView(
-    GenericEventMetricsDeleteView
-):
-    metrics_model = models.Impact
-
-
-class DemographicMetricsDeleteView(
-    GenericEventMetricsDeleteView
-):
-    metrics_model = models.Demographic
-
-
 def get_metrics_counts(event, user):
     settings = SystemSettings.get_settings(user)
-    return (
-        [
-            (
-                superset.name,
-                max((
-                    models.ResponseSet.objects.filter(
-                        event=event,
-                        question_set=question_set
-                    ).count()
-                    for question_set in superset.question_sets.all()
-                ))
-            )
-            for superset in settings.get_upload_sets()
-        ]
-        if settings.has_flag("use_new_model_upload")
-        else [
-            (name, related.count())
-            for name, related in [
-                ("Quality metrics", event.quality),
-                ("Impact metrics", event.impact),
-                ("Demographic metrics", event.demographic)
-            ]
-        ]
-    )
+    return [
+        (
+            superset.name,
+            max((
+                models.ResponseSet.objects.filter(
+                    event=event,
+                    question_set=question_set
+                ).count()
+                for question_set in superset.question_sets.all()
+            ))
+        )
+        for superset in settings.get_upload_sets()
+    ]
 
 
 def get_metrics_status(event, user):

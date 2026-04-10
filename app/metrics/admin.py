@@ -30,9 +30,7 @@ COMMON_EXCLUDES = [
 
 def is_owner_of_object(user, obj):
     return (
-        not obj
-        or user.is_superuser
-        or UserProfile.get_node(user) == obj.node
+        not obj or user.is_superuser or UserProfile.get_node(user) == obj.node
     )
 
 
@@ -110,14 +108,17 @@ class QuestionSetAdmin(ModelAdmin):
     def has_change_permission(self, request, obj=None):
         # Can only change sets from own node
         return (
-            is_owner_of_object(request.user, obj)
-            and super().has_change_permission(request, obj=obj)
+            is_owner_of_object(request.user, obj) and super().has_change_permission(request, obj=obj)
         )
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not request.user.is_superuser:
-            fields = [field for field in fields if field not in COMMON_EXCLUDES]
+            fields = [
+                field
+                for field in fields
+                if field not in COMMON_EXCLUDES
+            ]
         return fields
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
@@ -186,8 +187,7 @@ class QuestionSuperSetAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return (
-            is_owner_of_object(request.user, obj)
-            and super().has_change_permission(request, obj=obj)
+            is_owner_of_object(request.user, obj) and super().has_change_permission(request, obj=obj)
         )
 
     def get_fields(self, request, obj=None):
@@ -290,8 +290,7 @@ class QuestionAdmin(ModelAdmin):
     def has_change_permission(self, request, obj=None):
         # Can only change sets from own node
         return (
-            is_owner_of_object(request.user, obj)
-            and super().has_change_permission(request, obj=obj)
+            is_owner_of_object(request.user, obj) and super().has_change_permission(request, obj=obj)
         )
 
     def get_readonly_fields(self, request, obj=None):
@@ -323,7 +322,7 @@ class DatasetAdmin(ModelAdmin):
         "name",
         "uuid",
     )
-    readonly_fields =[
+    readonly_fields = [
         "node"
     ]
 
@@ -333,12 +332,11 @@ class DatasetAdmin(ModelAdmin):
         obj.user = request.user
 
         return super().save_model(request, obj, form, change)
-    
+
     def has_change_permission(self, request, obj=None):
         # Can only change sets from own node
         return (
-            is_owner_of_object(request.user, obj)
-            and super().has_change_permission(request, obj=obj)
+            is_owner_of_object(request.user, obj) and super().has_change_permission(request, obj=obj)
         )
 
     def get_queryset(self, request):

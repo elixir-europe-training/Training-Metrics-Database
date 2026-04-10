@@ -12,9 +12,6 @@ from metrics.views.model_views import (
     InstitutionView,
     EventListView,
     InstitutionListView,
-    QualityMetricsDeleteView,
-    DemographicMetricsDeleteView,
-    ImpactMetricsDeleteView,
     SuperSetMetricsDeleteView,
 )
 
@@ -50,21 +47,6 @@ urlpatterns = [
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
     path('institution/list', InstitutionListView.as_view(), name='institution-list'),
-    path(
-        'event/delete-metrics/demographic/<int:pk>',
-        DemographicMetricsDeleteView.as_view(),
-        name="demographic-delete-metrics"
-    ),
-    path(
-        'event/delete-metrics/impact/<int:pk>',
-        ImpactMetricsDeleteView.as_view(),
-        name="impact-delete-metrics"
-    ),
-    path(
-        'event/delete-metrics/quality/<int:pk>',
-        QualityMetricsDeleteView.as_view(),
-        name="quality-delete-metrics"
-    ),
     path(
         'event/delete-metrics/superset/<int:pk>/<str:superset_slug>',
         SuperSetMetricsDeleteView.as_view(),

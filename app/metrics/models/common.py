@@ -344,8 +344,7 @@ class Event(EditTracking):
     @property
     def is_locked(self):
         return (
-            self.code is not None
-            or self.locked
+            self.code is not None or self.locked
         )
 
 
@@ -411,7 +410,7 @@ class OrganisingInstitution(models.Model):
             or OrganisingInstitution.get_ror_name(data, types={"alias"})
             or OrganisingInstitution.get_ror_name(data)
         )
-    
+
     @staticmethod
     def get_ror_name(data, priority_lang=None, types=None):
         return next((

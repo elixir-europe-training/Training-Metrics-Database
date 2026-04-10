@@ -3,15 +3,10 @@ from datetime import datetime
 from django.db.models import TextField
 from metrics.models import (
     Event,
-    Demographic,
-    Quality,
-    Impact,
     User,
     Node,
     OrganisingInstitution,
     ChoiceArrayField,
-    country_mapping,
-    EditTracking,
     UserProfile,
 )
 from django.utils.text import slugify
@@ -108,63 +103,6 @@ class ImportContext:
         else:
             raise ValidationError(f"Missing question set '{question_set_id}'")
 
-    def _demographic_from_dict(self, data: dict):
-        (created, modified) = self.timestamps_from_data(data)
-        (user, event) = self.get_user_and_event(data)
-        demographic = Demographic.objects.create(
-            user=user,
-            created=created,
-            modified=modified,
-            event=event,
-            heard_from=csv_to_array(data['heard_from']) or ["Other"],
-            employment_sector=use_alias(data['employment_sector']) or "Other",
-            employment_country=data['employment_country'],
-            gender=use_alias(data['gender']) or "Other",
-            career_stage=use_alias(data['career_stage']) or "Other",
-        )
-        demographic.full_clean()
-        return demographic
-
-    def _quality_from_dict(self, data: dict):
-        (created, modified) = self.timestamps_from_data(data)
-        (user, event) = self.get_user_and_event(data)
-        quality = Quality.objects.create(
-            user=user,
-            created=created,
-            modified=modified,
-            event=event,
-            used_resources_before=use_alias(data['used_resources_before']),
-            used_resources_future=use_alias(data['used_resources_future']),
-            recommend_course=use_alias(data['recommend_course']),
-            course_rating=use_alias(data['course_rating']),
-            balance=use_alias(data['balance']),
-            email_contact=use_alias(data['email_contact']) or "No",
-        )
-        quality.full_clean()
-        return quality
-
-    def _impact_from_dict(self, data: dict):
-        (created, modified) = self.timestamps_from_data(data)
-        (user, event) = self.get_user_and_event(data)
-        impact = Impact.objects.create(
-            user=user,
-            created=created,
-            modified=modified,
-            event=event,
-            when_attend_training=use_alias(data['when_attend_training']),
-            main_attend_reason=use_alias(data['main_attend_reason']),
-            how_often_use_before=use_alias(data['how_often_use_before']),
-            how_often_use_after=use_alias(data['how_often_use_after']),
-            able_to_explain=use_alias(data['able_to_explain']) or "Other",
-            able_use_now=use_alias(data['able_use_now']) or "Other",
-            help_work=csv_to_array(data['help_work']) or ["Other"],
-            attending_led_to=csv_to_array(data['attending_led_to']) or ["Other"],
-            people_share_knowledge=use_alias(data['people_share_knowledge']),
-            recommend_others=use_alias(data['recommend_others']),
-        )
-        impact.full_clean()
-        return impact
-
     def get_user_and_event(self, data: dict):
         event = self.get_event(data)
         user = self.user_from_data(data)
@@ -194,35 +132,12 @@ class ImportContext:
         pass
 
 
-class LegacyImportContext(ImportContext):
-    def __init__(self, user=None, node_main=None, timestamps=None, fixed_event=None):
+class EventImportContext(ImportContext):
+    def __init__(self, user=None, node_main=None, timestamps=None):
         super().__init__()
         self._user = user
         self._node_main = node_main
         self._timestamps = timestamps
-        self._fixed_event = fixed_event
-
-    def quality_or_demographic_from_dict(self, data: dict):
-        return (
-            self.responses_from_dict("quality", data),
-            self.responses_from_dict("demographic", data)
-        )
-
-    def impact_from_dict(self, data: dict):
-        return self.responses_from_dict("impact", data)
-
-    def get_institutions(self, ror_ids):
-        return [
-            self.get_institution(ror_id)
-            for ror_id in ror_ids
-        ]
-
-    def get_event(self, data):
-        if self._fixed_event:
-            return self._fixed_event
-
-        identifier = data['event']
-        return Event.objects.get(id=int(identifier))
 
     def user_from_data(self, data: dict):
         return self._user
@@ -340,7 +255,7 @@ def timestamps_from_dict(data: dict):
     return (created, modified)
 
 
-def legacy_to_current_event_dict(data: dict) -> dict:
+def parse_event_dict(data: dict) -> dict:
     try:
         mapping = {
             "Title": "title",
@@ -369,73 +284,6 @@ def legacy_to_current_event_dict(data: dict) -> dict:
             "node_main": None,
             "duration": None,
             "status": "Complete",
-        }
-    except KeyError as e:
-        raise ValidationError(f"Missing source data '{e}'")
-
-
-def legacy_to_current_quality_or_demographic_dict(data: dict) -> dict:
-    try:
-        mapping = {
-            "event_code": "event",
-            "Where did you see the course advertised?": "heard_from",
-            "What is your career stage?": "career_stage",
-            "What is your employment sector?": "employment_sector",
-            "What is your country of employment?": "employment_country",
-            "What is your gender?": "gender",
-            "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
-            "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
-            "Would you recommend the course?": "recommend_course",
-            "Please tell us your overall rating for the entire course": "course_rating",
-            "May we contact you by email in the future for more feedback?": "email_contact",
-            "What part of the training did you enjoy the most?": None,
-            "What part of the training did you enjoy the least?": None,
-            "The balance of theoretical and practical content was": "balance",
-            "What other topics would you like to see covered in the future?": None,
-            "Any other comments?": None,
-        }
-        return {
-            **{
-                target_id: data[source_id]
-                for source_id, target_id in mapping.items()
-                if target_id is not None
-            },
-            "event": int(data["event_code"])
-        }
-    except KeyError as e:
-        raise ValidationError(f"Missing source data '{e}'")
-
-
-def legacy_to_current_impact_dict(data: dict) -> dict:
-    try:
-        mapping = {
-            "event_code": "event",
-            "Which training event did you take part in?": None,
-            "How long ago did you attend the training?": "when_attend_training",
-            "What was your main reason for attending the training?": "main_attend_reason",
-            "What was your main reason for attending the training? (Other)": None,
-            "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
-            "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
-            "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
-            "Do you feel that you are able to explain to others what you learnt in the training? (Other)": None,
-            "Are you now able to use the tool(s)/ resource(s) covered in the training:": "able_use_now",
-            "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)": None,
-            "How did the training event help with your work? [select all that apply]": "help_work",
-            "How did the training event help with your work? (Other)": None,
-            "Attending the training event led to/ facilitated: [select all that apply]": "attending_led_to",
-            "Attending the training event led to/ facilitated: (Other)": None,
-            "Please elaborate on any impact": None,
-            "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
-            "Would you recommend the training to others?": "recommend_others",
-            "Any other comments?": None,
-        }
-        return {
-            **{
-                target_id: data[source_id]
-                for source_id, target_id in mapping.items()
-                if target_id is not None
-            },
-            "event": int(data["event_code"])
         }
     except KeyError as e:
         raise ValidationError(f"Missing source data '{e}'")
@@ -519,72 +367,3 @@ def update_table_rows(
             new_row[alias] = generator()
         new_data.append(new_row)
     return new_data
-
-
-def get_field_id(model, field_name):
-    model_name = slugify(model._meta.verbose_name)
-    return f"{model_name}-{field_name}"
-
-
-def parse_legacy_entry_data(entry_data, model):
-    return {
-        get_field_id(model, field_name): (
-            [
-                map_response(value)
-                for value in value_or_list
-            ]
-            if isinstance(value_or_list, list)
-            else map_response(value_or_list)
-        )
-        for field_name, value_or_list in entry_data.items()
-    }
-
-
-@functools.cache
-def get_response_map():
-    country_base_map = country_mapping
-
-    country_map = {
-        slugify(key): value
-        for key, value in country_base_map.items()
-    }
-    response_map = {
-        "": "no-response",
-        "iran-islamic-republic-of": "ir",
-        "republic-of-korea": "kr",
-        "to-learn-something-new-to-aid-me-in-my-current-researchwork": "to-learn-something-new-to-aid-me-in-my-current-research-work",  # noqa: E501
-        "to-build-on-existing-knowledge-to-aid-me-in-my-current-researchwork": "to-build-on-existing-knowledge-to-aid-me-in-my-current-research-work",  # noqa: E501
-        "by-using-training-materialsnotes-from-the-training-event": "by-using-training-materials-notes-from-the-training-event",  # noqa: E501
-        "it-did-not-help-as-i-do-not-use-the-toolsresources-covered-in-the-training-event": "it-did-not-help-as-i-do-not-use-the-tools-resources-covered-in-the-training-event",  # noqa: E501
-        "it-improved-communication-with-the-bioinformaticianstatistician-analyzing-my-data": "it-improved-communication-with-the-bioinformatician-statistician-analyzing-my-data",  # noqa: E501
-        "submission-of-my-dissertationthesis-for-degree-purposes": "submission-of-my-dissertation-thesis-for-degree-purposes",  # noqa: E501
-        "useful-collaborations-with-other-participantstrainers-from-the-training-event": "useful-collaborations-with-other-participants-trainers-from-the-training-event"  # noqa: E501
-    }
-
-    return {
-        **country_map,
-        **response_map
-    }
-
-
-def map_response(response: str):
-    slug_response = slugify(response)
-    response_map = get_response_map()
-
-    return response_map.get(slug_response, slug_response)
-
-
-def get_metrics_fields(model):
-    ignored_fields = {
-        "id",
-        "event",
-        *{
-            field.name
-            for field in EditTracking._meta.get_fields()
-        }
-    }
-    return [
-        field
-        for field in model._meta.get_fields()
-        if field.name not in ignored_fields
-    ]
