@@ -58,6 +58,8 @@ COPY app/utils/dev-requirements.txt "${TMDDIR}/"
 RUN pip install -r dev-requirements.txt
 
 ENV DJANGO_PRODUCTION=0
+RUN chown -R python:python "${TMDSTATICDIR}"
+RUN ls -la /opt/tmd
 
 USER python
 ENTRYPOINT ./entrypoint-dev
