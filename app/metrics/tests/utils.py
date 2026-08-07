@@ -92,7 +92,7 @@ def create_question_data(user):
         slug="full_set",
         user=user,
         use_for_metrics=True,
-        use_for_upload=False,
+        use_for_upload=True,
         is_active=True
     )
     full_set.question_sets.set(question_sets)
@@ -105,7 +105,7 @@ def create_question_data(user):
             slug=question_set.slug,
             user=user,
             use_for_metrics=True,
-            use_for_upload=False,
+            use_for_upload=True,
             is_active=True
         )
         superset.question_sets.set([question_set])
