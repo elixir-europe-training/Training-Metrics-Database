@@ -98,11 +98,11 @@ class TestFormValidation(TestCase):
                 for question, choice in combination
             }
             form = form_class(data)
-            self.assertEquals(form.is_valid(), True)
+            self.assertEqual(form.is_valid(), True)
             for key, value in form.cleaned_data.items():
                 self.assertTrue(isinstance(value, Answer))
                 text = data[key]
-                self.assertEquals(text, value.text)
+                self.assertEqual(text, value.text)
 
     def test_validate_incorrect_responses(self):
         form_class = QuestionSetForm.from_question_set(self.questionset)
@@ -131,4 +131,4 @@ class TestFormValidation(TestCase):
                 for question, choice in combination
             }
             form = form_class(data)
-            self.assertEquals(form.is_valid(), is_valid)
+            self.assertEqual(form.is_valid(), is_valid)
