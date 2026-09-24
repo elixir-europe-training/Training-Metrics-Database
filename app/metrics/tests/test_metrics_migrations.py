@@ -439,14 +439,14 @@ class TestImportValues(TestCase):
         ]
         migrate_entries(entries, self.model_a, self.questionset)
 
-        self.assertEquals(
+        self.assertEqual(
             ResponseSet.objects.filter(
                 event=self.event_a,
                 user=self.user
             ).count(),
             2
         )
-        self.assertEquals(
+        self.assertEqual(
             ResponseSet.objects.filter(
                 event=self.event_b,
                 user=self.secondary_user
@@ -454,42 +454,42 @@ class TestImportValues(TestCase):
             2
         )
 
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-choice_field",
                 answer__slug="a"
             ).count(),
             1
         )
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-choice_field",
                 answer__slug="b"
             ).count(),
             1
         )
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-choice_field",
                 answer__slug="c"
             ).count(),
             2
         )
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-multichoice_field",
                 answer__slug="ma"
             ).count(),
             2
         )
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-multichoice_field",
                 answer__slug="mb"
             ).count(),
             3
         )
-        self.assertEquals(
+        self.assertEqual(
             Response.objects.filter(
                 answer__question__slug="test-metrics-a-multichoice_field",
                 answer__slug="mc"
