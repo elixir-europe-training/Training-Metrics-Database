@@ -1,6 +1,5 @@
 from django.conf import settings
 from datetime import datetime
-from django.db.models import TextField
 from metrics.models import (
     Event,
     Demographic,
@@ -9,15 +8,12 @@ from metrics.models import (
     User,
     Node,
     OrganisingInstitution,
-    ChoiceArrayField,
     country_mapping,
     EditTracking,
     UserProfile,
 )
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError, PermissionDenied
-import random
-from typing import Callable
 import functools
 import csv
 import logging
@@ -62,7 +58,7 @@ class ImportContext:
         )
         institution_ids = csv_to_array(data['organising_institution'])
         event.organising_institution.set(self.get_institutions(institution_ids))
-        node_names = data['node'].split(",")
+        node_names = csv_to_array(data['node'])
         stripped_names = [name.strip() for name in node_names]
         nodes = [
             Node.objects.get(name=node)
@@ -306,10 +302,14 @@ def use_alias(value):
 
 
 def csv_to_array(csv_string):
+    if not csv_string:
+        return []
+    separators = ("|", ",")
+    separator = next((s for s in separators if s in csv_string), separators[0])
     return [
         use_alias(x.strip())
-        for x in csv_string.split(",")
-    ] if csv_string else []
+        for x in csv_string.split(separator)
+    ]
 
 
 def convert_to_timestamp(date_string):
@@ -443,82 +443,13 @@ def legacy_to_current_impact_dict(data: dict) -> dict:
 
 def parse_location(location: str) -> dict:
     try:
-        [city, country] = [value.strip() for value in location.split(",")]
+        [city, country] = [value.strip() for value in csv_to_array(location)]
         return {
             "location_city": city,
             "location_country": country
         }
     except ValueError as e:
         raise ValidationError(f"Failed to parse location: {e}")
-
-
-def get_field_info(model, field_id):
-    field = model._meta.get_field(field_id)
-    text_choices = (
-        [
-            c[0]
-            for c in field.choices
-        ]
-        if type(field) is TextField and field.choices is not None
-        else None
-    )
-    array_choices = (
-        [
-            c[0]
-            for c in field.base_field.choices
-        ]
-        if type(field) is ChoiceArrayField
-        else None
-    )
-    return {
-        "id": field_id,
-        "type": str(type(field)),
-        "multichoice": type(field) is ChoiceArrayField,
-        "values": array_choices or text_choices,
-    }
-
-
-def get_test_data_from_model(model, fields: list[tuple[str, str]], number_of_samples: int) -> list[dict]:
-    field_info = {
-        field_id: {
-            "alias": alias,
-            **get_field_info(model, field_id)
-        }
-        for field_id, alias in fields
-    }
-
-    samples = [
-        {
-            info["alias"]: (
-                (
-                    ", ".join(
-                        random.choices(info["values"], k=random.randint(1, len(info["values"])))
-                    )
-                    if info["multichoice"]
-                    else random.choice(info["values"])
-                )
-                if info["values"] is not None
-                else ""
-            )
-            for info in field_info.values()
-        }
-        for i in range(number_of_samples)
-    ]
-    return samples
-
-
-def update_table_rows(
-    table: list[dict],
-    columns: dict[str, Callable[[], str] | None]
-) -> list[dict]:
-    new_data = []
-    for row in table:
-        new_row = row.copy()
-        for (alias, generator) in columns.items():
-            generator = (lambda: "") if generator is None else generator
-            new_row[alias] = generator()
-        new_data.append(new_row)
-    return new_data
 
 
 def get_field_id(model, field_name):
