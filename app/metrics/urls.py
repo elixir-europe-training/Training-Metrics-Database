@@ -11,6 +11,7 @@ from metrics.views.model_views import (
     EventView,
     InstitutionView,
     EventListView,
+    EventListDownloadView,
     InstitutionListView,
     QualityMetricsDeleteView,
     DemographicMetricsDeleteView,
@@ -49,6 +50,7 @@ urlpatterns = [
     path('event/<int:event_id>/upload-data', upload_data, name='upload-data-event'),
     path('institution/<int:pk>', InstitutionView.as_view(), name='institution-edit'),
     path('event/list', EventListView.as_view(), name='event-list'),
+    path('event/list/download', EventListDownloadView.as_view(), name='event-list-download'),
     path('institution/list', InstitutionListView.as_view(), name='institution-list'),
     path(
         'event/delete-metrics/demographic/<int:pk>',

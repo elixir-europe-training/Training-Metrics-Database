@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.utils.http import urlencode
 from metrics.views.common import get_event_filter_query, dict_to_querydict
+from metrics.views.upload import download_csv
 from metrics import models
 from metrics.models import UserProfile, SystemSettings
 from .common import get_tabs
@@ -484,6 +485,15 @@ class EventListView(GenericListView):
             **extra_params,
         }
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context["download"] = {
+                "label": "Download events as CSV",
+                "href": f"{reverse('event-list-download')}?{context['filter_params'].urlencode()}",
+            }
+        return context
+
     def get_headers(self, max_extras):
         headers = super().get_headers(max_extras)
         return [
@@ -512,6 +522,52 @@ class EventListView(GenericListView):
                 ) if can_edit else ("", None),
             ]
         )
+
+
+class EventListDownloadView(LoginRequiredMixin, EventListView):
+    """Download all events matching the event list filters as CSV.
+
+    Uses the same filtering as EventListView (via get_queryset) but
+    ignores pagination and returns every matching event. Requires login
+    since the export includes event details only visible to logged in users.
+    """
+
+    csv_fields = [
+        "title",
+        "node_main",
+        "node",
+        "date_start",
+        "date_end",
+        "duration",
+        "type",
+        "organising_institution",
+        "location_city",
+        "location_country",
+        "funding",
+        "target_audience",
+        "additional_platforms",
+        "communities",
+        "number_participants",
+        "number_trainers",
+        "url",
+        "status",
+    ]
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("node_main")
+            .prefetch_related("node", "organising_institution")
+        )
+
+    def get(self, request, *args, **kwargs):
+        # "event_id" matches the column name used when uploading metrics
+        rows = [
+            [event.id, *[self.parse_value(getattr(event, field)) for field in self.csv_fields]]
+            for event in self.get_queryset()
+        ]
+        return download_csv([["event_id", *self.csv_fields], *rows], "events")
 
 
 class InstitutionListView(LoginRequiredMixin, GenericListView):
