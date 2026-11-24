@@ -54,6 +54,43 @@ class TestFormValidation(TestCase):
             ]
         )
 
+        self.multi_choice_question_content = {
+            f"Multi choice question {e}": [f"Answer {e}->{i}" for i in range(3)]
+            for e in ["A", "B", "C"]
+        }
+        self.multi_choice_questionset = create_questionset(
+            user=self.user,
+            name="Test Multi Choice Metrics",
+            slug="test-multi-choice-metrics",
+            questions=[
+                create_question(
+                    text=question,
+                    slug=slugify(question),
+                    user=self.user,
+                    choices=choices,
+                    is_multichoice=True,
+                )
+                for question, choices in self.multi_choice_question_content.items()
+            ]
+        )
+    
+    def test_validate_multi_choice_text_responses(self):
+        form_class = QuestionSetForm.from_question_set(self.multi_choice_questionset)
+
+        for s in ("|", ","):
+            combinations = [[
+                (slugify(question), s.join(choices))
+                for question, choices in self.multi_choice_question_content.items()
+            ]]
+
+            self._assert_combination_validity_status(
+                form_class,
+                combinations,
+                True,
+                msg=f"Multi choice can be parsed using '{s}' as separator"
+            )
+        
+
     def test_validate_slug_responses(self):
         form_class = QuestionSetForm.from_question_set(self.questionset)
 
@@ -122,7 +159,8 @@ class TestFormValidation(TestCase):
         self,
         form_class,
         combinations,
-        is_valid
+        is_valid,
+        msg=None
     ):
         self.assertTrue(len(combinations) > 0)
         for combination in combinations:
@@ -131,4 +169,4 @@ class TestFormValidation(TestCase):
                 for question, choice in combination
             }
             form = form_class(data)
-            self.assertEqual(form.is_valid(), is_valid)
+            self.assertEqual(form.is_valid(), is_valid, msg=msg)
