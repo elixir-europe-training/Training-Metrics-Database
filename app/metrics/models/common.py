@@ -300,12 +300,27 @@ class Event(EditTracking):
     communities = ChoiceArrayField(base_field=models.TextField(
         choices=string_choices([
             "Human Data",
+            "Federated Human Data",
+            "Human Copy Number Variation",
             "Marine Metagenomics",
+            "Microbial Biotechnology",
+            "Microbiome",
             "Rare Diseases",
             "Plant Sciences",
             "Proteomics",
             "Metabolomics",
             "Galaxy",
+            "3D-BioInfo",
+            "Biodiversity",
+            "Cancer Data",
+            "Domestic Animals Phenome and Genome",
+            "Food and Nutrition",
+            "Intrinsically Disordered Proteins (IDP)",
+            "Microbial Biotechnology",
+            "Research Data Management",
+            "Single-Cell Omics",
+            "Systems Biology",
+            "Toxicology",
             "NA",
         ])
     ))
