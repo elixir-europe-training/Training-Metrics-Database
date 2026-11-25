@@ -32,7 +32,7 @@ def public_api(func):
 
 
 urlpatterns = [
-    path('', lambda request: redirect('world-map', permanent=True)),
+    path('', lambda request: redirect('overview', permanent=True)),
     path(
         'login/',
         LoginView.as_view(
@@ -79,7 +79,9 @@ urlpatterns = [
     path('properties', public_api(metrics.properties_api), name="properties-api"),
     path('properties/event', public_api(metrics.event_properties_api), name="properties-event-api"),
 
-    path('world-map', metrics.world_map_event_count, name='world-map'),
+    path('overview', metrics.overview, name='overview'),
+    # Old address of the start page, kept so bookmarks and links keep working
+    path('world-map', lambda request: redirect('overview', permanent=True)),
 
     path('report/event', metrics.EventMetricsView.as_view(), name='metrics-event-report'),
     path('report/set/<str:question_set_id>', metrics.get_metrics_view, name='metrics-set-report'),

@@ -42,7 +42,7 @@ def get_tabs(request, view_name=None):
     tabs = [
         {"title": title, "url": reverse(name, kwargs=kwargs), "name": name}
         for title, name, kwargs in [
-            ("World map", "world-map", {}),
+            ("Overview", "overview", {}),
             *get_metrics_tabs(request),
             ("Browse events", "event-list", {}),
             *user_input,

@@ -15,6 +15,9 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from metrics.views.common import get_tabs, get_event_filter_query, dict_to_querydict
 from metrics.forms import MetricsFilterForm
+from metrics.showcase.scope import Scope
+from metrics.showcase.welcome import HERO_STATS, TOOL_USAGE
+from metrics.showcase.widgets import render_stacked_bars, render_stats
 from django.urls import reverse
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -223,13 +226,15 @@ def world_map_api(request):
     })
 
 
-def world_map_event_count(request):
+def overview(request):
     return render(
         request,
-        "metrics/world-map.html",
+        "metrics/overview.html",
         context={
             "title": "Training Metrics Database",
             **get_tabs(request),
+            "hero_stats": render_stats(HERO_STATS, Scope()),
+            "tool_usage": render_stacked_bars(TOOL_USAGE, Scope()),
             "data_url": reverse("world-map-api")
         }
     )

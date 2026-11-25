@@ -3,6 +3,16 @@
 {% block content %}
     <h1>Welcome to the Training Metrics Database!</h1>
     {% include 'common/tabs.html' %}
+    <section class="my-4 mt-5" style="border-radius: 20px; background-color: #F2F2F2; padding: 20px;">
+        <h3 class="mt-1">Lifelong learning, lasting impact</h3>
+        <p class="mb-4">ELIXIR training across all Nodes, in numbers</p>
+        {% include 'metrics/widgets/stat-row.html' with stats=hero_stats %}
+    </section>
+    {% if tool_usage %}
+    <section class="my-5">
+        {% include 'metrics/widgets/stacked-bars.html' with widget=tool_usage %}
+    </section>
+    {% endif %}
     <div id="world-map"></div>
     <script>
         async function mountPlot() {
@@ -46,6 +56,7 @@
         }
     </script>
     <script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8" onload="mountPlot()"></script>
+    <h2>About the TMD</h2>
     <div>
         
         The Training Metrics Database is an effort to streamline data collection, storage, and visualisation for the Quality and Impact of the ELIXIR Training Platform services.
