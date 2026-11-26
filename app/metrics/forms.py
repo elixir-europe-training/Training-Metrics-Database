@@ -135,13 +135,18 @@ class QuestionSetForm(forms.Form):
             for v in (
                 value
                 if isinstance(value, list)
-                else value.split(",")
+                else self._csv_to_values(value)
             )
         ]
 
     def _parse_item(self, field_id, value):
         default_value = slugify(value.strip())
         return self.label_value_map.get(field_id, {}).get(default_value, default_value)
+    
+    def _csv_to_values(self, value):
+        separators = ("|", ",")
+        separator = next((s for s in separators if s in value), separators[0])
+        return (v for v in value.split(separator))
 
     @staticmethod
     def _clean_value(question, value):
