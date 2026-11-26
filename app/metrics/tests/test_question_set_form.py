@@ -73,7 +73,7 @@ class TestFormValidation(TestCase):
                 for question, choices in self.multi_choice_question_content.items()
             ]
         )
-    
+
     def test_validate_multi_choice_text_responses(self):
         form_class = QuestionSetForm.from_question_set(self.multi_choice_questionset)
 
@@ -89,7 +89,6 @@ class TestFormValidation(TestCase):
                 True,
                 msg=f"Multi choice can be parsed using '{s}' as separator"
             )
-        
 
     def test_validate_slug_responses(self):
         form_class = QuestionSetForm.from_question_set(self.questionset)
@@ -110,6 +109,20 @@ class TestFormValidation(TestCase):
         form_class = QuestionSetForm.from_question_set(self.questionset)
         all_values = [
             [(slugify(question), choice) for choice in choices]
+            for question, choices in self.question_content.items()
+        ]
+
+        combinations = list(itertools.product(*all_values))
+        self._assert_combination_validity_status(
+            form_class,
+            combinations,
+            True
+        )
+
+    def test_validate_text_headers(self):
+        form_class = QuestionSetForm.from_question_set(self.questionset)
+        all_values = [
+            [(question, choice) for choice in choices]
             for question, choices in self.question_content.items()
         ]
 
@@ -144,15 +157,24 @@ class TestFormValidation(TestCase):
     def test_validate_incorrect_responses(self):
         form_class = QuestionSetForm.from_question_set(self.questionset)
         all_values = [
-            [(slugify(question), choice) for choice in ["A", "B", "C"]]
-            for question, choices in self.question_content.items()
+            [(slugify(question), choice) for choice in ["bad_choice"]]
+            for question, _choices in self.question_content.items()
         ]
 
         combinations = list(itertools.product(*all_values))
-        self._assert_combination_validity_status(
+        errors = self._assert_combination_validity_status(
             form_class,
             combinations,
             False
+        )
+        self.assertEqual(
+            errors,
+            [
+                ('choice-question-a', ['Select a valid choice. bad_choice is not one of the available choices.']),
+                ('choice-question-b', ['Select a valid choice. bad_choice is not one of the available choices.']),
+                ('choice-question-c', ['Select a valid choice. bad_choice is not one of the available choices.']),
+                ('odd-choice-question-a', ['Select a valid choice. bad_choice is not one of the available choices.'])
+            ]
         )
 
     def _assert_combination_validity_status(
@@ -163,10 +185,18 @@ class TestFormValidation(TestCase):
         msg=None
     ):
         self.assertTrue(len(combinations) > 0)
+        errors = []
         for combination in combinations:
             data = {
                 question: choice
                 for question, choice in combination
             }
             form = form_class(data)
-            self.assertEqual(form.is_valid(), is_valid, msg=msg)
+            form_is_valid = form.is_valid()
+            errors.extend([
+                (field, error.messages)
+                for field, errors in form.errors.as_data().items()
+                for error in errors
+            ])
+            self.assertEqual(form_is_valid, is_valid, msg=msg)
+        return errors
