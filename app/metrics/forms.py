@@ -113,9 +113,15 @@ class MetricsFilterForm(EventFilterForm):
 
 class QuestionSetForm(forms.Form):
     question_set = None
+    label_value_map = {}
+    label_field_map = {}
 
     def __init__(self, values, *args, **kwargs):
         fields = self.question_set_fields
+        values = {
+            self._parse_field_id(field_id): value
+            for field_id, value in values.items()
+        }
         values = {
             field_id: (
                 self._parse_list(field_id, value)
@@ -130,19 +136,24 @@ class QuestionSetForm(forms.Form):
             self.fields[key] = field
 
     def _parse_list(self, field_id, value):
-        return [
+        items = set(
             self._parse_item(field_id, v)
             for v in (
                 value
                 if isinstance(value, list)
                 else self._csv_to_values(value)
             )
-        ]
+        )
+        return list(items)
 
     def _parse_item(self, field_id, value):
         default_value = slugify(value.strip())
         return self.label_value_map.get(field_id, {}).get(default_value, default_value)
-    
+
+    def _parse_field_id(self, field_id):
+        default_value = slugify(field_id.strip())
+        return self.label_field_map.get(default_value, default_value)
+
     def _csv_to_values(self, value):
         separators = ("|", ",")
         separator = next((s for s in separators if s in value), separators[0])
@@ -200,14 +211,19 @@ class QuestionSetForm(forms.Form):
 
     @staticmethod
     def from_question_set(qs):
+        questions = list(qs.questions.all())
         fields = {
             question.slug: QuestionSetForm._parse_field(question)
-            for question in qs.questions.all()
+            for question in questions
         }
 
         class _Form(QuestionSetForm):
             question_set = qs
             question_set_fields = fields
+            label_field_map = {
+                slugify(question.text): question.slug
+                for question in questions
+            }
             label_value_map = {
                 field_id: {
                     slugify(label): value
