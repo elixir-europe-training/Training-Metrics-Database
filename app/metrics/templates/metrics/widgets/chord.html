@@ -1,0 +1,29 @@
+{% comment %}
+Circos/chord diagram of Nodes organising courses together, with the number of
+co-organised courses. Takes `widget` from render_chord_diagram. The diagram
+itself is drawn by static/js/chord.js.
+{% endcomment %}
+{% load static %}
+{% if widget %}
+<div class="row g-5 align-items-center">
+    <div class="col-lg-6 d-flex flex-column gap-4">
+        <div>
+            <h3>{{ widget.title }}</h3>
+            {% if widget.description %}<p class="text-body-secondary mb-0">{{ widget.description }}</p>{% endif %}
+        </div>
+        <div class="d-flex flex-column gap-1">
+            <span class="fs-2 fw-bold lh-1">{{ widget.count }}</span>
+            <span class="text-body-secondary">{{ widget.count_label }}</span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <figure class="m-0 mx-auto" style="max-width: 500px">
+            <div id="{{ widget.id }}" data-chord="{{ widget.data_id }}"
+                 role="img" aria-label="Chord diagram of courses organised together by ELIXIR Nodes"></div>
+        </figure>
+    </div>
+</div>
+{{ widget.data|json_script:widget.data_id }}
+<script src="{% static 'vendor/d3-7.9.0.min.js' %}"></script>
+<script src="{% static 'js/chord.js' %}"></script>
+{% endif %}

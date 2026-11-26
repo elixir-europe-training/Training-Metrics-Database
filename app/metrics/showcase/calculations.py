@@ -9,11 +9,13 @@ check() is what keeps widgets safe when questions change: if a question is
 removed, or an answer is added/renamed that the definition doesn't know about,
 the widget is hidden instead of showing a misleading number.
 """
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+from itertools import combinations
 
 from django.db.models import Count
 
-from metrics.models import Answer, Question, QuestionSet
+from metrics.models import Answer, Event, Question, QuestionSet
 
 NO_RESPONSE = ("no-response",)
 
@@ -70,6 +72,85 @@ class EventCount:
 
 
 @dataclass(frozen=True)
+class EventsByCountry:
+    """Number of events per country they were held in, e.g. {"Sweden": 12}."""
+
+    def check(self):
+        return []
+
+    def calculate(self, scope):
+        rows = (
+            scope.events()
+            .exclude(location_country__isnull=True)
+            .exclude(location_country="")
+            .values("location_country")
+            .annotate(count=Count("id", distinct=True))
+        )
+        counts = {row["location_country"]: row["count"] for row in rows}
+        if not counts:
+            return Result(value=None, n=0)
+        return Result(value=counts, n=sum(counts.values()))
+
+
+@dataclass(frozen=True)
+class CoOrganisedEvents:
+    """
+    Events organised by two or more Nodes, and how often each pair of Nodes
+    worked together.
+
+    An event's Nodes are its main Node plus its other Nodes. A course run by
+    SE, NL and UK adds one to each pair: SE-NL, SE-UK and NL-UK.
+
+    value is {"count": number of co-organised events,
+              "pairs": {(node, node): number of shared events},
+              "main_nodes": {(node, node): the pair's Node that was main Node
+                             most often (alphabetically first on a tie)}},
+    with each pair sorted by name. Pairs where neither Node was ever the main
+    Node are not in main_nodes. n is the number of co-organised events.
+    """
+
+    def check(self):
+        return []
+
+    def calculate(self, scope):
+        events = scope.events()
+        nodes_per_event = defaultdict(set)
+        main_node = {}
+        for event_id, name in events.values_list("id", "node_main__name"):
+            nodes_per_event[event_id].add(name)
+            main_node[event_id] = name
+        for event_id, name in Event.node.through.objects.filter(
+            event__in=events
+        ).values_list("event_id", "node__name"):
+            nodes_per_event[event_id].add(name)
+
+        pairs = Counter()
+        times_main = defaultdict(Counter)  # pair -> {node: times it was main}
+        count = 0
+        for event_id, nodes in nodes_per_event.items():
+            nodes.discard(None)
+            if len(nodes) < 2:
+                continue
+            count += 1
+            for pair in combinations(sorted(nodes), 2):
+                pairs[pair] += 1
+                if main_node.get(event_id) in pair:
+                    times_main[pair][main_node[event_id]] += 1
+
+        if not count:
+            return Result(value=None, n=0)
+        main_nodes = {
+            # max() keeps the first of equal counts, so sorting breaks ties by name
+            pair: max(sorted(counts.items()), key=lambda item: item[1])[0]
+            for pair, counts in times_main.items()
+        }
+        return Result(
+            value={"count": count, "pairs": dict(pairs), "main_nodes": main_nodes},
+            n=count,
+        )
+
+
+@dataclass(frozen=True)
 class ResponseCount:
     """Number of filled-in surveys (response sets) for the given question sets."""
     question_sets: tuple[str, ...]
@@ -105,6 +186,38 @@ class DistinctAnswers:
 
 
 @dataclass(frozen=True)
+class AnswerCount:
+    """
+    Number of participants who picked one specific answer, e.g. how many said
+    the training led to a publication. Works for multi-choice questions.
+
+    n is the number of participants who answered the question at all, so
+    min_n can hide the number while too few have answered.
+    """
+    question: str
+    answer: str
+    ignored: tuple[str, ...] = NO_RESPONSE
+
+    def check(self):
+        problems = check_question(self.question)
+        if not problems and not Answer.objects.filter(
+            question__slug=self.question, slug=self.answer, is_active=True
+        ).exists():
+            problems.append(f"'{self.question}': answer '{self.answer}' no longer exists")
+        return problems
+
+    def calculate(self, scope):
+        answered = (
+            scope.responses()
+            .filter(answer__question__slug=self.question)
+            .exclude(answer__slug__in=self.ignored)
+        )
+        count = answered.filter(answer__slug=self.answer).values("response_set").distinct().count()
+        n = answered.values("response_set").distinct().count()
+        return Result(value=count, n=n)
+
+
+@dataclass(frozen=True)
 class Share:
     """Percentage of answers that are 'positive', out of positive + negative."""
     question: str
@@ -120,6 +233,31 @@ class Share:
         positive = sum(counts.get(slug, 0) for slug in self.positive)
         total = positive + sum(counts.get(slug, 0) for slug in self.negative)
         value = round(100 * positive / total) if total else None
+        return Result(value=value, n=total)
+
+
+@dataclass(frozen=True)
+class MinimumTotal:
+    """
+    Lowest possible total for a question answered in ranges, e.g. "How many
+    people have you shared your skills with?" with answers 1-5, 6-15, 25+.
+
+    minimums maps every answer to the bottom of its range (0 for "None"), so
+    the real total is at least the value. n is the number of answers counted.
+    """
+    question: str
+    minimums: dict[str, int] = field(hash=False)
+    ignored: tuple[str, ...] = NO_RESPONSE
+
+    def check(self):
+        return check_question(self.question, [*self.minimums, *self.ignored])
+
+    def calculate(self, scope):
+        counts = count_answers(scope, self.question)
+        total = sum(counts.get(slug, 0) for slug in self.minimums)
+        if not total:
+            return Result(value=None, n=0)
+        value = sum(counts.get(slug, 0) * minimum for slug, minimum in self.minimums.items())
         return Result(value=value, n=total)
 
 

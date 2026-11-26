@@ -1,0 +1,19 @@
+{% comment %}
+Compact version of stat-row.html: smaller numbers, up to six per row,
+with an orange top border.
+{% endcomment %}
+{% if stats %}
+<style>
+  .tmd-stat-tile { border-top: 4px solid #e5833a; background-color: var(--bs-tertiary-bg); }
+</style>
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3">
+    {% for stat in stats %}
+    <div class="col">
+        <div class="tmd-stat-tile rounded-bottom h-100 p-3 d-flex flex-column gap-1">
+            <span class="fs-2 fw-bold lh-1">{{ stat.value }}</span>
+            <span>{{ stat.label }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

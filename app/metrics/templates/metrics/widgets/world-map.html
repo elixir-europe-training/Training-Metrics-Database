@@ -1,0 +1,14 @@
+{% comment %}
+World map coloured by a number per country. Takes `widget` from
+render_world_map. The map itself is drawn by static/js/world-map.js.
+{% endcomment %}
+{% load static %}
+{% if widget %}
+<h3>{{ widget.title }}</h3>
+{% if widget.description %}<p class="text-body-secondary mb-4">{{ widget.description }}</p>{% endif %}
+<div id="{{ widget.id }}" data-world-map="{{ widget.data_id }}" data-topojson-url="{% static 'vendor/data/' %}"></div>
+{{ widget.data|json_script:widget.data_id }}
+{% if widget.source %}<p class="small text-body-secondary mt-3 mb-0">{{ widget.source }}</p>{% endif %}
+<script src="{% static 'vendor/plotly-3.0.0-rc.0.min.js' %}" charset="utf-8"></script>
+<script src="{% static 'js/world-map.js' %}"></script>
+{% endif %}
