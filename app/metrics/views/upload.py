@@ -72,6 +72,7 @@ class DataUploadForm(forms.Form):
         data_type=None,
         badge=None,
         action=None,
+        file_match=None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -82,6 +83,18 @@ class DataUploadForm(forms.Form):
         self.description = description
         self.title = title
         self.action = action
+        self.file_match = file_match
+
+    def clean(self):
+        data = super().clean()
+        if self.file_match:
+            if not re.match(self.file_match, data["file"].name):
+                self.add_error(
+                    "file",
+                    "Incorrect file name. The file name needs "
+                    f"to match the following regex: '{self.file_match}'"
+                )
+        return data
 
 
 def summary_output(items: list):
@@ -108,48 +121,6 @@ def table_output(columns: dict):
             ]
         }
     return _table_output
-
-
-def get_model_transform(model):
-    metrics_fields = import_utils.get_metrics_fields(model)
-    field_name_map = {
-        field.verbose_name.lower(): field.name
-        for field in metrics_fields
-    }
-    field_multichoice_map = {
-        field.name: isinstance(field, models.ChoiceArrayField)
-        for field in metrics_fields
-
-    }
-
-    def _model_transform(entry):
-        metrics_data = {
-            field_name_map[field_name.lower()]: value
-            for field_name, value in entry.items()
-            if field_name.lower() in field_name_map
-        }
-        base_data = {
-            field_name: value
-            for field_name, value in entry.items()
-            if field_name not in field_name_map
-        }
-
-        for field_name, value in metrics_data.items():
-            if field_multichoice_map.get(field_name, False):
-                metrics_data[field_name] = import_utils.csv_to_array(value)
-            else:
-                metrics_data[field_name] = import_utils.use_alias(value)
-
-        metrics_data = import_utils.parse_legacy_entry_data(
-            metrics_data,
-            model
-        )
-        return {
-            **metrics_data,
-            **base_data
-        }
-
-    return _model_transform
 
 
 def import_data_for_question_set(qs, event, user, data):
@@ -233,16 +204,6 @@ def get_question_import_context(super_set, user, node_main, event):
     )
 
 
-def require_valid_file_name(file_path, event):
-    file_match = rf"^.+-{event.id}\.csv$" if event else r"^.+\.csv$"
-    if not re.match(file_match, file_path):
-        raise ValidationError(
-            None,
-            "Incorrect file name. The file name needs "
-            f"to match the following regex: '{file_match}'"
-        )
-
-
 def parse_csv_to_dict(file):
     csv_stream = io.StringIO(file.read().decode("utf-8-sig"))
     dialect = csv.Sniffer().sniff(csv_stream.readline(), delimiters=[",", ";"])
@@ -266,6 +227,7 @@ def submit_entries(request, question_set_id: str, event_id=None):
             "submit_entries",
             kwargs={"question_set_id": superset.slug}
         ),
+        file_match=rf"^.+-{event_id}\.csv$" if event_id else r"^.+\.csv$",
         associated_templates=[(
             superset.name,
             reverse(
@@ -304,24 +266,9 @@ def submit_entries(request, question_set_id: str, event_id=None):
         data = upload_form.cleaned_data
 
         reader = parse_csv_to_dict(data["file"])
-        #require_valid_file_name(data["file"].name, event)
-        compatiblity_model = get_matching_legacy_model(
-            reader.fieldnames,
-            {superset.slug}
-        )
-        compatibility_transform = (
-            None
-            if compatiblity_model is None
-            else get_model_transform(compatiblity_model)
-        )
         for (index, row) in enumerate(reader):
             try:
-                entry = (
-                    row
-                    if compatibility_transform is None
-                    else compatibility_transform(row)
-                )
-                entries.append((entry, None))
+                entries.append((row, None))
             except (ValidationError, ) as e:
                 traceback.print_exc()
                 error_message = f"On row {index} : {e}"
@@ -398,7 +345,8 @@ def response_upload(request, event):
             associated_templates=[(
                 upload_type["title"],
                 str(upload_type["template_url"])
-            )]
+            )],
+            file_match=r"^.+\.csv$",
         )
     forms = [
         *([event_upload_form] if event_upload_form else []),
@@ -442,7 +390,6 @@ def response_upload(request, event):
 
                 try:
                     node_main = UserProfile.get_node(request.user)
-                    require_valid_file_name(data["file"].name, event)
                     reader = parse_csv_to_dict(data["file"])
                     (parser, importer, view_transforms) = (
                         get_event_import_context(
@@ -459,29 +406,10 @@ def response_upload(request, event):
                         )
                     )
 
-                    compatiblity_model = (
-                        get_matching_legacy_model(
-                            reader.fieldnames,
-                            {upload_type.slug}
-                        )
-                        if isinstance(upload_type, QuestionSuperSet)
-                        else None
-                    )
-                    compatibility_transform = (
-                        None
-                        if compatiblity_model is None
-                        else get_model_transform(compatiblity_model)
-                    )
-
                     entries = []
                     for (index, row) in enumerate(reader):
                         try:
-                            entry = (
-                                row
-                                if compatibility_transform is None
-                                else compatibility_transform(row)
-                            )
-                            entries.append(parser(entry))
+                            entries.append(parser(row))
                         except (ValidationError, ) as e:
                             traceback.print_exc()
                             form.add_error(
@@ -508,11 +436,6 @@ def response_upload(request, event):
                             for key, view_transform
                             in view_transforms.items()
                         }
-                        if compatiblity_model is not None:
-                            form.outputs["summary"] = (
-                                f"Using compatiblity model {compatiblity_model._meta.verbose_name}: "
-                                f"{form.outputs.get('summary', '')}"
-                            )
                     else:
                         dialect = reader.dialect
                         form.add_error(
@@ -522,8 +445,6 @@ def response_upload(request, event):
                             f"quotechar [{dialect.quotechar}], "
                             f"doublequote [{dialect.doublequote}]"
                         )
-                        if compatiblity_model:
-                            form.add_error(None, f"Using compatiblity model {compatiblity_model._meta.verbose_name}")
 
                 except (ValidationError, UnicodeDecodeError, csv.Error, Exception) as e:
                     form.add_error(None, f"Failed to import '{upload_type}': {e}")
@@ -550,33 +471,6 @@ def response_upload(request, event):
             "forms": forms,
         }
     )
-
-
-def get_matching_legacy_model(headers, model_ids=None):
-    legacy_models = [
-        models.legacy.Demographic,
-        models.legacy.Impact,
-        models.legacy.Quality,
-    ]
-    legacy_models = (
-        legacy_models
-        if model_ids is None
-        else [
-            model
-            for model in legacy_models
-            if slugify(model._meta.verbose_name) in model_ids
-        ]
-    )
-    headers = set(header.lower() for header in headers)
-    for model in legacy_models:
-        fields = set(
-            field.verbose_name.lower()
-            for field in import_utils.get_metrics_fields(model)
-        )
-        if fields.issubset(headers):
-            return model
-
-    return None
 
 
 def get_event_import_context(user, node_main, event):
