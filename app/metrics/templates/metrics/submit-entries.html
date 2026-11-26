@@ -13,38 +13,39 @@
                 <thead>
                     {% with formset.empty_form as form %}
                     <tr>
-                    {% for field in form %}
-                        <th scope="col">
-                            {{ field.label }}
-                        </th>
-                    {% endfor %}
+                        <th scope="col">Row</th>
+                        <th scope="col">Status</th>
                     </tr>
                     {% endwith %}
                 </thead>
                 <tbody>
                 {% for form in formset %}
+                    {% if form.errors %}
                     <tr>
-                    {% for field in form %}
+                        <td>{{ forloop.counter }}</td>
                         <td>
-                            <div class="value-inspector">
-                            {% if field.errors %}
-                                <span class="badge rounded-pill bg-danger status-badge">Errors</span>
-                            {% else %}
-                                <span class="badge rounded-pill bg-success status-badge">Validated</span>
-                            {% endif %}
-                                <div class="content" data-has-error="{%if field.errors %}true{% else %}false{% endif %}">
+                            <details>
+                                <summary><span class="badge rounded-pill bg-danger status-badge">Errors {{ form.errors | length }}</span></summary>
+                                <ul>
+                                {% for field in form %}
+                                <li>
+                                    <div class="value-inspector">
+                                        {{ field.label }}
                                     {% if field.errors %}
-                                    {% for error in field.errors %}
-                                        <div class="alert alert-primary" role="alert">{{ error }}</div>
-                                    {% endfor %}
+                                        {% for error in field.errors %}
+                                            <span class="badge rounded-pill bg-danger status-badge">{{ error }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-success status-badge">Validated</span>
                                     {% endif %}
-                                    {% for value in field.value|use_list %}<div><span class="badge rounded-pill {% if field.errors %}bg-danger{% else %}bg-primary{% endif %}">{{ value }}</span></div>{% endfor %}
-                                    {{field}}
-                                </div>
-                            </div>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                                </ul>
+                            </details>
                         </td>
-                    {% endfor %}
                     </tr>
+                    {% endif %}
                 {% endfor %}
                 </tbody>
             </table>
@@ -60,5 +61,4 @@
         {% endfor %}{% endif %}
     </div>
     {% endif %}
-    <pre>{{initial_data}}</pre>
 {% endblock %}

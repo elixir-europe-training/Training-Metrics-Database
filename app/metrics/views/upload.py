@@ -378,12 +378,6 @@ def submit_entries(request, question_set_id: str, event_id=None):
                 if formset.is_valid()
                 else (("warning", "The data set contains one or more errors. Please adjust your data and try again."),)
             ),
-            "initial_data": json.dumps({
-                "POST": dict(request.POST) if request.method == "POST" else None,
-                "has_changed": (upload_form.has_changed(), formset and formset.has_changed()),
-                "is_valid": (upload_form.is_valid(), formset and formset.is_valid()),
-                "values": values
-            }, indent=4)
         }
     )
 
