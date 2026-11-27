@@ -135,34 +135,28 @@ class MetricsFilterForm(EventFilterForm):
         )
 
 
-class QuestionSetForm(forms.Form):
-    def __init__(self, values=None, *args, **kwargs):
-        fields = self.question_set_fields
-        values = (
-            None
-            if values is None
-            else self._parse_values(values)
-        )
-        if "initial" in kwargs:
-            kwargs["initial"] = self._parse_values(kwargs["initial"])
-
+class QuestionSetForm(forms.BaseForm):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name, field in fields.items():
-            current_field = copy.deepcopy(field)
-            self.fields[name] = current_field
-            if name in self.initial:
-                self.fields[name].initial = self.initial.get(name)
 
-    def _parse_values(values):
-        return {
-            field_id: (
-                self._parse_list(field_id, value)
-                if isinstance(fields[field_id], forms.MultipleChoiceField)
-                else self._parse_item(field_id, value)
-            )
-            for field_id, value in values.items()
-            if field_id in fields
+        self.initial = self._parse_values(self.initial)
+        self.data = self._parse_values(self.data)
+
+    def _parse_values(self, values):
+        fields = {
+            field_id: self[field_id]
+            for field_id, field in self.fields.items()
         }
+        result = {
+            field.html_name: (
+                self._parse_list(field_id, values[field.html_name])
+                if isinstance(self.fields[field_id], forms.MultipleChoiceField)
+                else self._parse_item(field_id, values[field.html_name])
+            )
+            for field_id, field in fields.items()
+            if field.html_name in values
+        }
+        return result
 
     def _parse_list(self, field_id, value):
         return [
@@ -239,7 +233,7 @@ class QuestionSetForm(forms.Form):
 
     @staticmethod
     def from_question_set(qs, **kwargs):
-        return QuestionSetForm.from_question_set((qs,), **kwargs)
+        return QuestionSetForm.from_question_sets((qs,), **kwargs)
 
     @staticmethod
     def from_question_sets(qss, disabled=False, hidden=False, widget_attrs=None, additional_fields=None):
@@ -262,7 +256,7 @@ class QuestionSetForm(forms.Form):
             field.widget.attrs.update(widget_attrs)
 
         class _Form(QuestionSetForm):
-            question_set_fields = fields
+            base_fields = fields
             question_sets = qss
             label_value_map = {
                 field_id: {

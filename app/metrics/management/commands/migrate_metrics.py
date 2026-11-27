@@ -116,7 +116,7 @@ def dict_to_responseset(
     rs = ResponseSet.objects.create(
         user=user,
         event=event,
-        question_set=form.question_set
+        question_set=form.question_sets[0]
     )
     for answer in data.values():
         all_answers = answer if isinstance(answer, list) else [answer]
