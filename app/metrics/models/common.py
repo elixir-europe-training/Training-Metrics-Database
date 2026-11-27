@@ -240,6 +240,36 @@ country_mapping = {
 country_list = list(country_mapping)
 
 
+legacy_community_list = [
+    "Human Data",
+    "Marine Metagenomics",
+]
+
+
+community_list = [
+    "Federated Human Data",
+    "Human Copy Number Variation",
+    "Microbiome",
+    "Microbial Biotechnology",
+    "Rare Diseases",
+    "Plant Sciences",
+    "Proteomics",
+    "Metabolomics",
+    "Galaxy",
+    "3D-BioInfo",
+    "Biodiversity",
+    "Cancer Data",
+    "Domestic Animals Phenome and Genome",
+    "Food and Nutrition",
+    "Intrinsically Disordered Proteins (IDP)",
+    "Research Data Management",
+    "Single-Cell Omics",
+    "Systems Biology",
+    "Toxicology",
+    "NA",
+]
+
+
 class Event(EditTracking):
     code = models.CharField(max_length=128, unique=True, null=True, blank=True)
     title = models.CharField(max_length=1024)
@@ -298,16 +328,10 @@ class Event(EditTracking):
     ))
 
     communities = ChoiceArrayField(base_field=models.TextField(
-        choices=string_choices([
-            "Human Data",
-            "Marine Metagenomics",
-            "Rare Diseases",
-            "Plant Sciences",
-            "Proteomics",
-            "Metabolomics",
-            "Galaxy",
-            "NA",
-        ])
+        choices=string_choices(sorted([
+            *legacy_community_list,
+            *community_list,
+        ]))
     ))
 
     number_participants = models.PositiveIntegerField()
@@ -411,7 +435,7 @@ class OrganisingInstitution(models.Model):
             or OrganisingInstitution.get_ror_name(data, types={"alias"})
             or OrganisingInstitution.get_ror_name(data)
         )
-    
+
     @staticmethod
     def get_ror_name(data, priority_lang=None, types=None):
         return next((
