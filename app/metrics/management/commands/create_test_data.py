@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand
 from uuid import uuid4
-from metrics import import_utils, models
+from metrics import models
+from django.db.models import TextField
+from typing import Callable
 import csv
 import random
 
@@ -19,7 +21,7 @@ class Command(BaseCommand):
             "--events",
             type=int,
             required=False,
-            default=5
+            default=0
         )
         parser.add_argument(
             "--contextid",
@@ -28,21 +30,72 @@ class Command(BaseCommand):
             default=uuid4()
         )
         parser.add_argument(
-            "--eventcodes",
+            "--event_ids",
             type=str,
             required=False,
             default="1,2,3"
         )
+        parser.add_argument(
+            "--valueformat",
+            type=str,
+            required=False,
+            default="slug"
+        )
+        parser.add_argument(
+            "--headerformat",
+            type=str,
+            required=False,
+            default="slug"
+        )
+        parser.add_argument(
+            "--responses",
+            type=int,
+            required=False,
+            default=5
+        )
+        parser.add_argument(
+            "--allanswers",
+            action='store_true',
+        )
 
     def handle(self, *args, **options):
+        self.countries = list(models.common.country_mapping.keys())
         target_dir = options["targetdir"]
         events = options["events"]
         context_id = options["contextid"]
-        event_codes = options["eventcodes"].split(",")
+
+        responses = options["responses"]
+        supersets = models.QuestionSuperSet.objects.filter(use_for_upload=True, is_active=True)
+        (node, event_ids) = self.get_event_ids(options["event_ids"])
+        use_slugs = options["valueformat"] == "slug"
+        use_header_slugs = options["headerformat"] == "slug"
+        use_all_answers = options["allanswers"]
+
         generators = [
-            (f"events-{context_id}.csv", self.create_event_data, (events,)),
-            (f"demographic_quality-{context_id}.csv", self.create_demographic_quality_metrics, (event_codes,)),
-            (f"impact-{context_id}.csv", self.create_impact_metrics, (event_codes,)),
+            *(
+                [(f"events-{context_id}.csv", self.create_event_data, (events,))]
+                if events > 0
+                else []
+            ),
+            *[
+                (
+                    f"metrics-{superset.slug}-{context_id}.csv",
+                    self.create_data_from_questions,
+                    (
+                        [
+                            question
+                            for questionset in superset.question_sets.filter(is_active=True)
+                            for question in questionset.questions.filter(is_active=True)
+                        ],
+                        event_ids,
+                        responses,
+                        use_slugs,
+                        use_header_slugs,
+                        use_all_answers,
+                    )
+                )
+                for superset in supersets
+            ]
         ]
 
         for file_name, generator, params in generators:
@@ -55,6 +108,25 @@ class Command(BaseCommand):
                 })
                 for row in test_data:
                     writer.writerow(row)
+
+    def get_event_ids(self, event_id_str: str):
+        event_ids = []
+        node = None
+        if "system:" in event_id_str:
+            (_, node_str, event_count_str) = event_id_str.split(":")
+            event_count = int(event_count_str.strip())
+            node = models.Node.objects.filter(name=node_str.strip()).get()
+            event_ids = [
+                event.id
+                for event in models.Event.objects.filter(node_main=node, locked=False, code__isnull=True)[0:event_count]
+            ]
+        else:
+            event_ids = [
+                int(id_str.strip())
+                for id_str in event_id_str.split(",")
+            ]
+
+        return (node, event_ids)
 
     def get_institutions(self):
         institutions = [
@@ -93,10 +165,11 @@ class Command(BaseCommand):
             "https://ror.org/03xrhmk39",
         ]
 
-        return ",".join(random.choices(institutions, k=random.randint(1, 3)))
+        return "|".join(random.choices(institutions, k=random.randint(1, 3)))
 
     def get_location(self):
-        return "Neverland, Queenstown"
+        country = random.choice(self.countries or ["Sweden"])
+        return f"Anywhere, {country}"
 
     def get_start_date(self):
         return "2024-06-10"
@@ -124,7 +197,7 @@ class Command(BaseCommand):
             "No. of trainers/ facilitators": "number_trainers",
             "Url to event page/ agenda": "url",
         }
-        test_data = import_utils.get_test_data_from_model(
+        test_data = get_test_data_from_model(
             models.Event,
             [
                 (field_id, alias)
@@ -132,7 +205,7 @@ class Command(BaseCommand):
             ],
             count
         )
-        test_data = import_utils.update_table_rows(
+        test_data = update_table_rows(
             test_data,
             {
                 "Url to event page/ agenda": self.get_url,
@@ -166,144 +239,108 @@ class Command(BaseCommand):
             test_data
         )
 
-    def create_demographic_quality_metrics(self, event_codes):
-        count = len(event_codes)
-        demographic_mapping = {
-            "Where did you see the course advertised?": "heard_from",
-            "What is your career stage?": "career_stage",
-            "What is your employment sector?": "employment_sector",
-            "What is your country of employment?": "employment_country",
-            "What is your gender?": "gender",
-        }
-        quality_mapping = {
-            "Have you used the tool(s)/resource(s) covered in the course before?": "used_resources_before",
-            "Will you use the tool(s)/resource(s) covered in the course again?": "used_resources_future",
-            "Would you recommend the course?": "recommend_course",
-            "Please tell us your overall rating for the entire course": "course_rating",
-            "May we contact you by email in the future for more feedback?": "email_contact",
-            "The balance of theoretical and practical content was": "balance",
-        }
-
-        demographic_data = import_utils.get_test_data_from_model(
-            models.Demographic,
-            [
-                (field_id, alias)
-                for (alias, field_id) in demographic_mapping.items()
-            ],
-            count
-        )
-        quality_data = import_utils.get_test_data_from_model(
-            models.Quality,
-            [
-                (field_id, alias)
-                for (alias, field_id) in quality_mapping.items()
-            ],
-            count
-        )
-        combined_data = [
+    def create_data_from_questions(self, questions, event_ids, response_count, use_slugs, use_header_slugs, use_all_answers):
+        headers = [question.slug if use_header_slugs else question.text for question in questions]
+        data = [
             {
-                **ddr,
-                **qdr
-            }
-            for ddr, qdr in zip(demographic_data, quality_data)
-        ]
-        event_code_iterator = iter(event_codes)
-        test_data = import_utils.update_table_rows(
-            combined_data,
-            {
-                "event_code": lambda: next(event_code_iterator),
-                "Any other comments?": None,
-                "What other topics would you like to see covered in the future?": None,
-                "What part of the training did you enjoy the least?": None,
-                "What part of the training did you enjoy the most?": None,
-            }
-        )
-        return (
-            [
-                "event_code",
-                "Where did you see the course advertised?",
-                "What is your career stage?",
-                "What is your employment sector?",
-                "What is your country of employment?",
-                "What is your gender?",
-                "Have you used the tool(s)/resource(s) covered in the course before?",
-                "Will you use the tool(s)/resource(s) covered in the course again?",
-                "Would you recommend the course?",
-                "Please tell us your overall rating for the entire course",
-                "May we contact you by email in the future for more feedback?",
-                "What part of the training did you enjoy the most?",
-                "What part of the training did you enjoy the least?",
-                "The balance of theoretical and practical content was",
-                "What other topics would you like to see covered in the future?",
-                "Any other comments?",
-            ],
-            test_data
-        )
-
-    def create_impact_metrics(self, event_codes):
-        count = len(event_codes)
-        impact_mapping = {
-            "Which training event did you take part in?": None,
-            "How long ago did you attend the training?": "when_attend_training",
-            "What was your main reason for attending the training?": "main_attend_reason",
-            "What was your main reason for attending the training? (Other)": None,
-            "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?": "how_often_use_before",
-            "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?": "how_often_use_after",
-            "Do you feel that you are able to explain to others what you learnt in the training?": "able_to_explain",
-            "Do you feel that you are able to explain to others what you learnt in the training? (Other)": None,
-            "Are you now able to use the tool(s)/ resource(s) covered in the training:": "able_use_now",
-            "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)": None,
-            "How did the training event help with your work? [select all that apply]": "help_work",
-            "How did the training event help with your work? (Other)": None,
-            "Attending the training event led to/ facilitated: [select all that apply]": "attending_led_to",
-            "Attending the training event led to/ facilitated: (Other)": None,
-            "Please elaborate on any impact": None,
-            "How many people have you shared the skills and/or knowledge that you learned during the training, with?": "people_share_knowledge",
-            "Would you recommend the training to others?": "recommend_others",
-            "Any other comments?": None,
-        }
-        test_data = import_utils.get_test_data_from_model(
-            models.Impact,
-            [
-                (field_id, alias)
-                for (alias, field_id) in impact_mapping.items()
-                if field_id is not None
-            ],
-            count
-        )
-        event_code_iterator = iter(event_codes)
-        test_data = import_utils.update_table_rows(
-            test_data,
-            {
+                "event_id": event_id,
                 **{
-                    alias: None
-                    for (alias, field_id) in impact_mapping.items()
-                    if field_id is None
-                },
-                "event_code": lambda: next(event_code_iterator),
+                    (question.slug if use_header_slugs else question.text): self.create_data_from_question(question, use_slugs, use_all_answers)
+                    for question in questions
+                }
             }
-        )
+            for event_id in event_ids
+            for _ in range(0, response_count)
+        ]
         return (
             [
-                "event_code",
-                "Which training event did you take part in?",
-                "How long ago did you attend the training?",
-                "What was your main reason for attending the training?",
-                "What was your main reason for attending the training? (Other)",
-                "How often did you use the tool(s)/ resource(s), covered in the training, BEFORE attending the training?",
-                "How often do you use the tool(s)/ resource(s), covered in the training, AFTER having attended the training?",
-                "Do you feel that you are able to explain to others what you learnt in the training?",
-                "Do you feel that you are able to explain to others what you learnt in the training? (Other)",
-                "Are you now able to use the tool(s)/ resource(s) covered in the training:",
-                "Are you now able to use the tool(s)/ resource(s) covered in the training: (Other)",
-                "How did the training event help with your work? [select all that apply]",
-                "How did the training event help with your work? (Other)",
-                "Attending the training event led to/ facilitated: [select all that apply]",
-                "Attending the training event led to/ facilitated: (Other)",
-                "Please elaborate on any impact",
-                "How many people have you shared the skills and/or knowledge that you learned during the training, with?",
-                "Would you recommend the training to others?",
-                "Any other comments?",
+                "event_id",
+                *headers,
             ],
-            test_data
+            data
         )
+
+    def create_data_from_question(self, question, use_slugs, use_all_answers):
+        answers = [
+            answer.slug if use_slugs else answer.text
+            for answer in question.answers.filter(is_active=True)
+        ]
+        answers = [
+            a
+            for a in answers
+            if a != "-" or use_all_answers
+        ]
+        max_count = len(answers) if question.is_multichoice else 1
+        count = random.randint(max_count if use_all_answers else 1, max_count)
+        return "|".join(
+            random.sample(answers, count)
+        )
+
+
+def get_test_data_from_model(model, fields: list[tuple[str, str]], number_of_samples: int) -> list[dict]:
+    field_info = {
+        field_id: {
+            "alias": alias,
+            **get_field_info(model, field_id)
+        }
+        for field_id, alias in fields
+    }
+
+    samples = [
+        {
+            info["alias"]: (
+                (
+                    ", ".join(
+                        random.choices(info["values"], k=random.randint(1, len(info["values"])))
+                    )
+                    if info["multichoice"]
+                    else random.choice(info["values"])
+                )
+                if info["values"] is not None
+                else ""
+            )
+            for info in field_info.values()
+        }
+        for i in range(number_of_samples)
+    ]
+    return samples
+
+
+def update_table_rows(
+    table: list[dict],
+    columns: dict[str, Callable[[], str] | None]
+) -> list[dict]:
+    new_data = []
+    for row in table:
+        new_row = row.copy()
+        for (alias, generator) in columns.items():
+            generator = (lambda: "") if generator is None else generator
+            new_row[alias] = generator()
+        new_data.append(new_row)
+    return new_data
+
+
+def get_field_info(model, field_id):
+    field = model._meta.get_field(field_id)
+    text_choices = (
+        [
+            c[0]
+            for c in field.choices
+        ]
+        if type(field) is TextField and field.choices is not None
+        else None
+    )
+    array_choices = (
+        [
+            c[0]
+            for c in field.base_field.choices
+        ]
+        if type(field) is models.ChoiceArrayField
+        else None
+    )
+    return {
+        "id": field_id,
+        "type": str(type(field)),
+        "multichoice": type(field) is models.ChoiceArrayField,
+        "values": array_choices or text_choices,
+    }

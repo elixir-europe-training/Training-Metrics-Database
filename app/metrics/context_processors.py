@@ -25,14 +25,14 @@ def get_navigation(request):
         "nav_items": [
             {"title": "TMD - Training Metrics Database", "icon": "", "url": reverse("world-map"), "type": "main"},
             *[
-                {"title": title, "icon": icon, "url": url, "type": "user"}
-                for title, icon, url in (
+                {"title": title, "icon": icon, "url": url, "type": "user", "use_post": use_post}
+                for title, icon, url, use_post in (
                     [
-                        (request.user.username, "person-circle", ""),
-                        ('Sign out', "box-arrow-left", reverse('logout')),
+                        (request.user.username, "person-circle", "", False),
+                        ('Sign out', "box-arrow-left", reverse('logout'), True),
                     ] if request.user.is_authenticated
                     else [
-                        ("Sign in", "box-arrow-in-right", f"{reverse('login')}?next={request.path}"),
+                        ("Sign in", "box-arrow-in-right", f"{reverse('login')}?next={request.path}", False),
                     ]
                 )
             ],
