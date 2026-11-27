@@ -27,14 +27,7 @@ from metrics.showcase.welcome import (
     USE_ON_THEIR_OWN,
     WHO_WE_TRAIN,
 )
-from metrics.showcase.widgets import (
-    render_bars,
-    render_chord_diagram,
-    render_stacked_bars,
-    render_stat,
-    render_stats,
-    render_world_map,
-)
+from metrics.showcase.widgets import page_scripts, render_widget
 from django.urls import reverse
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -244,21 +237,29 @@ def world_map_api(request):
 
 
 def overview(request):
+    scope = Scope()
+    widgets = {
+        name: render_widget(widget, scope, name.replace("_", "-"))
+        for name, widget in [
+            ("hero_stats", HERO_STATS),
+            ("tool_usage", TOOL_USAGE),
+            ("training_led_to", TRAINING_LED_TO),
+            ("colleagues_taught", COLLEAGUES_TAUGHT),
+            ("use_on_their_own", USE_ON_THEIR_OWN),
+            ("already_recommended", ALREADY_RECOMMENDED),
+            ("who_we_train", WHO_WE_TRAIN),
+            ("events_map", EVENTS_MAP),
+            ("node_collaborations", NODE_COLLABORATIONS),
+        ]
+    }
     return render(
         request,
         "metrics/overview.html",
         context={
             "title": "Training Metrics Database",
             **get_tabs(request),
-            "hero_stats": render_stats(HERO_STATS, Scope()),
-            "tool_usage": render_stacked_bars(TOOL_USAGE, Scope()),
-            "training_led_to": render_stats(TRAINING_LED_TO, Scope()),
-            "colleagues_taught": render_stat(COLLEAGUES_TAUGHT, Scope()),
-            "use_on_their_own": render_stat(USE_ON_THEIR_OWN, Scope()),
-            "already_recommended": render_stat(ALREADY_RECOMMENDED, Scope()),
-            "who_we_train": render_bars(WHO_WE_TRAIN, Scope()),
-            "events_map": render_world_map(EVENTS_MAP, Scope()),
-            "node_collaborations": render_chord_diagram(NODE_COLLABORATIONS, Scope()),
+            **widgets,
+            "widget_scripts": page_scripts(widgets.values()),
             "data_url": reverse("world-map-api")
         }
     )

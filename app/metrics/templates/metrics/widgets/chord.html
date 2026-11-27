@@ -1,29 +1,24 @@
 {% comment %}
-Circos/chord diagram of Nodes organising courses together, with the number of
-co-organised courses. Takes `widget` from render_chord_diagram. The diagram
-itself is drawn by static/js/chord.js.
+ChordDiagram: circos/chord diagram of Nodes organising courses together, with
+the number of co-organised courses. Text and diagram are side by side when the
+widget is wide enough (see widgets.css). The diagram itself is drawn by
+static/js/chord.js, which the page loads once (see ChordDiagram.scripts).
 {% endcomment %}
-{% load static %}
 {% if widget %}
-<div class="row g-5 align-items-center">
-    <div class="col-lg-6 d-flex flex-column gap-4">
-        <div>
-            <h3>{{ widget.title }}</h3>
-            {% if widget.description %}<p class="text-body-secondary mb-0">{{ widget.description }}</p>{% endif %}
+<div class="tmd-widget tmd-chord-container" id="{{ widget.id }}">
+    <div class="tmd-chord">
+        <div class="d-flex flex-column gap-3">
+            <div>{% include 'metrics/widgets/header.html' %}</div>
+            <div class="d-flex flex-column gap-1">
+                <span class="fs-2 fw-bold lh-1">{{ widget.count }}</span>
+                <span class="text-body-secondary">{{ widget.count_label }}</span>
+            </div>
         </div>
-        <div class="d-flex flex-column gap-1">
-            <span class="fs-2 fw-bold lh-1">{{ widget.count }}</span>
-            <span class="text-body-secondary">{{ widget.count_label }}</span>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <figure class="m-0 mx-auto" style="max-width: 500px">
-            <div id="{{ widget.id }}" data-chord="{{ widget.data_id }}"
+        <figure class="m-0 mx-auto w-100" style="max-width: 500px">
+            <div data-chord="{{ widget.data_id }}"
                  role="img" aria-label="Chord diagram of courses organised together by ELIXIR Nodes"></div>
         </figure>
     </div>
+    {{ widget.data|json_script:widget.data_id }}
 </div>
-{{ widget.data|json_script:widget.data_id }}
-<script src="{% static 'vendor/d3-7.9.0.min.js' %}"></script>
-<script src="{% static 'js/chord.js' %}"></script>
 {% endif %}

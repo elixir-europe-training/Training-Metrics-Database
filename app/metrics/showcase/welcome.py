@@ -1,6 +1,9 @@
 """
 What the public start page shows. Definitions only, no logic.
 
+The page itself (headings, text, layout) is in metrics/overview.html, so the
+widgets here mostly have no title of their own.
+
 If questions or answers change (see sync_question_set), update the answer
 mappings here. Until then, affected widgets are hidden and a warning is logged.
 """
@@ -16,11 +19,11 @@ from .calculations import (
     ResponseCount,
     Share,
 )
-from .widgets import Bars, ChordDiagram, StackedBars, Stat, WorldMap
+from .widgets import Bars, ChordDiagram, StackedBars, Stat, StatGroup, WorldMap
 
 MIN_RESPONSES = 30
 
-HERO_STATS = [
+HERO_STATS = StatGroup(style="row", stats=(
     Stat(
         label="training events recorded",
         value=EventCount(),
@@ -54,7 +57,7 @@ HERO_STATS = [
         note_format="average rating {:.1f} / 5",
         min_n=MIN_RESPONSES,
     ),
-]
+))
 
 # Before and after use the same groups, but the answer slugs differ slightly
 # between the two questions ("used" vs "use"), so they are listed separately.
@@ -93,7 +96,7 @@ TOOL_USAGE = StackedBars(
 # publications etc. One participant can tick several answers.
 LED_TO_QUESTION = "impact-attending_led_to"
 
-TRAINING_LED_TO = [
+TRAINING_LED_TO = StatGroup(style="tiles", stats=tuple(
     Stat(
         label=label,
         value=AnswerCount(question=LED_TO_QUESTION, answer=answer),
@@ -107,7 +110,7 @@ TRAINING_LED_TO = [
         ("grant applications", "submission-of-a-grant-application"),
         ("career changes", "change-in-career"),
     ]
-]
+))
 
 # Participants answer in ranges (1-5, 6-15, ...), so the number of colleagues
 # is a lower bound: every answer counts as the bottom of its range.
@@ -151,7 +154,7 @@ USE_ON_THEIR_OWN = Stat(
 
 WHO_WE_TRAIN = Bars(
     title="Who we train",
-    distribution=Distribution(
+    value=Distribution(
         question="demographic-career_stage",
         groups={
             "PhD candidates": ("phd-candidate",),

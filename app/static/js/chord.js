@@ -2,11 +2,11 @@
 // Each element points to a <script type="application/json"> with
 // {nodes: [...], matrix: [[...]], main: [[...]]}, where matrix[i][j] is the
 // number of courses Node i and Node j organised together and main[i][j] is the
-// index of the pair's main Node (or null). Diagrams already drawn are skipped,
-// so this file can be included once per widget.
+// index of the pair's main Node (or null). The page loads this file once,
+// after the widgets.
 (function () {
     const size = 520;
-    const outer = size / 2 - 80;  // room for labels such as "EMBL-EBI"
+    const outer = size / 2 - 80;  // room for labels such as "EMBL-EBI"; cropped after drawing
     const inner = outer - 14;
 
     // "ELIXIR-SE" -> "SE"
@@ -26,11 +26,6 @@
     }
 
     document.querySelectorAll("[data-chord]").forEach(function (element) {
-        if (element.dataset.drawn) {
-            return;
-        }
-        element.dataset.drawn = "true";
-
         const data = JSON.parse(document.getElementById(element.dataset.chord).textContent);
         const chords = d3.chord().padAngle(0.04).sortSubgroups(d3.descending)(data.matrix);
         const colours = nodeColours(data.nodes.length);
@@ -98,5 +93,13 @@
             .on("mouseleave", function () {
                 ribbons.attr("fill-opacity", 0.7);
             });
+
+        // Crop the drawing to what was actually drawn (arcs and labels), so
+        // the widget has no empty border around the circle
+        const box = svg.node().getBBox();
+        const padding = 2;
+        svg.attr("viewBox", [
+            box.x - padding, box.y - padding, box.width + 2 * padding, box.height + 2 * padding,
+        ]);
     });
 })();

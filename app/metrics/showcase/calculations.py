@@ -8,16 +8,26 @@ Each calculation has two methods:
 check() is what keeps widgets safe when questions change: if a question is
 removed, or an answer is added/renamed that the definition doesn't know about,
 the widget is hidden instead of showing a misleading number.
+
+Each calculation also says what kind of value it returns (`returns`, one of
+the kinds below), so a widget can check that it is able to show it.
 """
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from itertools import combinations
+from typing import ClassVar
 
 from django.db.models import Count
 
 from metrics.models import Answer, Event, Question, QuestionSet
 
 NO_RESPONSE = ("no-response",)
+
+# Kinds of values a calculation can return
+NUMBER = "number"                      # 2151, 89 (a percentage), 4.3
+PERCENT_BY_GROUP = "percent by group"  # {"PhD candidates": 40.0, ...}, adding up to 100
+COUNT_BY_COUNTRY = "count by country"  # {"Sweden": 12, ...}
+NODE_PAIRS = "node pairs"              # see CoOrganisedEvents
 
 
 @dataclass(frozen=True)
@@ -26,14 +36,20 @@ class Result:
     n: int  # number of data points behind the value
 
 
-def check_question(question_slug, mapped_answers=None):
+def check_question(question_slug, mapped_answers=None, multichoice=True):
     """
     Check that the question exists and, if mapped_answers is given, that every
     active answer is mapped and every mapped answer still exists.
+
+    multichoice=False rejects multi-choice questions, for calculations that
+    count answers rather than participants: there one participant can tick
+    several answers, so shares and averages of answers would be wrong.
     """
     question = Question.objects.filter(slug=question_slug, is_active=True).first()
     if question is None:
         return [f"question '{question_slug}' does not exist or is inactive"]
+    if question.is_multichoice and not multichoice:
+        return [f"'{question_slug}' is a multi-choice question, which this calculation can't count"]
     if mapped_answers is None:
         return []
 
@@ -63,6 +79,8 @@ def count_answers(scope, question_slug):
 class EventCount:
     """Number of events."""
 
+    returns: ClassVar[str] = NUMBER
+
     def check(self):
         return []
 
@@ -74,6 +92,8 @@ class EventCount:
 @dataclass(frozen=True)
 class EventsByCountry:
     """Number of events per country they were held in, e.g. {"Sweden": 12}."""
+
+    returns: ClassVar[str] = COUNT_BY_COUNTRY
 
     def check(self):
         return []
@@ -108,6 +128,8 @@ class CoOrganisedEvents:
     with each pair sorted by name. Pairs where neither Node was ever the main
     Node are not in main_nodes. n is the number of co-organised events.
     """
+
+    returns: ClassVar[str] = NODE_PAIRS
 
     def check(self):
         return []
@@ -155,6 +177,8 @@ class ResponseCount:
     """Number of filled-in surveys (response sets) for the given question sets."""
     question_sets: tuple[str, ...]
 
+    returns: ClassVar[str] = NUMBER
+
     def check(self):
         existing = set(
             QuestionSet.objects.filter(slug__in=self.question_sets)
@@ -175,6 +199,8 @@ class DistinctAnswers:
     """Number of different answers given, e.g. number of countries."""
     question: str
     ignored: tuple[str, ...] = NO_RESPONSE
+
+    returns: ClassVar[str] = NUMBER
 
     def check(self):
         return check_question(self.question)
@@ -197,6 +223,8 @@ class AnswerCount:
     question: str
     answer: str
     ignored: tuple[str, ...] = NO_RESPONSE
+
+    returns: ClassVar[str] = NUMBER
 
     def check(self):
         problems = check_question(self.question)
@@ -225,8 +253,10 @@ class Share:
     negative: tuple[str, ...]
     ignored: tuple[str, ...] = NO_RESPONSE
 
+    returns: ClassVar[str] = NUMBER
+
     def check(self):
-        return check_question(self.question, [*self.positive, *self.negative, *self.ignored])
+        return check_question(self.question, [*self.positive, *self.negative, *self.ignored], multichoice=False)
 
     def calculate(self, scope):
         counts = count_answers(scope, self.question)
@@ -249,8 +279,10 @@ class MinimumTotal:
     minimums: dict[str, int] = field(hash=False)
     ignored: tuple[str, ...] = NO_RESPONSE
 
+    returns: ClassVar[str] = NUMBER
+
     def check(self):
-        return check_question(self.question, [*self.minimums, *self.ignored])
+        return check_question(self.question, [*self.minimums, *self.ignored], multichoice=False)
 
     def calculate(self, scope):
         counts = count_answers(scope, self.question)
@@ -273,9 +305,11 @@ class Distribution:
     groups: dict[str, tuple[str, ...]] = field(hash=False)
     ignored: tuple[str, ...] = NO_RESPONSE
 
+    returns: ClassVar[str] = PERCENT_BY_GROUP
+
     def check(self):
         mapped = [slug for slugs in self.groups.values() for slug in slugs]
-        return check_question(self.question, [*mapped, *self.ignored])
+        return check_question(self.question, [*mapped, *self.ignored], multichoice=False)
 
     def calculate(self, scope):
         counts = count_answers(scope, self.question)
@@ -299,8 +333,10 @@ class Average:
     scores: dict[str, float] = field(hash=False)
     ignored: tuple[str, ...] = NO_RESPONSE
 
+    returns: ClassVar[str] = NUMBER
+
     def check(self):
-        return check_question(self.question, [*self.scores, *self.ignored])
+        return check_question(self.question, [*self.scores, *self.ignored], multichoice=False)
 
     def calculate(self, scope):
         counts = count_answers(scope, self.question)

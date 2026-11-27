@@ -1,15 +1,19 @@
-{% if stats %}
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
-    {% for stat in stats %}
-    <div class="col">
-        <div class="card h-100">
+{% comment %}
+A StatGroup with style "row": big numbers in cards, as many per row as fit.
+{% endcomment %}
+{% if widget %}
+<div class="tmd-widget" id="{{ widget.id }}">
+    {% include 'metrics/widgets/header.html' %}
+    <div class="tmd-stat-grid">
+        {% for stat in widget.stats %}
+        <div class="card">
             <div class="card-body d-flex flex-column gap-1">
                 <span class="fs-1 fw-bold lh-1">{{ stat.value }}</span>
                 <span class="fs-6 text-body-secondary">{{ stat.label }}</span>
                 {% if stat.note %}<span class="small text-body-tertiary">{{ stat.note }}</span>{% endif %}
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {% endif %}

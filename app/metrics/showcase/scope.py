@@ -10,7 +10,7 @@ class Scope:
     """
     Which data a widget is calculated from.
 
-    The start page uses an empty scope (all data). A node dashboard can later
+    The start page uses an empty scope (all data). A node dashboard can
     pass a node and/or dates, and every calculation follows along.
     """
     node: Node | None = None

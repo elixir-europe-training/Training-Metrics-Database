@@ -74,5 +74,13 @@
     top: 0;
     z-index: 1;
   }
+
+  /* Page made of sections, e.g. the start page: space between the sections,
+     smaller on narrow screens */
+  .tmd-page {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3rem, 8vw, 6rem);
+  }
 </style>
 

@@ -1,0 +1,12 @@
+{% comment %}
+Placeholder for a widget that can't be shown, with the reason. Only rendered
+with render_widget(..., show_hidden=True), meant for a dashboard's editors.
+{% endcomment %}
+{% if widget %}
+<div class="tmd-widget" id="{{ widget.id }}">
+    {% include 'metrics/widgets/header.html' %}
+    <div class="border rounded p-3 text-body-secondary small" style="--bs-border-style: dashed">
+        Hidden from visitors: {{ widget.hidden }}
+    </div>
+</div>
+{% endif %}

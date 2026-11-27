@@ -1,12 +1,15 @@
 {% comment %}
-A single stat in a bordered card with an orange number. Takes one `stat`
-from render_stat; the note, if any, continues the label after a dash.
+A single Stat in a bordered card with an orange number; the note, if any,
+continues the label after a dash.
 {% endcomment %}
-{% if stat %}
-<div class="card h-100">
-    <div class="card-body d-flex flex-column gap-2">
-        <span class="fs-2 fw-bold lh-1" style="color: #b85410">{{ stat.value }}</span>
-        <span>{{ stat.label }}{% if stat.note %} — {{ stat.note }}{% endif %}</span>
+{% if widget %}
+<div class="tmd-widget h-100 d-flex flex-column" id="{{ widget.id }}">
+    {% include 'metrics/widgets/header.html' %}
+    <div class="card flex-grow-1">
+        <div class="card-body d-flex flex-column gap-2">
+            <span class="tmd-stat-value fs-2 fw-bold lh-1">{{ widget.value }}</span>
+            <span>{{ widget.label }}{% if widget.note %} — {{ widget.note }}{% endif %}</span>
+        </div>
     </div>
 </div>
 {% endif %}

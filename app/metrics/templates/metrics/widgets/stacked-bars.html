@@ -1,38 +1,30 @@
+{% comment %}
+StackedBars: one horizontal bar per row, split into groups, with a legend.
+{% endcomment %}
 {% if widget %}
-<style>
-  /* Segment colours, in group order: strongest first, "none" last */
-  .tmd-segment-1 { background-color: #e5833a; }
-  .tmd-segment-2 { background-color: #f6c49c; }
-  .tmd-segment-3 { background-color: var(--bs-secondary-bg); }
-  .tmd-segment { color: var(--bs-body-color); font-weight: bold; }
-  .tmd-legend-swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; vertical-align: -0.1rem; }
-</style>
-<h3>{{ widget.title }}</h3>
-{% if widget.description %}<p class="text-body-secondary mb-4">{{ widget.description }}</p>{% endif %}
-{% for row in widget.rows %}
-<div class="mb-3">
-    <div class="d-flex justify-content-between">
+<div class="tmd-widget" id="{{ widget.id }}">
+    {% include 'metrics/widgets/header.html' %}
+    {% for row in widget.rows %}
+    <div class="mb-3">
         <strong>{{ row.label }}</strong>
-        <span class="small text-body-secondary">n = {{ row.n|floatformat:"0g" }}</span>
-    </div>
-    <div class="progress-stacked" style="height: 2.5rem">
-        {% for segment in row.segments %}
-        <div class="progress" role="progressbar" aria-label="{{ segment.label }}"
-             aria-valuenow="{{ segment.percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"
-             style="width: {{ segment.percent|floatformat:'2u' }}%; height: 2.5rem"
-             title="{{ segment.label }}: {{ segment.percent|floatformat:0 }}%">
-            <div class="progress-bar tmd-segment tmd-segment-{{ forloop.counter }}">
-                {% if segment.percent >= 5 %}{{ segment.percent|floatformat:0 }}%{% endif %}
+        <div class="progress-stacked" style="height: 2.5rem">
+            {% for segment in row.segments %}
+            <div class="progress" role="progressbar" aria-label="{{ segment.label }}"
+                 aria-valuenow="{{ segment.percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"
+                 style="width: {{ segment.percent|floatformat:'2u' }}%; height: 2.5rem"
+                 title="{{ segment.label }}: {{ segment.text }}">
+                <div class="progress-bar tmd-segment tmd-segment-{{ forloop.counter }}">
+                    {% if segment.percent >= 5 %}{{ segment.text }}{% endif %}
+                </div>
             </div>
+            {% endfor %}
         </div>
+    </div>
+    {% endfor %}
+    <div class="d-flex flex-wrap gap-4 small text-body-secondary">
+        {% for label in widget.legend %}
+        <span><span class="tmd-legend-swatch tmd-segment-{{ forloop.counter }}"></span> {{ label }}</span>
         {% endfor %}
     </div>
-</div>
-{% endfor %}
-<div class="d-flex flex-wrap gap-4 small text-body-secondary">
-    {% for label in widget.legend %}
-    <span><span class="tmd-legend-swatch tmd-segment-{{ forloop.counter }}"></span> {{ label }}</span>
-    {% endfor %}
-    {% if widget.source %}<span class="ms-auto">{{ widget.source }}</span>{% endif %}
 </div>
 {% endif %}

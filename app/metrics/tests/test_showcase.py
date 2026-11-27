@@ -15,21 +15,24 @@ from metrics.showcase.calculations import (
 )
 from metrics.showcase.scope import Scope
 from metrics.showcase.widgets import (
+    D3,
+    PLOTLY,
     Bars,
     ChordDiagram,
     StackedBars,
     Stat,
+    StatGroup,
     WorldMap,
-    problems,
-    render_bars,
-    render_chord_diagram,
-    render_stacked_bars,
-    render_stat,
-    render_world_map,
+    page_scripts,
+    render_widget,
 )
 from .utils import create_question, create_questionset, create_user
 
 RATINGS = {"poor-1": 1, "satisfactory-2": 2, "good-3": 3, "very-good-4": 4, "excellent-5": 5}
+
+
+def render(widget, element_id="widget"):
+    return render_widget(widget, Scope(), element_id)
 
 
 class TestShowcase(TestCase):
@@ -38,9 +41,10 @@ class TestShowcase(TestCase):
         self.node = Node.objects.create(name="ELIXIR-SE", country="Sweden")
         self.other_node = Node.objects.create(name="ELIXIR-NO", country="Norway")
 
-        def question(slug, answers):
+        def question(slug, answers, is_multichoice=False):
             return create_question(
                 self.user, slug, slug, ["no-response", *answers],
+                is_multichoice=is_multichoice,
                 choice_slugify=lambda choice: choice,
             )
 
@@ -54,7 +58,7 @@ class TestShowcase(TestCase):
         self.impact = create_questionset(self.user, "Impact", "impact", [
             question("impact-use_before", ["weekly", "monthly", "never"]),
             question("impact-use_after", ["weekly", "monthly", "never"]),
-            question("impact-led_to", ["publication", "software", "not-applicable"]),
+            question("impact-led_to", ["publication", "software", "not-applicable"], is_multichoice=True),
             question("impact-shared_with", ["none", "1-5", "25"]),
         ])
         self.shared_with = MinimumTotal(
@@ -154,7 +158,7 @@ class TestShowcase(TestCase):
         self.assertEqual(EventCount().calculate(Scope(node=self.other_node)).value, 1)
 
     def test_definitions_without_problems(self):
-        self.assertEqual(problems(Stat(label="x", value=self.recommend, note=self.rating)), [])
+        self.assertEqual(Stat(label="x", value=self.recommend, note=self.rating).check(), [])
 
     def test_new_answer_hides_widget(self):
         """The sync_question_set case: a new answer appears that isn't mapped yet."""
@@ -163,23 +167,23 @@ class TestShowcase(TestCase):
         )
         stat = Stat(label="would recommend", value=self.recommend)
 
-        self.assertEqual(problems(stat), ["'quality-recommend_course': answer 'not-sure' is not mapped"])
+        self.assertEqual(stat.check(), ["'quality-recommend_course': answer 'not-sure' is not mapped"])
         with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
-            self.assertIsNone(render_stat(stat, Scope()))
+            self.assertIsNone(render(stat))
 
     def test_renamed_answer_hides_widget(self):
         Answer.objects.filter(question=self.recommend_question(), slug="maybe").update(is_active=False)
 
         self.assertIn(
             "'quality-recommend_course': mapped answer 'maybe' no longer exists",
-            problems(Stat(label="x", value=self.recommend)),
+            Stat(label="x", value=self.recommend).check(),
         )
 
     def test_missing_question_hides_widget(self):
         stat = Stat(label="x", value=DistinctAnswers(question="does-not-exist"))
 
         with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
-            self.assertIsNone(render_stat(stat, Scope()))
+            self.assertIsNone(render(stat))
 
     def test_render_stat(self):
         event = self.create_event()
@@ -194,17 +198,133 @@ class TestShowcase(TestCase):
             min_n=10,
         )
 
-        self.assertEqual(render_stat(stat, Scope()), {
+        self.assertEqual(render(stat, "recommend"), {
+            "id": "recommend",
+            "data_id": "recommend-data",
+            "template": "metrics/widgets/stat-card.html",
+            "scripts": (),
+            "title": "",
+            "description": "",
             "label": "would recommend the course",
             "value": "90%",
             "note": "average rating 3.9 / 5",
-            "n": 10,
         })
+
+    def test_render_widget_with_title_and_description(self):
+        self.respond(self.create_event(), self.quality, {"quality-recommend_course": "yes"})
+        stat = Stat(title="Recommendations", description="From the quality survey.", label="x", value=self.recommend)
+
+        rendered = render(stat)
+
+        self.assertEqual((rendered["title"], rendered["description"]), ("Recommendations", "From the quality survey."))
+
+    def test_stat_note_hidden_below_min_n(self):
+        self.respond(self.create_event(), self.quality, {"quality-recommend_course": "yes", "quality-course_rating": "good-3"}, times=2)
+        self.respond(self.create_event(), self.quality, {"quality-recommend_course": "no"})
+        stat = Stat(label="x", value=self.recommend, note=self.rating, note_format="{}", min_n=3)
+
+        rendered = render(stat)
+
+        # 3 answers for the value, but only 2 ratings
+        self.assertEqual((rendered["value"], rendered["note"]), ("67", None))
+
+    def test_stat_group_leaves_out_hidden_stats(self):
+        self.respond(self.create_event(), self.quality, {"quality-recommend_course": "yes"})
+        group = StatGroup(style="tiles", stats=(
+            Stat(label="events", value=EventCount()),
+            Stat(label="missing", value=DistinctAnswers(question="does-not-exist")),
+            Stat(label="too few", value=self.recommend, min_n=10),
+        ))
+
+        with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
+            rendered = render(group)
+
+        self.assertEqual(rendered["template"], "metrics/widgets/stat-tiles.html")
+        self.assertEqual([stat["label"] for stat in rendered["stats"]], ["events"])
+
+    def test_stat_group_hidden_when_all_stats_are(self):
+        group = StatGroup(stats=(Stat(label="x", value=self.recommend),))
+
+        self.assertIsNone(render(group))
+
+    def test_stat_group_with_unknown_style(self):
+        group = StatGroup(style="pie", stats=(Stat(label="events", value=EventCount()),))
+        self.create_event()
+
+        self.assertEqual(group.check(), ["unknown style 'pie'"])
+        with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
+            self.assertIsNone(render(group))
+
+    def test_page_scripts_each_once(self):
+        self.create_event().node.add(self.other_node)
+        rendered = [
+            render(WorldMap(value=EventsByCountry()), "map-1"),
+            render(WorldMap(value=EventsByCountry()), "map-2"),
+            render(ChordDiagram(value=CoOrganisedEvents())),
+            None,  # a hidden widget
+        ]
+
+        self.assertEqual(page_scripts(rendered), [PLOTLY, "js/world-map.js", D3, "js/chord.js"])
 
     def test_too_few_responses_hides_widget(self):
         self.respond(self.create_event(), self.quality, {"quality-recommend_course": "yes"}, times=5)
 
-        self.assertIsNone(render_stat(Stat(label="x", value=self.recommend, min_n=10), Scope()))
+        self.assertIsNone(render(Stat(label="x", value=self.recommend, min_n=10)))
+
+    def test_widget_rejects_calculation_it_cannot_show(self):
+        bars = Bars(value=EventCount())
+
+        self.assertEqual(bars.check(), ["Bars can't show EventCount (number)"])
+        with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
+            self.assertIsNone(render(bars))
+
+    def test_every_calculation_has_a_widget_that_accepts_it(self):
+        widget_types = (Stat, Bars, StackedBars, WorldMap, ChordDiagram)
+        calculation_types = (
+            AnswerCount, Average, CoOrganisedEvents, DistinctAnswers, Distribution,
+            EventCount, EventsByCountry, MinimumTotal, ResponseCount, Share,
+        )
+        for calculation in calculation_types:
+            with self.subTest(calculation=calculation.__name__):
+                self.assertTrue(any(calculation.returns in widget.accepts for widget in widget_types))
+
+    def test_show_hidden_gives_placeholder_with_reason(self):
+        self.respond(self.create_event(), self.quality, {"quality-recommend_course": "yes"}, times=5)
+        stat = Stat(title="Recommend", label="x", value=self.recommend, min_n=10)
+
+        rendered = render_widget(stat, Scope(), "recommend", show_hidden=True)
+
+        self.assertEqual(rendered, {
+            "id": "recommend",
+            "data_id": "recommend-data",
+            "title": "Recommend",
+            "description": "",
+            "template": "metrics/widgets/hidden.html",
+            "scripts": (),
+            "hidden": "too little data (5 of the 10 needed)",
+        })
+
+    def test_show_hidden_gives_check_problems(self):
+        stat = Stat(label="x", value=DistinctAnswers(question="does-not-exist"))
+
+        with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
+            rendered = render_widget(stat, Scope(), "x", show_hidden=True)
+
+        self.assertEqual(rendered["hidden"], "question 'does-not-exist' does not exist or is inactive")
+
+    def test_hidden_stat_group_gives_reason_per_stat(self):
+        group = StatGroup(stats=(
+            Stat(label="recommend", value=self.recommend),
+            Stat(label="events", value=EventCount(), min_n=1),
+        ))
+
+        rendered = render_widget(group, Scope(), "x", show_hidden=True)
+
+        self.assertEqual(rendered["hidden"], "recommend: no data; events: too little data (0 of the 1 needed)")
+
+    def test_widths(self):
+        self.assertEqual(len(Stat.widths()), 8)
+        self.assertEqual([str(width) for width in WorldMap.widths()], ["1/3", "1/2", "2/3", "3/4", "5/6", "1"])
 
     def test_distribution(self):
         event = self.create_event()
@@ -224,12 +344,12 @@ class TestShowcase(TestCase):
         for before, after in [("never", "weekly"), ("never", "weekly"), ("monthly", "monthly"), ("weekly", "weekly")]:
             self.respond(event, self.impact, {"impact-use_before": before, "impact-use_after": after})
 
-        widget = render_stacked_bars(self.usage, Scope())
+        widget = render(self.usage)
 
         self.assertEqual(widget["legend"], ["Weekly", "Monthly", "Never"])
         self.assertEqual(
-            [(row["label"], row["n"], [segment["percent"] for segment in row["segments"]]) for row in widget["rows"]],
-            [("Before", 4, [25, 25, 50]), ("After", 4, [75, 25, 0])],
+            [(row["label"], [segment["text"] for segment in row["segments"]]) for row in widget["rows"]],
+            [("Before", ["25%", "25%", "50%"]), ("After", ["75%", "25%", "0%"])],
         )
 
     def test_stacked_bars_hidden_when_one_row_has_too_few_answers(self):
@@ -237,7 +357,7 @@ class TestShowcase(TestCase):
         self.respond(event, self.impact, {"impact-use_before": "never"}, times=4)
         self.respond(event, self.impact, {"impact-use_after": "weekly"}, times=3)
 
-        self.assertIsNone(render_stacked_bars(self.usage, Scope()))
+        self.assertIsNone(render(self.usage))
 
     def test_stacked_bars_hidden_when_answer_not_mapped(self):
         Answer.objects.create(
@@ -246,7 +366,7 @@ class TestShowcase(TestCase):
         )
 
         with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
-            self.assertIsNone(render_stacked_bars(self.usage, Scope()))
+            self.assertIsNone(render(self.usage))
 
     def respond_multichoice(self, event, question_slug, answer_slugs):
         """One participant ticking several answers on a multi-choice question."""
@@ -280,6 +400,25 @@ class TestShowcase(TestCase):
         )
         self.assertEqual(AnswerCount(question="impact-led_to", answer="publication").check(), [])
 
+    def test_multichoice_question_rejected_where_answers_are_counted(self):
+        answers = ("publication", "software", "not-applicable")
+        calculations = [
+            Share(question="impact-led_to", positive=answers[:1], negative=answers[1:]),
+            Distribution(question="impact-led_to", groups={"All": answers}),
+            Average(question="impact-led_to", scores=dict.fromkeys(answers, 1)),
+            MinimumTotal(question="impact-led_to", minimums=dict.fromkeys(answers, 1)),
+        ]
+        for calculation in calculations:
+            with self.subTest(calculation=type(calculation).__name__):
+                self.assertEqual(
+                    calculation.check(),
+                    ["'impact-led_to' is a multi-choice question, which this calculation can't count"],
+                )
+
+    def test_multichoice_question_allowed_where_participants_are_counted(self):
+        self.assertEqual(AnswerCount(question="impact-led_to", answer="publication").check(), [])
+        self.assertEqual(DistinctAnswers(question="impact-led_to").check(), [])
+
     def test_minimum_total_uses_bottom_of_each_range(self):
         event = self.create_event()
         for answer in ("none", "1-5", "1-5", "25", "no-response"):
@@ -291,7 +430,7 @@ class TestShowcase(TestCase):
         self.assertEqual((result.value, result.n), (27, 4))
 
     def test_minimum_total_without_answers_is_hidden(self):
-        self.assertIsNone(render_stat(Stat(label="colleagues", value=self.shared_with), Scope()))
+        self.assertIsNone(render(Stat(label="colleagues", value=self.shared_with)))
 
     def test_minimum_total_with_unmapped_answer(self):
         minimums = {"none": 0, "1-5": 1}
@@ -312,7 +451,7 @@ class TestShowcase(TestCase):
             note_format="{}% passed their skills on",
         )
 
-        rendered = render_stat(stat, Scope())
+        rendered = render(stat)
 
         self.assertEqual(rendered["value"], "51+")
         self.assertEqual(rendered["note"], "75% passed their skills on")
@@ -320,7 +459,7 @@ class TestShowcase(TestCase):
     def countries(self, **options):
         return Bars(
             title="Countries",
-            distribution=Distribution(
+            value=Distribution(
                 question="demographic-employment_country",
                 groups={"Sweden": ("se",), "Norway": ("no",), "Finland": ("fi",)},
             ),
@@ -332,23 +471,26 @@ class TestShowcase(TestCase):
         for country in ("no", "se", "se", "fi", "no-response"):
             self.respond(event, self.demographic, {"demographic-employment_country": country})
 
-        rendered = render_bars(self.countries(hidden=("Finland",)), Scope())
+        rendered = render(self.countries(hidden=("Finland",)))
 
         # Finland is not drawn but is part of the total, so bars sum to 75%
         self.assertEqual(
-            [(bar["label"], bar["percent"]) for bar in rendered["bars"]],
-            [("Sweden", 50.0), ("Norway", 25.0)],
+            [(bar["label"], bar["percent"], bar["text"]) for bar in rendered["bars"]],
+            [("Sweden", 50.0, "50%"), ("Norway", 25.0, "25%")],
         )
-        self.assertEqual(rendered["n"], 4)
 
     def test_bars_hidden_below_min_n(self):
         self.respond(self.create_event(), self.demographic, {"demographic-employment_country": "se"})
 
-        self.assertIsNone(render_bars(self.countries(min_n=2), Scope()))
+        self.assertIsNone(render(self.countries(min_n=2)))
 
     def test_bars_with_unknown_hidden_group(self):
-        with self.assertRaises(ValueError):
-            self.countries(hidden=("Denmark",))
+        self.respond(self.create_event(), self.demographic, {"demographic-employment_country": "se"})
+        bars = self.countries(hidden=("Denmark",))
+
+        self.assertEqual(bars.check(), ["hidden groups ['Denmark'] are not in the distribution"])
+        with self.assertLogs("metrics.showcase.widgets", level="WARNING"):
+            self.assertIsNone(render(bars))
 
     def test_events_by_country(self):
         self.create_event()
@@ -365,13 +507,13 @@ class TestShowcase(TestCase):
         self.create_event()
         Event.objects.filter(pk=self.create_event().pk).update(location_country="Norway")
 
-        rendered = render_world_map(WorldMap(title="Events map", value=EventsByCountry()), Scope())
+        rendered = render(WorldMap(title="Events map", value=EventsByCountry()), "events-map")
 
-        self.assertEqual(rendered["id"], "world-map-events-map")
+        self.assertEqual((rendered["id"], rendered["data_id"]), ("events-map", "events-map-data"))
         self.assertEqual(rendered["data"], {"countries": ["Norway", "Sweden"], "counts": [1, 1]})
 
     def test_world_map_without_events_is_hidden(self):
-        self.assertIsNone(render_world_map(WorldMap(title="Map", value=EventsByCountry()), Scope()))
+        self.assertIsNone(render(WorldMap(title="Map", value=EventsByCountry())))
 
     def test_co_organised_events_counts_every_pair(self):
         third_node = Node.objects.create(name="ELIXIR-UK", country="United Kingdom")
@@ -409,7 +551,7 @@ class TestShowcase(TestCase):
     def test_chord_diagram_matrix(self):
         self.create_event().node.add(self.other_node)
 
-        rendered = render_chord_diagram(ChordDiagram(title="Nodes", value=CoOrganisedEvents()), Scope())
+        rendered = render(ChordDiagram(title="Nodes", value=CoOrganisedEvents()))
 
         self.assertEqual(rendered["count"], "1")
         # Main Node SE has index 1 in the sorted Node list
@@ -422,7 +564,7 @@ class TestShowcase(TestCase):
     def test_chord_diagram_without_co_organised_events_is_hidden(self):
         self.create_event()
 
-        self.assertIsNone(render_chord_diagram(ChordDiagram(title="Nodes", value=CoOrganisedEvents()), Scope()))
+        self.assertIsNone(render(ChordDiagram(title="Nodes", value=CoOrganisedEvents())))
 
     def recommend_question(self):
         return self.quality.questions.get(slug="quality-recommend_course")

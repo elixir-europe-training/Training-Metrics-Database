@@ -1,15 +1,13 @@
 // Draws every world map widget on the page (metrics/widgets/world-map.html).
 // Each map element points to a <script type="application/json"> with its data.
-// Maps that are already drawn are skipped, so this file can be included once
-// per widget.
+// The page loads this file once, after the widgets.
 (function () {
     document.querySelectorAll("[data-world-map]").forEach(function (element) {
-        if (element.dataset.drawn) {
-            return;
-        }
-        element.dataset.drawn = "true";
-
         const data = JSON.parse(document.getElementById(element.dataset.worldMap).textContent);
+        // Colours from static/css/widgets.css
+        const style = getComputedStyle(element);
+        const low = style.getPropertyValue("--tmd-accent-lightest").trim();
+        const high = style.getPropertyValue("--tmd-accent").trim();
 
         const trace = {
             type: "choropleth",
@@ -17,7 +15,7 @@
             locations: data.countries,
             z: data.counts,
             text: data.countries,
-            colorscale: [[0, "#fbe3d1"], [1, "#e5833a"]],
+            colorscale: [[0, low], [1, high]],
             colorbar: {len: 0.6, thickness: 12, outlinewidth: 0},
             marker: {line: {color: "white", width: 0.5}},
             hovertemplate: "%{text}: %{z}<extra></extra>",

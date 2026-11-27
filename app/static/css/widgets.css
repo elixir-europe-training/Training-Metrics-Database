@@ -1,0 +1,76 @@
+/*
+ * Styles for the widgets in metrics/templates/metrics/widgets/.
+ *
+ * Widgets can be placed at any width (down to 1/6 of the page on a dashboard),
+ * so they size themselves by the space they get, not by the screen size.
+ */
+
+:root {
+    /* Also read by static/js/world-map.js */
+    --tmd-accent: #e5833a;
+    --tmd-accent-dark: #b85410;
+    --tmd-accent-light: #f6c49c;
+    --tmd-accent-lightest: #fbe3d1;
+}
+
+/* Stats: as many per row as fit */
+.tmd-stat-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+}
+
+.tmd-stat-grid-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+}
+
+.tmd-stat-value {
+    color: var(--tmd-accent-dark);
+}
+
+.tmd-stat-tile {
+    border-top: 4px solid var(--tmd-accent);
+    background-color: var(--bs-tertiary-bg);
+}
+
+/* Bars */
+.tmd-bar {
+    background-color: var(--tmd-accent);
+}
+
+/* Stacked bars: segment colours in group order, strongest first, "none" last */
+.tmd-segment {
+    color: var(--bs-body-color);
+    font-weight: bold;
+}
+
+.tmd-segment-1 { background-color: var(--tmd-accent); }
+.tmd-segment-2 { background-color: var(--tmd-accent-light); }
+.tmd-segment-3 { background-color: var(--bs-secondary-bg); }
+
+.tmd-legend-swatch {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 3px;
+    vertical-align: -0.1rem;
+}
+
+/* Chord diagram: text above the diagram, or beside it (top-aligned) when there is room.
+   Only this widget is a query container: on all widgets, container-type made
+   the world map's column ignore the map's height. */
+.tmd-chord-container {
+    container-type: inline-size;
+}
+
+.tmd-chord {
+    display: grid;
+    gap: 3rem;
+    align-items: start;
+}
+
+@container (min-width: 720px) {
+    .tmd-chord {
+        grid-template-columns: 1fr 1fr;
+    }
+}

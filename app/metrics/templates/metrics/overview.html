@@ -1,40 +1,45 @@
 {% extends "common/base.html" %}
 {% load static %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'css/widgets.css' %}">
+{% endblock %}
 {% block content %}
     <h1>Welcome to the Training Metrics Database!</h1>
     {% include 'common/tabs.html' %}
-    <section class="my-4 mt-5" style="border-radius: 20px; background-color: #F2F2F2; padding: 20px;">
-        <h3 class="mt-1">Lifelong learning, lasting impact</h3>
+    {# The sections are spaced by .tmd-page (common/css-js.html), not by margins #}
+    <div class="tmd-page mt-5">
+    <section style="border-radius: 20px; background-color: #F2F2F2; padding: 20px;">
+        <h3 class="mt-1 fw-bold">Lifelong learning, lasting impact</h3>
         <p class="mb-4">ELIXIR training across all Nodes, in numbers</p>
-        {% include 'metrics/widgets/stat-row.html' with stats=hero_stats %}
+        {% include 'metrics/widgets/stat-row.html' with widget=hero_stats %}
     </section>
     {% if tool_usage %}
-    <section class="my-5">
+    <section>
         {% include 'metrics/widgets/stacked-bars.html' with widget=tool_usage %}
     </section>
     {% endif %}
     {% if training_led_to or colleagues_taught or use_on_their_own or already_recommended %}
-    <section class="my-5">
-        <h3>What the training led to</h3>
+    <section>
+        <h3><b>What the training led to</b></h3>
         {% if training_led_to %}
         <p class="text-body-secondary mb-4">Number of participants who say the training led to or helped with:</p>
-        {% include 'metrics/widgets/stat-tiles.html' with stats=training_led_to %}
+        {% include 'metrics/widgets/stat-tiles.html' with widget=training_led_to %}
         {% endif %}
         <div class="row row-cols-1 row-cols-md-3 g-3 mt-3">
             {% if colleagues_taught %}
-            <div class="col">{% include 'metrics/widgets/stat-card.html' with stat=colleagues_taught %}</div>
+            <div class="col">{% include 'metrics/widgets/stat-card.html' with widget=colleagues_taught %}</div>
             {% endif %}
             {% if use_on_their_own %}
-            <div class="col">{% include 'metrics/widgets/stat-card.html' with stat=use_on_their_own %}</div>
+            <div class="col">{% include 'metrics/widgets/stat-card.html' with widget=use_on_their_own %}</div>
             {% endif %}
             {% if already_recommended %}
-            <div class="col">{% include 'metrics/widgets/stat-card.html' with stat=already_recommended %}</div>
+            <div class="col">{% include 'metrics/widgets/stat-card.html' with widget=already_recommended %}</div>
             {% endif %}
         </div>
     </section>
     {% endif %}
     {% if who_we_train or events_map %}
-    <section class="my-5">
+    <section>
         <div class="row g-5">
             {% if who_we_train %}
             <div class="col-lg-6">
@@ -50,37 +55,43 @@
     </section>
     {% endif %}
     {% if node_collaborations %}
-    <section class="my-5">
+    <section>
         {% include 'metrics/widgets/chord.html' with widget=node_collaborations %}
     </section>
     {% endif %}
-    <h2>About the TMD</h2>
-    <div>
-        
-        The Training Metrics Database is an effort to streamline data collection, storage, and visualisation for the Quality and Impact of the ELIXIR Training Platform services.
+    <section class="mb-4" style="border-radius: 20px; background-color: #F2F2F2; padding: 20px;">
+        <h3>About the TMD</h3>
+        <div>
+            
+            The Training Metrics Database is an effort to streamline data collection, storage, and visualisation for the Quality and Impact of the ELIXIR Training Platform services.
+        </div>
+        <br>
+        <div>
+
+            The TMD contains data describing the audience demographic being reached by ELIXIR training events in addition to assessing the quality of ELIXIR training events from the users perspective.
+            
+            It also contains data evaluating the longer term impact that ELIXIR training events have had on the work of training participants.
+
+            Most of the data presented here is collected in shape of post workshop feedback surveys (immediately after the training or about half a year after the training) and registration data. 
+
+        </div>
+        <br>
+        <div>
+
+            Please note that data entry may be delayed and is under the responsibility of the ELIXIR Nodes training coordinator. This also means that the TMD showing 0 events for a node, does not mean that they do not do training. 
+
+        </div>
+        <br>
+        <div>
+
+
+            Further information (calendar, training material) about the trainings can be found on  <a href="https://tess.elixir-europe.org/">ELIXIR TeSS</a>.
+
+
+        </div>
+    </section>
     </div>
-    <br>
-    <div>
-
-        The TMD contains data describing the audience demographic being reached by ELIXIR training events in addition to assessing the quality of ELIXIR training events from the users perspective.
-        
-        It also contains data evaluating the longer term impact that ELIXIR training events have had on the work of training participants.
-
-        Most of the data presented here is collected in shape of post workshop feedback surveys (immediately after the training or about half a year after the training) and registration data. 
-
-    </div>
-    <br>
-    <div>
-
-        Please note that data entry may be delayed and is under the responsibility of the ELIXIR Nodes training coordinator. This also means that the TMD showing 0 events for a node, does not mean that they do not do training. 
-
-    </div>
-    <br>
-    <div>
-
-
-        Further information (calendar, training material) about the trainings can be found on  <a href="https://tess.elixir-europe.org/">ELIXIR TeSS</a>. 
-
-
-    </div>
+    {% for script in widget_scripts %}
+    <script src="{% static script %}"></script>
+    {% endfor %}
 {% endblock %}
