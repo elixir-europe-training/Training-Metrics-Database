@@ -9,7 +9,7 @@ from metrics.views.common import get_event_filter_query, dict_to_querydict
 from metrics import models
 from metrics.models import UserProfile, SystemSettings
 from .common import get_tabs
-from metrics.forms import EventFilterForm
+from metrics.forms import EventFilterForm, EventForm
 from django.urls import reverse
 import requests
 import math
@@ -70,27 +70,8 @@ class UserHasNodeMixin(UserPassesTestMixin):
 
 class EventView(LoginRequiredMixin, GenericUpdateView):
     model = models.Event
-    fields = [
-        "user",
-        "title",
-        "node",
-        "date_start",
-        "date_end",
-        "duration",
-        "type",
-        "organising_institution",
-        "location_city",
-        "location_country",
-        "funding",
-        "target_audience",
-        "additional_platforms",
-        "communities",
-        "number_participants",
-        "number_trainers",
-        "url",
-        "status",
-    ]
     view_name = "event-list"
+    form_class = EventForm
 
     @property
     def title(self):
@@ -155,27 +136,8 @@ class EventView(LoginRequiredMixin, GenericUpdateView):
 
 
 class TessImportEventView(LoginRequiredMixin, CreateView):
-    # Figure out how to avoid duplicating this from EventView
     model = models.Event
-    fields = [
-        "title",
-        "node",
-        "date_start",
-        "date_end",
-        "duration",
-        "type",
-        "organising_institution",
-        "location_city",
-        "location_country",
-        "funding",
-        "target_audience",
-        "additional_platforms",
-        "communities",
-        "number_participants",
-        "number_trainers",
-        "url",
-        "status",
-    ]
+    form_class = EventForm
     template_name = "metrics/tess-import-form.html"
     tess_id = None
     title = "Import from TeSS"
